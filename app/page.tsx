@@ -1,6 +1,11 @@
+"use client";
+
+import { useState } from "react";
 import type { ReactNode } from "react";
 
 export default function Home() {
+ const [menuOpen, setMenuOpen] = useState(false);
+
  return (
    <main className="min-h-screen bg-[#F3E9DD] text-[#0E171B]">
      <header className="sticky top-0 z-50 border-b border-[#D6CCBF] bg-[#EDE1D3]/90 backdrop-blur-md">
@@ -26,14 +31,64 @@ export default function Home() {
            </a>
          </nav>
 
-         <a
-           href="/waitlist"
-           className="rounded-full bg-[#081620] px-5 py-3 text-[11px] tracking-[0.08em] text-white min-[1024px]:hidden">
+         <button
+           type="button"
+           onClick={() => setMenuOpen(true)}
+           className="flex h-11 w-11 items-center justify-center rounded-full border border-[#CFC4B7] bg-[#F8F2EA]/80 text-[#081620] min-[1024px]:hidden"
+           aria-label="Open menu">
 
-           EARLY ACCESS
-         </a>
+           <span className="grid gap-1.5">
+             <span className="block h-px w-5 bg-[#081620]" />
+             <span className="block h-px w-5 bg-[#081620]" />
+             <span className="block h-px w-5 bg-[#081620]" />
+           </span>
+         </button>
        </div>
      </header>
+
+     {menuOpen && (
+       <div className="fixed inset-0 z-[100] min-[1024px]:hidden">
+         <button
+           type="button"
+           aria-label="Close menu overlay"
+           onClick={() => setMenuOpen(false)}
+           className="absolute inset-0 bg-[#081620]/30"
+         />
+
+         <aside className="absolute right-0 top-0 flex h-full w-[82%] max-w-[360px] flex-col bg-[#F8F2EA] px-7 py-6 shadow-[-20px_0_70px_rgba(0,0,0,0.18)]">
+           <div className="mb-10 flex items-center justify-between">
+             <img
+               src="/vidapouch_logo3.png"
+               alt="Vidapouch logo"
+               className="h-[46px] w-auto"
+             />
+
+             <button
+               type="button"
+               onClick={() => setMenuOpen(false)}
+               className="flex h-10 w-10 items-center justify-center rounded-full border border-[#D6CCBF] text-2xl leading-none text-[#081620]"
+               aria-label="Close menu">
+
+               ×
+             </button>
+           </div>
+
+           <nav className="grid gap-6">
+             <MobileNavLink href="/product" label="Product" />
+             <MobileNavLink href="/how-it-works" label="How It Works" />
+             <MobileNavLink href="/about" label="About" />
+             <MobileNavLink href="/faq" label="FAQ" />
+           </nav>
+
+           <a
+             href="/waitlist"
+             className="mt-10 rounded-full bg-[#081620] px-7 py-4 text-center text-[13px] tracking-[0.08em] text-white">
+
+             GET EARLY ACCESS
+           </a>
+         </aside>
+       </div>
+     )}
 
      <section className="relative overflow-hidden bg-[#F3E9DD] min-[1024px]:min-h-[calc(100svh-84px)]">
        <img
@@ -127,6 +182,17 @@ export default function Home() {
        </div>
      </section>
    </main>
+ );
+}
+
+function MobileNavLink({ href, label }: { href: string; label: string }) {
+ return (
+   <a
+     href={href}
+     className="border-b border-[#DDD7CF] pb-5 text-[18px] uppercase tracking-[0.16em] text-[#081620]">
+
+     {label}
+   </a>
  );
 }
 
