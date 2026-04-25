@@ -1,0 +1,327 @@
+export default function ProductPage() {
+    return (
+      <main className="min-h-screen bg-[#F3E9DD] text-[#0E171B]">
+        <header className="sticky top-0 z-50 border-b border-[#D6CCBF] bg-[#EDE1D3]/90 backdrop-blur-md">
+          <div className="mx-auto flex max-w-[1440px] items-center justify-between px-5 py-3 lg:px-10">
+            <a href="/" className="shrink-0">
+              <img
+                src="/vidapouch_logo3.png"
+                alt="Vidapouch logo"
+                className="h-[42px] w-auto sm:h-[52px] lg:h-[60px]"
+              />
+            </a>
+   
+            <nav className="hidden items-center gap-5 min-[1024px]:flex min-[1150px]:gap-7">
+              <a href="/product" className="nav-item">PRODUCT</a>
+              <a href="/how-it-works" className="nav-item">HOW IT WORKS</a>
+              <a href="/about" className="nav-item">ABOUT</a>
+              <a href="/faq" className="nav-item">FAQ</a>
+              <a
+                href="/waitlist"
+                className="whitespace-nowrap rounded-full bg-[#081620] px-6 py-3 text-[13px] tracking-[0.08em] text-white">
+   
+                GET EARLY ACCESS
+              </a>
+            </nav>
+   
+            <a
+              href="/waitlist"
+              className="rounded-full bg-[#081620] px-5 py-3 text-[11px] tracking-[0.08em] text-white min-[1024px]:hidden">
+   
+              EARLY ACCESS
+            </a>
+          </div>
+        </header>
+   
+        <section className="bg-[linear-gradient(180deg,#F3E9DD_0%,#EFE2D4_100%)] px-6 py-16 text-center lg:py-22">
+          <div className="mx-auto max-w-[1120px]">
+            <p className="text-[12px] uppercase tracking-[0.24em] text-[#8C1D40]">
+              THE PRODUCT
+            </p>
+   
+            <h1
+              className="mx-auto mt-4 max-w-[860px] text-[44px] leading-[1.02] tracking-[-0.04em] lg:text-[72px]"
+              style={{ fontFamily: "Georgia, serif" }}>
+   
+              Your supplements, organized around your day.
+            </h1>
+   
+            <p className="mx-auto mt-6 max-w-[660px] text-[18px] leading-[1.7] text-[#3E4A4E]">
+              Morning focus. Midday support. Evening wind-down. Each pouch is
+              timed to how your life actually works.
+            </p>
+          </div>
+        </section>
+   
+        <section className="bg-[#EFE2D4] px-6 pb-20">
+          <div className="mx-auto max-w-[1120px] rounded-[36px] border border-[#DDD7CF] bg-[#F8F2EA]/90 px-6 py-10 shadow-[0_30px_90px_rgba(20,15,10,0.08)] sm:px-10 sm:py-12">
+            <div className="mx-auto max-w-[760px] text-center">
+              <p className="text-[12px] uppercase tracking-[0.24em] text-[#8C1D40]">
+                YOUR DAY, ALREADY ORGANIZED
+              </p>
+   
+              <h2
+                className="mx-auto mt-4 max-w-[700px] text-[38px] leading-[1.05] tracking-[-0.035em] lg:text-[56px]"
+                style={{ fontFamily: "Georgia, serif" }}>
+   
+                A complete routine, one pouch at a time.
+              </h2>
+   
+              <p className="mx-auto mt-5 max-w-[640px] text-[17px] leading-8 text-[#3E4A4E]">
+                Your pouches are arranged by time of day, so the right supplements
+                are ready exactly when your routine needs them.
+              </p>
+            </div>
+   
+            <div className="mt-9 overflow-hidden rounded-[28px] border border-[#DDD7CF] bg-white/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)]">
+              <img
+                src="/vidapouch_day_strip2.png"
+                alt="Vidapouch daily strip of supplement pouches organized from morning to evening"
+                className="h-auto w-full object-cover"
+              />
+            </div>
+          </div>
+        </section>
+   
+        <section className="bg-[#F3E9DD] px-6 py-20">
+          <div className="mx-auto max-w-[1120px]">
+            <div className="mx-auto max-w-[760px] text-center">
+              <p className="text-[12px] uppercase tracking-[0.24em] text-[#8C1D40]">
+                WHAT YOU RECEIVE
+              </p>
+   
+              <h2
+                className="mt-4 text-[38px] leading-[1.05] tracking-[-0.035em] lg:text-[56px]"
+                style={{ fontFamily: "Georgia, serif" }}>
+   
+                A personalized system of timed pouches.
+              </h2>
+   
+              <p className="mt-5 text-[17px] leading-8 text-[#3E4A4E]">
+                Vidapouch simplifies supplement routines by grouping what you take
+                into pouches designed around your actual day.
+              </p>
+            </div>
+   
+            <div className="mx-auto mt-12 max-w-[520px] rounded-[36px] border border-[#DDD7CF] bg-[#F8F2EA]/90 px-8 py-12 text-center shadow-[0_30px_90px_rgba(20,15,10,0.08)]">
+              <img
+                src="/vidapouch_pouch.png"
+                alt="Vidapouch morning pouch"
+                className="mx-auto w-full max-w-[300px] object-contain drop-shadow-2xl"
+              />
+   
+              <p className="mt-7 text-[12px] uppercase tracking-[0.22em] text-[#8C1D40]">
+                Morning Pouch
+              </p>
+              <p className="mx-auto mt-2 max-w-[360px] text-[16px] leading-7 text-[#475357]">
+                Everything inside is taken together — one pouch, one moment, one
+                simple routine.
+              </p>
+            </div>
+   
+            <div className="mt-12 grid gap-5 md:grid-cols-3">
+              <SimpleCard
+                title="Morning"
+                text="Focus, energy, or daily support to start your day."
+              />
+              <SimpleCard
+                title="Midday"
+                text="Workout, recovery, or routine support when your schedule shifts."
+              />
+              <SimpleCard
+                title="Evening"
+                text="Wind-down support organized for the end of your day."
+              />
+            </div>
+          </div>
+        </section>
+   
+        <section className="bg-[#EFE2D4] px-6 py-20">
+          <div className="mx-auto grid max-w-[1120px] items-center gap-10 lg:grid-cols-[0.95fr_1.05fr]">
+            <div>
+              <p className="text-[12px] uppercase tracking-[0.24em] text-[#8C1D40]">
+                A POUCH THAT STAYS CONNECTED
+              </p>
+   
+              <h2
+                className="mt-4 text-[40px] leading-[1.05] tracking-[-0.035em] lg:text-[56px]"
+                style={{ fontFamily: "Georgia, serif" }}>
+   
+                More than packaging. A routine interface.
+              </h2>
+   
+              <p className="mt-5 text-[17px] leading-8 text-[#475357]">
+                Each pouch can connect you back to your routine — helping you
+                remember, understand, and adjust as your goals or schedule change.
+              </p>
+            </div>
+   
+            <div className="grid gap-5">
+              <FeatureCard
+                title="Scan to set reminders"
+                text="Stay consistent without having to think about timing."
+              />
+              <FeatureCard
+                title="Scan to adjust your routine"
+                text="Your AI guide is always one scan away when your goals change."
+              />
+              <FeatureCard
+                title="Know what you’re taking"
+                text="See what’s inside, the quantity included, and why those supplements may fit your goals."
+              />
+            </div>
+          </div>
+        </section>
+   
+        <section className="bg-[#F3E9DD] px-6 py-20">
+          <div className="mx-auto max-w-[1120px]">
+            <div className="mx-auto max-w-[760px] text-center">
+              <p className="text-[12px] uppercase tracking-[0.24em] text-[#8C1D40]">
+                WHO IT’S FOR
+              </p>
+   
+              <h2
+                className="mt-4 text-[38px] leading-[1.05] tracking-[-0.035em] lg:text-[56px]"
+                style={{ fontFamily: "Georgia, serif" }}>
+   
+                Built for routines that matter.
+              </h2>
+   
+              <p className="mt-5 text-[17px] leading-8 text-[#3E4A4E]">
+                From busy professionals to people managing complex supplement
+                schedules, Vidapouch brings order to routines that can feel
+                scattered or overwhelming.
+              </p>
+            </div>
+   
+            <div className="mt-12 grid gap-5 md:grid-cols-2">
+              <AudienceCard
+                title="Multiple supplements"
+                text="No more managing several bottles across the day."
+              />
+              <AudienceCard
+                title="Changing goals"
+                text="Adjust your routine as your needs, schedule, or priorities evolve."
+              />
+              <AudienceCard
+                title="Doctor-guided routines"
+                text="Organize complex supplement schedules recommended by a clinician or wellness professional."
+              />
+              <AudienceCard
+                title="Caregivers and families"
+                text="Help a loved one stay consistent with a routine that has become hard to track."
+              />
+            </div>
+   
+            <p className="mx-auto mt-8 max-w-[760px] text-center text-[13px] leading-6 text-[#687377]">
+              Vidapouch is designed to help organize supplement routines. It does
+              not diagnose, treat, cure, or prevent disease, and it is not a
+              replacement for medical advice.
+            </p>
+          </div>
+        </section>
+   
+        <section className="bg-[#EFE2D4] px-6 py-20">
+          <div className="mx-auto grid max-w-[1120px] items-center gap-10 rounded-[36px] border border-[#DDD7CF] bg-[#F8F2EA]/90 px-8 py-14 shadow-[0_30px_90px_rgba(20,15,10,0.08)] lg:grid-cols-[0.9fr_1.1fr] lg:px-12">
+            <div className="flex justify-center rounded-[30px] border border-[#DDD7CF] bg-white/55 p-8">
+              <img
+                src="/vidapouch_back.png"
+                alt="Back of Vidapouch pouch showing supplement contents and quantity"
+                className="w-full max-w-[260px] object-contain drop-shadow-xl"
+              />
+            </div>
+   
+            <div>
+              <p className="text-[12px] uppercase tracking-[0.24em] text-[#8C1D40]">
+                WHAT’S INSIDE
+              </p>
+   
+              <h2
+                className="mt-4 text-[38px] leading-[1.06] tracking-[-0.035em] lg:text-[54px]"
+                style={{ fontFamily: "Georgia, serif" }}>
+   
+                Clear contents. No guesswork.
+              </h2>
+   
+              <p className="mt-5 text-[17px] leading-8 text-[#475357]">
+                The back of each pouch shows the supplements inside and the
+                quantity included. Scan to learn more about those ingredients, why
+                they may be part of your routine, and similar options you may want
+                to explore.
+              </p>
+            </div>
+          </div>
+        </section>
+   
+        <section className="px-6 pb-20 pt-20">
+          <div className="mx-auto max-w-[900px] rounded-[32px] border border-[#DDD7CF] bg-[#F8F2EA]/90 px-8 py-12 text-center shadow-[0_30px_80px_rgba(20,15,10,0.08)]">
+            <p className="text-[12px] uppercase tracking-[0.24em] text-[#8C1D40]">
+              EARLY ACCESS
+            </p>
+   
+            <h2
+              className="mx-auto mt-4 max-w-[650px] text-[38px] leading-[1.08] tracking-[-0.035em] lg:text-[54px]"
+              style={{ fontFamily: "Georgia, serif" }}>
+   
+              Start building your routine.
+            </h2>
+   
+            <p className="mx-auto mt-5 max-w-[560px] text-[17px] leading-8 text-[#475357]">
+              Join the waitlist and tell us what you take today. Your answers help
+              us design the first Vidapouch experience around real routines.
+            </p>
+   
+            <a
+              href="/waitlist"
+              className="mt-8 inline-block rounded-full bg-[#081620] px-8 py-4 text-[14px] tracking-[0.08em] text-white">
+   
+              GET EARLY ACCESS
+            </a>
+          </div>
+        </section>
+      </main>
+    );
+   }
+   
+   function SimpleCard({ title, text }: { title: string; text: string }) {
+    return (
+      <div className="rounded-[28px] border border-[#DDD7CF] bg-[#F8F2EA]/90 p-7 text-center shadow-[0_18px_50px_rgba(20,15,10,0.05)]">
+        <h3
+          className="text-[28px] leading-tight tracking-[-0.025em]"
+          style={{ fontFamily: "Georgia, serif" }}>
+   
+          {title}
+        </h3>
+        <p className="mt-4 text-[16px] leading-7 text-[#475357]">{text}</p>
+      </div>
+    );
+   }
+   
+   function FeatureCard({ title, text }: { title: string; text: string }) {
+    return (
+      <div className="rounded-[24px] border border-[#DDD7CF] bg-[#F8F2EA]/90 p-6 shadow-[0_18px_50px_rgba(20,15,10,0.05)]">
+        <h3
+          className="text-[24px] leading-tight tracking-[-0.025em]"
+          style={{ fontFamily: "Georgia, serif" }}>
+   
+          {title}
+        </h3>
+        <p className="mt-3 text-[15px] leading-7 text-[#475357]">{text}</p>
+      </div>
+    );
+   }
+   
+   function AudienceCard({ title, text }: { title: string; text: string }) {
+    return (
+      <div className="rounded-[28px] border border-[#DDD7CF] bg-[#F8F2EA]/90 p-7 shadow-[0_18px_50px_rgba(20,15,10,0.05)]">
+        <h3
+          className="text-[26px] leading-tight tracking-[-0.025em]"
+          style={{ fontFamily: "Georgia, serif" }}>
+   
+          {title}
+        </h3>
+        <p className="mt-4 text-[16px] leading-7 text-[#475357]">{text}</p>
+      </div>
+    );
+   }
+   
