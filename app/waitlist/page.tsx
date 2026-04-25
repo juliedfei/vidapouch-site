@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { ChangeEvent, ReactNode } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@supabase/supabase-js";
 
 const inputClass =
  "w-full rounded-[10px] border border-[#D8D0C6] bg-white/75 px-4 py-3.5 text-[15px] text-[#0E171B] outline-none transition placeholder:text-[#8A8279] focus:border-[#081620] focus:bg-white";
@@ -35,7 +35,7 @@ const stepContent = {
 };
 
 export default function WaitlistPage() {
- const [step, setStep] = useState(1);
+ const [step, setStep] = useState<1 | 2 | 3>(1);
 
  const [formData, setFormData] = useState({
    first_name: "",
@@ -54,7 +54,7 @@ export default function WaitlistPage() {
  const [success, setSuccess] = useState(false);
  const [errorMessage, setErrorMessage] = useState("");
 
- const currentStep = stepContent[step as 1 | 2 | 3];
+ const currentStep = stepContent[step];
 
  const handleChange = (
    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -71,18 +71,30 @@ export default function WaitlistPage() {
      return;
    }
 
-   setStep((prev) => prev + 1);
+   setStep((prev) => (prev < 3 ? ((prev + 1) as 1 | 2 | 3) : prev));
  };
 
  const prevStep = () => {
    setErrorMessage("");
-   setStep((prev) => prev - 1);
+   setStep((prev) => (prev > 1 ? ((prev - 1) as 1 | 2 | 3) : prev));
  };
 
  const handleSubmit = async () => {
    setIsSubmitting(true);
    setErrorMessage("");
 
+   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+   if (!supabaseUrl || !supabaseAnonKey) {
+     setErrorMessage(
+       "The waitlist is not connected yet. Please add the Supabase environment variables in Vercel."
+     );
+     setIsSubmitting(false);
+     return;
+   }
+
+   const supabase = createClient(supabaseUrl, supabaseAnonKey);
    const fullName = `${formData.first_name} ${formData.last_name}`.trim();
 
    const { error } = await supabase.from("waitlist").insert([
