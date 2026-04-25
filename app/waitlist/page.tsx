@@ -97,25 +97,26 @@ export default function WaitlistPage() {
    const supabase = createClient(supabaseUrl, supabaseAnonKey);
    const fullName = `${formData.first_name} ${formData.last_name}`.trim();
 
-   const { error } = await supabase.from("waitlist").insert([
-     {
-       first_name: formData.first_name,
-       last_name: formData.last_name,
-       name: fullName,
-       email: formData.email,
-       supplements: formData.supplements,
-       timing: formData.timing,
-       daily_supplement_count: formData.daily_supplement_count,
-       purchase_location: formData.purchase_location,
-       monthly_spend: formData.monthly_spend,
-       goal: formData.goal,
-       interested_in_powders: formData.interested_in_powders === "yes",
-     },
-   ]);
+   const payload = {
+     first_name: formData.first_name,
+     last_name: formData.last_name,
+     name: fullName,
+     email: formData.email,
+     supplements: formData.supplements,
+     timing: formData.timing,
+     daily_supplement_count: formData.daily_supplement_count,
+     purchase_location: formData.purchase_location,
+     monthly_spend: formData.monthly_spend,
+     goal: formData.goal,
+     interested_in_powders: formData.interested_in_powders === "yes",
+   };
+
+   const { error } = await supabase.from("waitlist").insert([payload]);
 
    if (error) {
-     console.error(error);
-     setErrorMessage("Something went wrong. Please try again.");
+     console.error("Supabase waitlist error:", error);
+     console.error("Attempted waitlist payload:", payload);
+     setErrorMessage(error.message || "Something went wrong. Please try again.");
      setIsSubmitting(false);
      return;
    }
