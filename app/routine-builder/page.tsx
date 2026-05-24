@@ -10,6 +10,7 @@ import type {
  SuggestedAddition,
  PouchTiming,
 } from "@/components/routine-builder/types";
+
 import StartStep from "@/components/routine-builder/StartStep";
 import GoalStep from "@/components/routine-builder/GoalStep";
 import PlanStep from "@/components/routine-builder/PlanStep";
@@ -30,6 +31,8 @@ export default function RoutineBuilderPage() {
  const [supplements, setSupplements] = useState<Supplement[]>([]);
 
  const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
+ const [selectedLifestyle, setSelectedLifestyle] = useState<string[]>([]);
+ const [selectedConsiderations, setSelectedConsiderations] = useState<string[]>([]);
 
  const [morningSupplements, setMorningSupplements] = useState<Supplement[]>([]);
  const [eveningSupplements, setEveningSupplements] = useState<Supplement[]>([]);
@@ -72,7 +75,11 @@ export default function RoutineBuilderPage() {
    const response = await fetch("/api/build-plan", {
      method: "POST",
      headers: { "Content-Type": "application/json" },
-     body: JSON.stringify({ goals: selectedGoals }),
+     body: JSON.stringify({
+       goals: selectedGoals,
+       lifestyle: selectedLifestyle,
+       considerations: selectedConsiderations,
+     }),
    });
 
    const data: BuildPlanResponse = await response.json();
@@ -360,6 +367,10 @@ export default function RoutineBuilderPage() {
            setPath={setPath}
            selectedGoals={selectedGoals}
            setSelectedGoals={setSelectedGoals}
+           selectedLifestyle={selectedLifestyle}
+           setSelectedLifestyle={setSelectedLifestyle}
+           selectedConsiderations={selectedConsiderations}
+           setSelectedConsiderations={setSelectedConsiderations}
            handleBuildGoalPlan={handleBuildGoalPlan}
          />
        )}

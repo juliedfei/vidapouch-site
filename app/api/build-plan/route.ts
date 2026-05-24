@@ -26,6 +26,9 @@ type ScoredProduct = {
  goalMatchScore: number;
  priorityScore: number;
  anchorScore: number;
+ lifestyleScore: number;
+ considerationScore: number;
+ safetyPenalty: number;
  costControlScore: number;
 };
 
@@ -70,6 +73,43 @@ const GOAL_ANCHOR_PRODUCT_IDS: Partial<Record<WellnessGoal, string[]>> = {
  hydration: ["electrolytes"],
  recovery: ["magnesium", "turmeric"],
 };
+
+const LIFESTYLE_PRODUCT_BOOSTS: Record<string, string[]> = {
+ vegetarian: ["b12", "iron", "omega3", "multivitamin"],
+ vegan: ["b12", "iron", "omega3", "multivitamin"],
+ pregnant: ["prenatal-multi", "omega3", "iron", "vitamin-d3"],
+ breastfeeding: ["prenatal-multi", "omega3", "vitamin-d3"],
+ tryingtoconceive: ["prenatal-multi", "omega3", "vitamin-d3"],
+ athleticactive: ["creatine", "electrolytes", "magnesium", "coq10"],
+ caffeinesensitive: ["b-complex", "coq10", "magnesium"],
+ minimalcapsulespreferred: ["multivitamin", "omega3", "magnesium"],
+ lowsunexposure: ["vitamin-d3", "vitamin-k2", "calcium"],
+};
+
+const CONSIDERATION_PRODUCT_BOOSTS: Record<string, string[]> = {
+ migraines: ["magnesium", "coq10", "b-complex", "omega3"],
+ ataxianeurologicalsupport: ["omega3", "coq10", "b-complex", "vitamin-d3"],
+ irondeficiency: ["iron", "vitamin-c", "multivitamin"],
+ thyroidsupport: ["zinc", "multivitamin"],
+ menopause: ["calcium", "vitamin-d3", "magnesium", "omega3"],
+ autoimmunesupport: ["vitamin-d3", "omega3", "quercetin", "probiotic"],
+ chronicfatigue: ["b-complex", "coq10", "magnesium", "vitamin-d3"],
+ jointpaininflammation: ["turmeric", "glucosamine", "boswellia", "omega3"],
+ digestivesensitivity: ["probiotic", "digestive-enzymes", "fiber"],
+ highstress: ["magnesium", "l-theanine", "ashwagandha", "saffron"],
+};
+
+const CLINICIAN_REVIEW_CONSIDERATIONS = [
+ "pregnant",
+ "breastfeeding",
+ "tryingtoconceive",
+ "migraines",
+ "ataxianeurologicalsupport",
+ "irondeficiency",
+ "thyroidsupport",
+ "autoimmunesupport",
+ "chronicfatigue",
+];
 
 function catalogProductToSupplement(product: CatalogProduct): Supplement {
  return {
@@ -189,10 +229,8 @@ function findPossibleCatalogMisspelling(name: string): CatalogProduct | null {
      if (term.length < 4) continue;
 
      const distance = getLevenshteinDistance(normalizedName, term);
-
      const isStrongPrefix =
        term.startsWith(normalizedName) && normalizedName.length >= 5;
-
      const isCloseDistance = distance <= 2;
 
      if ((isStrongPrefix || isCloseDistance) && distance < bestDistance) {
@@ -311,8 +349,53 @@ function getSuppressedIdsForCoreProduct(coreProductId: string) {
  return [];
 }
 
-function scoreProductForCore(product: CatalogProduct, goals: WellnessGoal[]) {
+function getBoostedProductIds(values: string[], boostMap: Record<string, string[]>) {
+ return values.flatMap((value) => boostMap[normalizeText(value)] || []);
+}
+
+function getSafetyPenalty(product: CatalogProduct, lifestyle: string[]) {
+ const normalizedLifestyle = lifestyle.map(normalizeText);
+
+ if (
+   normalizedLifestyle.some((item) =>
+     ["pregnant", "breastfeeding", "tryingtoconceive"].includes(item)
+   )
+ ) {
+   if (
+     ["ashwagandha", "berberine", "green-tea-extract", "5-htp", "melatonin"].includes(
+       product.id
+     )
+   ) {
+     return -999;
+   }
+ }
+
+ if (normalizedLifestyle.includes("caffeinesensitive")) {
+   if (product.id === "green-tea-extract") return -999;
+   if (product.id === "rhodiola") return -40;
+ }
+
+ return 0;
+}
+
+function scoreProductForCore({
+ product,
+ goals,
+ lifestyle,
+ considerations,
+}: {
+ product: CatalogProduct;
+ goals: WellnessGoal[];
+ lifestyle: string[];
+ considerations: string[];
+}) {
  const anchorIds = getAnchorIdsForGoals(goals);
+ const lifestyleBoostIds = getBoostedProductIds(lifestyle, LIFESTYLE_PRODUCT_BOOSTS);
+ const considerationBoostIds = getBoostedProductIds(
+   considerations,
+   CONSIDERATION_PRODUCT_BOOSTS
+ );
+
  const matchingGoalCount = product.supports.filter((goal) =>
    goals.includes(goal)
  ).length;
@@ -320,30 +403,58 @@ function scoreProductForCore(product: CatalogProduct, goals: WellnessGoal[]) {
  const goalMatchScore = matchingGoalCount * 30;
  const priorityScore = product.corePriority * 10;
  const anchorScore = anchorIds.includes(product.id) ? 50 : 0;
+ const lifestyleScore = lifestyleBoostIds.includes(product.id) ? 25 : 0;
+ const considerationScore = considerationBoostIds.includes(product.id) ? 30 : 0;
+ const safetyPenalty = getSafetyPenalty(product, lifestyle);
  const costControlScore =
    goals.length <= 1 && product.monthlyPrice >= 30 ? -10 : 0;
 
  return {
    product,
-   totalScore: goalMatchScore + priorityScore + anchorScore + costControlScore,
+   totalScore:
+     goalMatchScore +
+     priorityScore +
+     anchorScore +
+     lifestyleScore +
+     considerationScore +
+     safetyPenalty +
+     costControlScore,
    goalMatchScore,
    priorityScore,
    anchorScore,
+   lifestyleScore,
+   considerationScore,
+   safetyPenalty,
    costControlScore,
  };
 }
 
-function buildGoalBasedCoreProductIds(goals: WellnessGoal[]) {
+function buildGoalBasedCoreProductIds({
+ goals,
+ lifestyle,
+ considerations,
+}: {
+ goals: WellnessGoal[];
+ lifestyle: string[];
+ considerations: string[];
+}) {
  const limit = getCoreLimit(goals);
  const selectedIds: string[] = [];
  const suppressedIds = new Set<string>();
 
- getAnchorIdsForGoals(goals).forEach((anchorId) => {
+ const boostedAnchorIds = [
+   ...getAnchorIdsForGoals(goals),
+   ...getBoostedProductIds(lifestyle, LIFESTYLE_PRODUCT_BOOSTS),
+   ...getBoostedProductIds(considerations, CONSIDERATION_PRODUCT_BOOSTS),
+ ];
+
+ boostedAnchorIds.forEach((anchorId) => {
    const product = findCatalogProduct(anchorId);
    if (!product) return;
    if (product.isOptionalOnly) return;
    if (selectedIds.includes(anchorId)) return;
    if (suppressedIds.has(anchorId)) return;
+   if (getSafetyPenalty(product, lifestyle) <= -999) return;
    if (selectedIds.length >= limit) return;
 
    selectedIds.push(anchorId);
@@ -358,9 +469,17 @@ function buildGoalBasedCoreProductIds(goals: WellnessGoal[]) {
      !product.isOptionalOnly &&
      !selectedIds.includes(product.id) &&
      !suppressedIds.has(product.id) &&
+     getSafetyPenalty(product, lifestyle) > -999 &&
      product.supports.some((goal) => goals.includes(goal))
  )
-   .map((product) => scoreProductForCore(product, goals))
+   .map((product) =>
+     scoreProductForCore({
+       product,
+       goals,
+       lifestyle,
+       considerations,
+     })
+   )
    .sort((a, b) => b.totalScore - a.totalScore);
 
  rankedProducts.forEach(({ product }) => {
@@ -393,12 +512,21 @@ function scoreProductForSuggestion({
  product,
  goals,
  coreIds,
+ lifestyle,
+ considerations,
 }: {
  product: CatalogProduct;
  goals: WellnessGoal[];
  coreIds: string[];
+ lifestyle: string[];
+ considerations: string[];
 }) {
  const coreIdSet = new Set(coreIds);
+ const lifestyleBoostIds = getBoostedProductIds(lifestyle, LIFESTYLE_PRODUCT_BOOSTS);
+ const considerationBoostIds = getBoostedProductIds(
+   considerations,
+   CONSIDERATION_PRODUCT_BOOSTS
+ );
 
  const matchingGoalCount = product.supports.filter((goal) =>
    goals.includes(goal)
@@ -416,9 +544,12 @@ function scoreProductForSuggestion({
  const goalMatchScore = matchingGoalCount * 25;
  const pairingScore = pairedCoreCount * 35;
  const suppressionMovedToOptionalScore = suppressedByCoreCount * 40;
+ const lifestyleScore = lifestyleBoostIds.includes(product.id) ? 20 : 0;
+ const considerationScore = considerationBoostIds.includes(product.id) ? 25 : 0;
  const priorityScore = product.suggestionPriority * 10;
  const optionalOnlyScore = product.isOptionalOnly ? 15 : 0;
  const duplicatePenalty = coreIdSet.has(product.id) ? -999 : 0;
+ const safetyPenalty = getSafetyPenalty(product, lifestyle);
 
  return {
    product,
@@ -426,29 +557,40 @@ function scoreProductForSuggestion({
      goalMatchScore +
      pairingScore +
      suppressionMovedToOptionalScore +
+     lifestyleScore +
+     considerationScore +
      priorityScore +
      optionalOnlyScore +
-     duplicatePenalty,
-   goalMatchScore,
-   pairingScore,
-   priorityScore,
-   optionalOnlyScore,
+     duplicatePenalty +
+     safetyPenalty,
  };
 }
 
 function buildSuggestedAdditions({
  coreIds,
  goals,
+ lifestyle,
+ considerations,
 }: {
  coreIds: string[];
  goals: WellnessGoal[];
+ lifestyle: string[];
+ considerations: string[];
 }) {
  const coreIdSet = new Set(coreIds);
+ const lifestyleBoostIds = getBoostedProductIds(lifestyle, LIFESTYLE_PRODUCT_BOOSTS);
+ const considerationBoostIds = getBoostedProductIds(
+   considerations,
+   CONSIDERATION_PRODUCT_BOOSTS
+ );
 
  const candidates = VIDAPOUCH_CATALOG.filter((product) => {
    if (coreIdSet.has(product.id)) return false;
+   if (getSafetyPenalty(product, lifestyle) <= -999) return false;
 
    const hasGoalRelevance = isRelevantSuggestionForGoals(product, goals);
+   const hasLifestyleRelevance = lifestyleBoostIds.includes(product.id);
+   const hasConsiderationRelevance = considerationBoostIds.includes(product.id);
 
    const pairsWithCore = coreIds.some((coreId) => {
      const coreProduct = findCatalogProduct(coreId);
@@ -459,7 +601,13 @@ function buildSuggestedAdditions({
      getSuppressedIdsForCoreProduct(coreId).includes(product.id)
    );
 
-   return hasGoalRelevance || pairsWithCore || wasSuppressedFromCore;
+   return (
+     hasGoalRelevance ||
+     hasLifestyleRelevance ||
+     hasConsiderationRelevance ||
+     pairsWithCore ||
+     wasSuppressedFromCore
+   );
  });
 
  return candidates
@@ -468,6 +616,8 @@ function buildSuggestedAdditions({
        product,
        goals,
        coreIds,
+       lifestyle,
+       considerations,
      })
    )
    .sort((a, b) => b.totalScore - a.totalScore)
@@ -477,6 +627,29 @@ function buildSuggestedAdditions({
      suggestedTiming: product.defaultTiming,
    }))
    .slice(0, 4);
+}
+
+function buildSafetyReviewItems(lifestyle: string[], considerations: string[]) {
+ const selected = [...lifestyle, ...considerations];
+ const normalizedSelected = selected.map(normalizeText);
+
+ if (
+   !normalizedSelected.some((item) =>
+     CLINICIAN_REVIEW_CONSIDERATIONS.includes(item)
+   )
+ ) {
+   return [];
+ }
+
+ return [
+   {
+     name: "Clinician review recommended",
+     dosage: "",
+     reason: "needs_confirmation",
+     note:
+       "Because of your lifestyle or health considerations, please review this supplement routine with a clinician before starting or changing supplements.",
+   },
+ ];
 }
 
 function directMatchSupplementToCatalogId(name: string) {
@@ -560,10 +733,7 @@ For unrecognized items, return:
    throw new Error("AI returned no content.");
  }
 
- const cleaned = content
-   .replace(/```json/g, "")
-   .replace(/```/g, "")
-   .trim();
+ const cleaned = content.replace(/```json/g, "").replace(/```/g, "").trim();
 
  return JSON.parse(cleaned) as AiPlanResponse;
 }
@@ -622,12 +792,16 @@ function fallbackRecognizeSupplements(supplements: any[]) {
 export async function POST(req: Request) {
  let supplements: any[] = [];
  let goals: string[] = [];
+ let lifestyle: string[] = [];
+ let considerations: string[] = [];
 
  try {
    const body = await req.json();
 
    supplements = body.supplements || [];
    goals = body.goals || [];
+   lifestyle = body.lifestyle || [];
+   considerations = body.considerations || [];
 
    const isGoalBasedRequest = goals.length > 0;
 
@@ -649,18 +823,30 @@ export async function POST(req: Request) {
        });
      }
 
-     const coreIds = buildGoalBasedCoreProductIds(inferredGoals);
+     const coreIds = buildGoalBasedCoreProductIds({
+       goals: inferredGoals,
+       lifestyle,
+       considerations,
+     });
+
      const splitCoreIds = splitProductIdsByTiming(coreIds);
 
      const suggestedAdditions = buildSuggestedAdditions({
        coreIds,
        goals: inferredGoals,
+       lifestyle,
+       considerations,
      });
+
+     const safetyReviewItems = buildSafetyReviewItems(
+       lifestyle,
+       considerations
+     );
 
      return NextResponse.json({
        morning: hydrateCatalogIds(splitCoreIds.morning),
        evening: hydrateCatalogIds(splitCoreIds.evening),
-       unrecognized: [],
+       unrecognized: safetyReviewItems,
        suggestedAdditions: hydrateSuggestedAdditions(suggestedAdditions),
        source: "ai",
      });
@@ -681,10 +867,7 @@ export async function POST(req: Request) {
      parsed = fallbackRecognizeSupplements(supplementsForAi);
    }
 
-   const unrecognized = [
-     ...(parsed.unrecognized || []),
-     ...forcedUnrecognized,
-   ];
+   const unrecognized = [...(parsed.unrecognized || []), ...forcedUnrecognized];
 
    const validatedMorningIds = validateRecognizedProductIds(
      parsed.morning || [],
@@ -709,6 +892,8 @@ export async function POST(req: Request) {
    const suggestedAdditions = buildSuggestedAdditions({
      coreIds,
      goals: Array.from(new Set(routineGoalHints)),
+     lifestyle: [],
+     considerations: [],
    });
 
    return NextResponse.json({
