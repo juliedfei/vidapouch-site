@@ -1,40 +1,101 @@
+"use client";
+
+import {
+ useEffect,
+ useRef,
+ type KeyboardEvent,
+} from "react";
+
+import SupplementEntryForm from "./SupplementEntryForm";
+import CustomBrandInput from "./CustomBrandInput";
+
 type AddSupplementRowProps = {
-  name: string;
-  dosage: string;
-  setName: (value: string) => void;
-  setDosage: (value: string) => void;
-  addSupplement: () => void;
- };
- 
- export default function AddSupplementRow({
-  name,
-  dosage,
-  setName,
-  setDosage,
-  addSupplement,
- }: AddSupplementRowProps) {
-  return (
-    <div className="mt-5 grid gap-3 rounded-[18px] border border-[#DDD7CF] bg-[#F3E9DD]/70 p-4 md:grid-cols-[1.6fr_1fr_110px] md:items-center">
-      <input
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="Supplement, e.g. Magnesium"
-        className="w-full rounded-2xl border border-[#D6CCBF] bg-white/70 px-4 py-3 outline-none"
-      />
- 
-      <input
-        value={dosage}
-        onChange={(e) => setDosage(e.target.value)}
-        placeholder="Dosage (optional)"
-        className="w-full rounded-2xl border border-[#D6CCBF] bg-white/70 px-4 py-3 outline-none"
-      />
- 
-      <button
-        onClick={addSupplement}
-        className="w-full rounded-full bg-[#081620] px-5 py-3 text-[12px] uppercase tracking-[0.08em] text-white">
- 
-        Add
-      </button>
-    </div>
-  );
+ brand: string;
+ customBrand: string;
+ name: string;
+ dosage: string;
+
+ setBrand: (value: string) => void;
+ setCustomBrand: (value: string) => void;
+ setName: (value: string) => void;
+ setDosage: (value: string) => void;
+
+ addSupplement: () => void;
+};
+
+export default function AddSupplementRow({
+ brand,
+ customBrand,
+ name,
+ dosage,
+
+ setBrand,
+ setCustomBrand,
+ setName,
+ setDosage,
+
+ addSupplement,
+}: AddSupplementRowProps) {
+ const supplementInputRef =
+   useRef<HTMLInputElement>(null);
+
+ const showCustomBrand =
+   brand === "Other";
+
+ useEffect(() => {
+   supplementInputRef.current?.focus();
+ }, []);
+
+ function handleSubmit() {
+   if (!name.trim()) {
+     supplementInputRef.current?.focus();
+     return;
+   }
+
+   addSupplement();
+
+   requestAnimationFrame(() => {
+     supplementInputRef.current?.focus();
+   });
  }
+
+ function handleKeyDown(
+   event: KeyboardEvent<
+     HTMLInputElement | HTMLSelectElement>
+
+ ) {
+   if (event.key !== "Enter") return;
+
+   event.preventDefault();
+   handleSubmit();
+ }
+
+ return (
+   <>
+     <SupplementEntryForm
+       brand={brand}
+       name={name}
+       dosage={dosage}
+       setBrand={setBrand}
+       setName={setName}
+       setDosage={setDosage}
+       handleKeyDown={handleKeyDown}
+       handleSubmit={handleSubmit}
+       supplementInputRef={
+         supplementInputRef
+       }
+     />
+
+     {showCustomBrand && (
+       <div className="mt-4">
+         <CustomBrandInput
+           customBrand={customBrand}
+           setCustomBrand={
+             setCustomBrand
+           }
+         />
+       </div>
+     )}
+   </>
+ );
+}

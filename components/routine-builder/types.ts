@@ -34,7 +34,7 @@ export type CatalogProduct = {
  defaultTiming: PouchTiming;
  monthlyPrice: number;
  dosage: string;
- brand: "Vidapouch";
+ brand: "VidaPouch";
  supports: WellnessGoal[];
  pairsWellWith: string[];
  avoidPairingWith?: string[];
@@ -45,10 +45,25 @@ export type CatalogProduct = {
 
 export type Supplement = {
  id?: string;
+
  name: string;
+
  dosage: string;
+
+ // Customer-selected brand
+ brand?: string;
+
+ // Used when "Other" is selected
+ customBrand?: string;
+
+ // True when VidaPouch should choose the brand
+ vidapouchChoosesBrand?: boolean;
+
+ // Estimated monthly supplement cost
  monthlyPrice?: number;
+
  description?: string;
+
  category?: string;
 };
 
@@ -56,12 +71,18 @@ export type ReviewReason =
  | "unrecognized"
  | "possible_misspelling"
  | "unsupported_format"
- | "needs_confirmation";
+ | "needs_confirmation"
+ "brand_not_found"
+ "pricing_unavailable"
+ "dosage_not_found"
+ 
+ ;
 
 export type UnrecognizedItem = Supplement & {
  suggestion?: string;
  reason?: ReviewReason;
  note?: string;
+ action?: "edit" | "choose_brand";
 };
 
 export type SuggestedAddition = Supplement & {

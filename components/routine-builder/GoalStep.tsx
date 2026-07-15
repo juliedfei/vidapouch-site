@@ -90,7 +90,7 @@ export default function GoalStep({
      </h2>
 
      <p className="mt-3 text-[15px] leading-7 text-[#475357]">
-       Select your goals, lifestyle, and health considerations so VitaPouch can
+       Select your goals, lifestyle, and health considerations so VidaPouch can
        create a more personalized morning and evening pouch.
      </p>
 
@@ -114,7 +114,7 @@ export default function GoalStep({
 
      <SelectionSection
        title="3. Health considerations"
-       subtitle="These help us personalize carefully. VitaPouch does not diagnose, treat, cure, or prevent medical conditions."
+       subtitle="These help us personalize carefully. VidaPouch does not diagnose, treat, cure, or prevent medical conditions."
        options={healthConsiderations}
        selectedItems={selectedConsiderations}
        onToggle={(item) =>

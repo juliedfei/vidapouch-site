@@ -1,12 +1,7 @@
+import Image from "next/image";
 import type { Supplement } from "./types";
 
-function formatPrice(value: number) {
- return new Intl.NumberFormat("en-US", {
-   style: "currency",
-   currency: "USD",
-   maximumFractionDigits: 0,
- }).format(value);
-}
+
 
 export default function PlanCard({
  title,
@@ -24,87 +19,183 @@ export default function PlanCard({
  const isMorning = label.toLowerCase().includes("morning");
 
  return (
-   <div className="rounded-[24px] border border-[#DDD7CF] bg-white/55 p-5 shadow-[0_14px_38px_rgba(20,15,10,0.04)]">
-     <div className="flex items-start justify-between gap-4">
-       <div>
-         <p className="text-[11px] uppercase tracking-[0.2em] text-[#8C1D40]">
-           {title}
-         </p>
+   <div className="rounded-[24px] border border-[#DDD7CF] bg-white p-6 shadow-[0_14px_38px_rgba(20,15,10,0.04)]">
 
-         <h3
-           className="mt-2 text-[28px] tracking-[-0.03em] text-[#081620]"
-           style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
+     {/* HEADER */}
 
-           {label}
-         </h3>
-       </div>
+     <div className="relative flex items-start justify-between">
 
-       <span className="rounded-full border border-[#DDD7CF] bg-[#F8F2EA]/80 px-3 py-1 text-[10px] uppercase tracking-[0.12em] text-[#5D686C]">
+       {/* Left */}
+
+       <p
+         className={`text-[11px] uppercase tracking-[0.2em] font-medium ${
+           isMorning ? "text-[#8C1D40]" : "text-[#173E73]"
+         }`}>
+
+         {title}
+       </p>
+
+       {/* Badge */}
+
+       <div
+       className={`absolute left-1/2 -translate-x-1/2 ${
+   isMorning ? "-top-7" : "-top-[34px]"
+ }`}>
+
+ <Image
+   src={
+     isMorning
+       ? "/images/branding/am-badge.png"
+       : "/images/branding/pm-badge.png"
+   }
+   alt={isMorning ? "AM Badge" : "PM Badge"}
+   width={isMorning ? 44 : 48}
+   height={isMorning ? 64 : 70}
+   priority
+   className="pointer-events-none select-none"
+ />
+</div>
+
+       {/* Count */}
+
+       <span className="rounded-full border border-[#DDD7CF] bg-[#F8F2EA] px-3 py-1 text-[10px] uppercase tracking-[0.12em] text-[#5D686C]">
          {supplements.length} item{supplements.length === 1 ? "" : "s"}
        </span>
+
      </div>
 
-     <div className="mt-4 grid gap-3">
+     {/* Leaves room for badge */}
+
+     <div className="mt-10 space-y-3">
+
        {supplements.length > 0 ? (
-         supplements.map((supplement, index) => (
-           <div
-             key={`${supplement.id || supplement.name}-${index}`}
-             className="rounded-2xl border border-[#DDD7CF] bg-[#F8F2EA] px-4 py-4">
 
-             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-               <div className="min-w-0 flex-1">
-                 <p className="font-medium text-[#081620]">
-                   {supplement.name}
-                 </p>
+         supplements.map((supplement, index) => {
 
-                 <p className="mt-1 text-sm leading-6 text-[#5D686C]">
-                   {supplement.dosage || "Dosage not added"}
-                 </p>
+           const detailLine = [
+             supplement.brand,
+             supplement.dosage,
+           ]
+             .filter(Boolean)
+             .join(" • ");
 
-                 {supplement.description && (
-                   <p className="mt-2 text-sm leading-6 text-[#5D686C]">
-                     {supplement.description}
-                   </p>
-                 )}
+           return (
 
-                 {supplement.monthlyPrice && (
-                   <p className="mt-2 text-sm font-medium text-[#081620]">
-                     {formatPrice(supplement.monthlyPrice)} / month
-                   </p>
-                 )}
+             <div
+               key={`${supplement.id || supplement.name}-${index}`}
+               className="rounded-2xl border border-[#DDD7CF] bg-[#FCFAF7] px-5 py-4">
+
+
+               <div className="flex items-start justify-between gap-6">
+
+                 {/* LEFT */}
+
+                 <div className="min-w-0 flex-1">
+
+                   {/* Desktop */}
+
+                   <div className="hidden md:flex md:flex-wrap md:items-center md:gap-3">
+
+                     <h4 className="font-semibold text-[#081620]">
+                       {supplement.name}
+                     </h4>
+
+                     {detailLine ? (
+
+                       <span className="text-sm text-[#5D686C]">
+                         {detailLine}
+                       </span>
+
+                     ) : (
+
+                       <span className="text-sm italic text-[#A89E91]">
+                         Details not specified
+                       </span>
+
+                     )}
+
+                   </div>
+
+                   {/* Mobile */}
+
+                   <div className="md:hidden">
+
+                     <h4 className="font-semibold text-[#081620]">
+                       {supplement.name}
+                     </h4>
+
+                     <p className="mt-1 text-sm text-[#5D686C]">
+                       {detailLine || "Details not specified"}
+                     </p>
+
+                   </div>
+
+                   {supplement.description && (
+
+                     <p className="mt-2 text-sm leading-6 text-[#5D686C]">
+                       {supplement.description}
+                     </p>
+
+                   )}
+
+                   
+
+                 </div>
+
+                 {/* RIGHT */}
+
+                 <div className="flex items-center gap-3 shrink-0">
+
+                   {moveSupplement && (
+
+                     <button
+                       type="button"
+                       onClick={() => moveSupplement(index)}
+                       className={`rounded-full border border-[#DDD7CF] bg-white px-4 py-2 text-[11px] uppercase tracking-[0.08em] transition hover:bg-[#F8F2EA] ${
+                         isMorning
+                           ? "text-[#8C1D40]"
+                           : "text-[#173E73]"
+                       }`}>
+
+                       Move to {isMorning ? "Evening" : "Morning"}
+                     </button>
+
+                   )}
+
+                   {removeSupplement && (
+
+                     <button
+                       type="button"
+                       onClick={() => removeSupplement(index)}
+                       className="text-2xl leading-none text-[#B4A89A] transition hover:text-[#8C1D40]"
+                       aria-label="Remove supplement">
+
+                       ✕
+                     </button>
+
+                   )}
+
+                 </div>
+
                </div>
 
-               <div className="flex flex-row flex-wrap gap-2 sm:flex-col sm:items-end">
-                 {moveSupplement && (
-                   <button
-                     type="button"
-                     onClick={() => moveSupplement(index)}
-                     className="cursor-pointer rounded-full border border-[#DDD7CF] bg-white/55 px-4 py-2 text-[11px] uppercase tracking-[0.08em] text-[#1B2529]">
-
-                     Move to {isMorning ? "Evening" : "Morning"}
-                   </button>
-                 )}
-
-                 {removeSupplement && (
-                   <button
-                     type="button"
-                     onClick={() => removeSupplement(index)}
-                     className="cursor-pointer rounded-full border border-[#8C1D40]/30 bg-white/55 px-4 py-2 text-[11px] uppercase tracking-[0.08em] text-[#8C1D40]">
-
-                     Remove
-                   </button>
-                 )}
-               </div>
              </div>
-           </div>
-         ))
+
+           );
+
+         })
+
        ) : (
-         <div className="rounded-2xl border border-dashed border-[#D6CCBF] bg-[#F8F2EA]/60 px-4 py-5 text-sm leading-6 text-[#5D686C]">
+
+         <div className="rounded-2xl border border-dashed border-[#D6CCBF] bg-[#FCFAF7] px-5 py-6 text-sm leading-6 text-[#5D686C]">
            No supplements yet. Add an optional suggestion or move an item into
            this pouch.
          </div>
+
        )}
+
      </div>
+
    </div>
  );
 }

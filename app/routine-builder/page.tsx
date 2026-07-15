@@ -1,380 +1,354 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect } from "react";
 
-import type {
- Path,
- Supplement,
- UnrecognizedItem,
- BuildPlanResponse,
- SuggestedAddition,
- PouchTiming,
-} from "@/components/routine-builder/types";
+import {
+ useRouter,
+ useSearchParams,
+} from "next/navigation";
 
-import StartStep from "@/components/routine-builder/StartStep";
-import GoalStep from "@/components/routine-builder/GoalStep";
-import PlanStep from "@/components/routine-builder/PlanStep";
-import AddSupplementRow from "@/components/routine-builder/AddSupplementRow";
-import RoutineTable from "@/components/routine-builder/RoutineTable";
+import StartScreen from
+"@/components/routine-builder/StartScreen";
 
-type RemovedPouchItem = {
- supplement: Supplement;
- originalTiming: PouchTiming;
-};
+import GoalStep from
+"@/components/routine-builder/GoalStep";
 
-export default function RoutineBuilderPage() {
- const [path, setPath] = useState<Path>("start");
- const [planBackPath, setPlanBackPath] = useState<Path>("current");
+import PlanStep from
+"@/components/routine-builder/PlanStep";
 
- const [name, setName] = useState("");
- const [dosage, setDosage] = useState("");
- const [supplements, setSupplements] = useState<Supplement[]>([]);
+import CurrentRoutineStep from
+"@/components/routine-builder/CurrentRoutineStep";
 
- const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
- const [selectedLifestyle, setSelectedLifestyle] = useState<string[]>([]);
- const [selectedConsiderations, setSelectedConsiderations] = useState<string[]>([]);
+import ConciergeModal from
+"@/components/routine-builder/ConciergeModal";
 
- const [morningSupplements, setMorningSupplements] = useState<Supplement[]>([]);
- const [eveningSupplements, setEveningSupplements] = useState<Supplement[]>([]);
- const [unrecognizedItems, setUnrecognizedItems] = useState<UnrecognizedItem[]>([]);
- const [suggestedAdditions, setSuggestedAdditions] = useState<SuggestedAddition[]>([]);
- const [removedItems, setRemovedItems] = useState<RemovedPouchItem[]>([]);
+import {
+ useRoutineBuilder,
+} from "./useRoutineBuilder";
 
- async function handleBuildDailyPlan() {
-   setMorningSupplements([]);
-   setEveningSupplements([]);
-   setUnrecognizedItems([]);
-   setSuggestedAdditions([]);
-   setRemovedItems([]);
 
-   const response = await fetch("/api/build-plan", {
-     method: "POST",
-     headers: { "Content-Type": "application/json" },
-     body: JSON.stringify({ supplements }),
-   });
+function RoutineBuilderPageContent() {
+ const router = useRouter();
 
-   const data: BuildPlanResponse = await response.json();
+ const searchParams =
+   useSearchParams();
 
-   setMorningSupplements(data.morning || []);
-   setEveningSupplements(data.evening || []);
-   setUnrecognizedItems(data.unrecognized || []);
-   setSuggestedAdditions(data.suggestedAdditions || []);
-   setPlanBackPath("current");
-   setPath("plan");
- }
+ const {
+   /*
+    * Workflow
+    */
 
- async function handleBuildGoalPlan() {
-   if (selectedGoals.length === 0) return;
+   path,
+   setPath,
+   planBackPath,
+   restoreRoutineBuilderDraft,
 
-   setMorningSupplements([]);
-   setEveningSupplements([]);
-   setUnrecognizedItems([]);
-   setSuggestedAdditions([]);
-   setRemovedItems([]);
+   /*
+    * Concierge
+    */
 
-   const response = await fetch("/api/build-plan", {
-     method: "POST",
-     headers: { "Content-Type": "application/json" },
-     body: JSON.stringify({
-       goals: selectedGoals,
-       lifestyle: selectedLifestyle,
-       considerations: selectedConsiderations,
-     }),
-   });
+   showConcierge,
+   setShowConcierge,
 
-   const data: BuildPlanResponse = await response.json();
+   /*
+    * Brand and routine form
+    */
 
-   setMorningSupplements(data.morning || []);
-   setEveningSupplements(data.evening || []);
-   setUnrecognizedItems(data.unrecognized || []);
-   setSuggestedAdditions(data.suggestedAdditions || []);
-   setPlanBackPath("goal");
-   setPath("plan");
- }
+   brand,
+   customBrand,
+   name,
+   dosage,
 
- async function recheckReviewedItem(
-   indexToRecheck: number,
-   updatedItem: UnrecognizedItem
- ) {
-   const cleanSupplement: Supplement = {
-     name: updatedItem.name.trim(),
-     dosage: updatedItem.dosage?.trim() || "",
-   };
+   setBrand,
+   setCustomBrand,
+   setName,
+   setDosage,
 
-   const response = await fetch("/api/build-plan", {
-     method: "POST",
-     headers: { "Content-Type": "application/json" },
-     body: JSON.stringify({ supplements: [cleanSupplement] }),
-   });
+   supplements,
+   addSupplement,
+   removeSupplement,
 
-   const data: BuildPlanResponse = await response.json();
+   /*
+    * Goal builder
+    */
 
-   if (data.morning?.length) {
-     setMorningSupplements((current) => [...current, ...data.morning]);
-     setUnrecognizedItems((current) =>
-       current.filter((_, i) => i !== indexToRecheck)
-     );
-     return;
-   }
+   selectedGoals,
+   setSelectedGoals,
 
-   if (data.evening?.length) {
-     setEveningSupplements((current) => [...current, ...data.evening]);
-     setUnrecognizedItems((current) =>
-       current.filter((_, i) => i !== indexToRecheck)
-     );
-     return;
-   }
+   selectedLifestyle,
+   setSelectedLifestyle,
 
-   setUnrecognizedItems((current) =>
-     current.map((item, index) =>
-       index === indexToRecheck
-         ? data.unrecognized?.[0] || {
-             ...cleanSupplement,
-             reason: "needs_confirmation",
-             note: "This still needs review before it can be added to a pouch.",
-           }
-         : item
-     )
-   );
- }
+   selectedConsiderations,
+   setSelectedConsiderations,
 
- function addSuggestedAddition(indexToAdd: number) {
-   const addition = suggestedAdditions[indexToAdd];
-   if (!addition) return;
+   /*
+    * Plan results
+    */
 
-   const cleanSupplement: Supplement = {
-     id: addition.id,
-     name: addition.name,
-     dosage: addition.dosage || "",
-     monthlyPrice: addition.monthlyPrice,
-     description: addition.description,
-     category: addition.category,
-   };
+   morningSupplements,
+   eveningSupplements,
 
-   if (addition.suggestedTiming === "evening") {
-     setEveningSupplements((current) => [...current, cleanSupplement]);
-   } else {
-     setMorningSupplements((current) => [...current, cleanSupplement]);
-   }
+   unrecognizedItems,
+   suggestedAdditions,
+   removedItems,
 
-   setSuggestedAdditions((current) =>
-     current.filter((_, index) => index !== indexToAdd)
-   );
- }
+   /*
+    * Plan-building actions
+    */
 
- function removeMorningSupplement(indexToRemove: number) {
-   const itemToRemove = morningSupplements[indexToRemove];
-   if (!itemToRemove) return;
+   handleBuildDailyPlan,
+   handleBuildGoalPlan,
+   recheckReviewedItem,
 
-   setMorningSupplements((current) =>
-     current.filter((_, index) => index !== indexToRemove)
-   );
+   /*
+    * Pouch editing
+    */
 
-   setRemovedItems((current) => [
-     ...current,
-     { supplement: itemToRemove, originalTiming: "morning" },
-   ]);
- }
+   addSuggestedAddition,
 
- function removeEveningSupplement(indexToRemove: number) {
-   const itemToRemove = eveningSupplements[indexToRemove];
-   if (!itemToRemove) return;
+   removeMorningSupplement,
+   removeEveningSupplement,
 
-   setEveningSupplements((current) =>
-     current.filter((_, index) => index !== indexToRemove)
-   );
+   moveMorningSupplementToEvening,
+   moveEveningSupplementToMorning,
 
-   setRemovedItems((current) => [
-     ...current,
-     { supplement: itemToRemove, originalTiming: "evening" },
-   ]);
- }
+   removeUnrecognizedItem,
 
- function restoreRemovedItem(indexToRestore: number) {
-   const removedItem = removedItems[indexToRestore];
-   if (!removedItem) return;
+   restoreRemovedItem,
+   permanentlyRemoveItem,
+ } = useRoutineBuilder();
 
-   if (removedItem.originalTiming === "evening") {
-     setEveningSupplements((current) => [...current, removedItem.supplement]);
-   } else {
-     setMorningSupplements((current) => [...current, removedItem.supplement]);
-   }
 
-   setRemovedItems((current) =>
-     current.filter((_, index) => index !== indexToRestore)
-   );
- }
 
- function permanentlyRemoveItem(indexToRemove: number) {
-   setRemovedItems((current) =>
-     current.filter((_, index) => index !== indexToRemove)
-   );
- }
 
- function moveMorningSupplementToEvening(indexToMove: number) {
-   const supplementToMove = morningSupplements[indexToMove];
-   if (!supplementToMove) return;
+useEffect(() => {
+if (
+  searchParams.get("step") !==
+  "plan"
+) {
+  return;
+}
 
-   setMorningSupplements((current) =>
-     current.filter((_, index) => index !== indexToMove)
-   );
+restoreRoutineBuilderDraft();
 
-   setEveningSupplements((current) => [...current, supplementToMove]);
- }
+/*
+ * Remove the temporary step query
+ * after restoring the builder.
+ */
+router.replace(
+  "/routine-builder"
+);
+}, [
+router,
+searchParams,
+restoreRoutineBuilderDraft,
+]);
 
- function moveEveningSupplementToMorning(indexToMove: number) {
-   const supplementToMove = eveningSupplements[indexToMove];
-   if (!supplementToMove) return;
+ function handlePlanContinue() {
+  /*
+   * Checkout reads this smaller object.
+   */
+  window.localStorage.setItem(
+    "vidapouch_checkout_plan",
+    JSON.stringify({
+      morning:
+        morningSupplements,
+  
+      evening:
+        eveningSupplements,
+    })
+  );
+  
+  /*
+   * The routine builder reads this
+   * complete draft when the customer
+   * returns from checkout.
+   */
+  window.localStorage.setItem(
+    "vidapouch_routine_builder_draft",
+    JSON.stringify({
+      path: "plan",
+  
+      planBackPath,
+  
+      brand,
+      customBrand,
+      name,
+      dosage,
+  
+      supplements,
+  
+      selectedGoals,
+      selectedLifestyle,
+      selectedConsiderations,
+  
+      morningSupplements,
+      eveningSupplements,
+  
+      unrecognizedItems,
+      suggestedAdditions,
+      removedItems,
+    })
+  );
+  
+  router.push("/checkout");
+  }
+  
+ if (path === "start") {
+   return (
+     <>
+       <StartScreen
+         setPath={setPath}
+         openConcierge={() =>
+           setShowConcierge(true)
+         }
+       />
 
-   setEveningSupplements((current) =>
-     current.filter((_, index) => index !== indexToMove)
-   );
-
-   setMorningSupplements((current) => [...current, supplementToMove]);
- }
-
- function addSupplement() {
-   if (!name.trim()) return;
-
-   setSupplements([
-     ...supplements,
-     {
-       name: name.trim(),
-       dosage: dosage.trim(),
-     },
-   ]);
-
-   setName("");
-   setDosage("");
- }
-
- function removeSupplement(indexToRemove: number) {
-   setSupplements(supplements.filter((_, i) => i !== indexToRemove));
- }
-
- function removeUnrecognizedItem(indexToRemove: number) {
-   setUnrecognizedItems((current) =>
-     current.filter((_, i) => i !== indexToRemove)
+       <ConciergeModal
+         open={showConcierge}
+         onClose={() =>
+           setShowConcierge(false)
+         }
+       />
+     </>
    );
  }
 
  return (
-   <main className="min-h-screen bg-[#F3E9DD] px-4 py-8 text-[#0E171B] sm:px-8 sm:py-10">
-     <section className="mx-auto max-w-[980px] rounded-[28px] border border-[#DDD7CF] bg-[#F8F2EA]/90 px-5 py-8 shadow-[0_24px_70px_rgba(20,15,10,0.08)] sm:rounded-[34px] sm:px-10 sm:py-10">
-       <p className="text-[10px] uppercase tracking-[0.24em] text-[#8C1D40] sm:text-[11px]">
-         VITAMIN ROUTINE BUILDER
-       </p>
-
-       <h1
-         className="mt-4 text-[38px] leading-[1.02] tracking-[-0.04em] text-[#081620] sm:text-[58px]"
-         style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
-
-         Build your daily supplement routine.
-       </h1>
-
-       <p className="mt-5 max-w-[640px] text-[16px] leading-8 text-[#475357] sm:text-[17px]">
-         Tell us what you already take — or what you’re hoping to improve —
-         and we’ll help turn it into a simple morning and evening plan.
-       </p>
-
-       {path === "start" && <StartStep setPath={setPath} />}
-
+   <>
+     <main className="min-h-screen bg-[#F3E9DD] px-4 py-6 text-[#0E171B] sm:px-8">
        {path === "current" && (
-         <div className="mt-8 rounded-[26px] border border-[#DDD7CF] bg-[#F3E9DD]/70 p-5 sm:p-6">
-           <button
-             onClick={() => setPath("start")}
-             className="mb-5 cursor-pointer text-[13px] uppercase tracking-[0.14em] text-[#8C1D40]">
-
-             ← Back
-           </button>
-
-           <h2
-             className="text-[28px] tracking-[-0.03em]"
-             style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
-
-             What are you currently taking?
-           </h2>
-
-           <p className="mt-3 text-[15px] leading-7 text-[#475357]">
-             Add each supplement in your current routine. VitaPouch will match
-             it to the closest VitaPouch option.
-           </p>
-
-           <div className="mt-6 rounded-[24px] border border-[#DDD7CF] bg-white/45 p-4 sm:p-5">
-             <h3
-               className="text-[24px] tracking-[-0.03em]"
-               style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
-
-               Your current routine
-             </h3>
-
-             {supplements.length === 0 && (
-               <div className="mt-4 rounded-[18px] border border-dashed border-[#CFC4B7] bg-[#F8F2EA]/70 px-5 py-6 text-[#5D686C]">
-                 Your routine is empty. Add your first supplement below.
-               </div>
-             )}
-
-             {supplements.length > 0 && (
-               <RoutineTable
-                 supplements={supplements}
-                 removeSupplement={removeSupplement}
-               />
-             )}
-
-             <AddSupplementRow
-               name={name}
-               dosage={dosage}
-               setName={setName}
-               setDosage={setDosage}
-               addSupplement={addSupplement}
-             />
-
-             {supplements.length > 0 && (
-               <button
-                 onClick={handleBuildDailyPlan}
-                 className="mt-6 w-full cursor-pointer rounded-full bg-[#081620] px-6 py-4 text-[13px] uppercase tracking-[0.08em] text-white">
-
-                 Build My Daily Plan
-               </button>
-             )}
-           </div>
-         </div>
-       )}
-
-       {path === "plan" && (
-         <PlanStep
-           setPath={setPath}
-           backPath={planBackPath}
-           morningSupplements={morningSupplements}
-           eveningSupplements={eveningSupplements}
-           unrecognizedItems={unrecognizedItems}
-           suggestedAdditions={suggestedAdditions}
-           removedItems={removedItems}
-           removeMorningSupplement={removeMorningSupplement}
-           removeEveningSupplement={removeEveningSupplement}
-           moveMorningSupplementToEvening={moveMorningSupplementToEvening}
-           moveEveningSupplementToMorning={moveEveningSupplementToMorning}
-           removeUnrecognizedItem={removeUnrecognizedItem}
-           recheckReviewedItem={recheckReviewedItem}
-           addSuggestedAddition={addSuggestedAddition}
-           restoreRemovedItem={restoreRemovedItem}
-           permanentlyRemoveItem={permanentlyRemoveItem}
+         <CurrentRoutineStep
+           supplements={
+             supplements
+           }
+           brand={brand}
+           customBrand={
+             customBrand
+           }
+           name={name}
+           dosage={dosage}
+           setBrand={setBrand}
+           setCustomBrand={
+             setCustomBrand
+           }
+           setName={setName}
+           setDosage={setDosage}
+           addSupplement={
+             addSupplement
+           }
+           removeSupplement={
+             removeSupplement
+           }
+           supplementCount={
+             supplements.length
+           }
+           isBuildingPlan={false}
+           buildError=""
+           onBack={() =>
+             setPath("start")
+           }
+           onBuild={
+             handleBuildDailyPlan
+           }
          />
        )}
 
        {path === "goal" && (
          <GoalStep
            setPath={setPath}
-           selectedGoals={selectedGoals}
-           setSelectedGoals={setSelectedGoals}
-           selectedLifestyle={selectedLifestyle}
-           setSelectedLifestyle={setSelectedLifestyle}
-           selectedConsiderations={selectedConsiderations}
-           setSelectedConsiderations={setSelectedConsiderations}
-           handleBuildGoalPlan={handleBuildGoalPlan}
+           selectedGoals={
+             selectedGoals
+           }
+           setSelectedGoals={
+             setSelectedGoals
+           }
+           selectedLifestyle={
+             selectedLifestyle
+           }
+           setSelectedLifestyle={
+             setSelectedLifestyle
+           }
+           selectedConsiderations={
+             selectedConsiderations
+           }
+           setSelectedConsiderations={
+             setSelectedConsiderations
+           }
+           handleBuildGoalPlan={
+             handleBuildGoalPlan
+           }
          />
        )}
-     </section>
-   </main>
+
+       {path === "plan" && (
+         <PlanStep
+           setPath={setPath}
+           backPath={planBackPath}
+           morningSupplements={
+             morningSupplements
+           }
+           eveningSupplements={
+             eveningSupplements
+           }
+           unrecognizedItems={
+             unrecognizedItems
+           }
+           suggestedAdditions={
+             suggestedAdditions
+           }
+           removedItems={
+             removedItems
+           }
+           removeMorningSupplement={
+             removeMorningSupplement
+           }
+           removeEveningSupplement={
+             removeEveningSupplement
+           }
+           moveMorningSupplementToEvening={
+             moveMorningSupplementToEvening
+           }
+           moveEveningSupplementToMorning={
+             moveEveningSupplementToMorning
+           }
+           removeUnrecognizedItem={
+             removeUnrecognizedItem
+           }
+           recheckReviewedItem={
+             recheckReviewedItem
+           }
+           addSuggestedAddition={
+             addSuggestedAddition
+           }
+           restoreRemovedItem={
+             restoreRemovedItem
+           }
+           permanentlyRemoveItem={
+             permanentlyRemoveItem
+           }
+           onContinue={
+             handlePlanContinue
+           }
+         />
+       )}
+     </main>
+
+     <ConciergeModal
+       open={showConcierge}
+       onClose={() =>
+         setShowConcierge(false)
+       }
+     />
+   </>
  );
 }
+
+export default function RoutineBuilderPage() {
+  return (
+    <Suspense fallback={null}>
+      <RoutineBuilderPageContent />
+    </Suspense>
+  );
+ }
+

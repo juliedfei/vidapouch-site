@@ -11,22 +11,22 @@ export default function StartStep({ setPath }: StartStepProps) {
        className="text-[28px] tracking-[-0.03em]"
        style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
 
-       Are you currently taking supplements?
+       How would you like to build your routine?
      </h2>
 
      <div className="mt-6 grid gap-3 sm:grid-cols-2">
        <button
-         onClick={() => setPath("current")}
+         onClick={() => setPath("goal")}
          className="rounded-full bg-[#081620] px-6 py-4 text-[13px] uppercase tracking-[0.08em] text-white">
 
-         Yes, I already take some
+         Build from my goals
        </button>
 
        <button
-         onClick={() => setPath("goal")}
+         onClick={() => setPath("current")}
          className="rounded-full border border-[#1B2529] bg-white/40 px-6 py-4 text-[13px] uppercase tracking-[0.08em] text-[#1B2529]">
 
-         No, but I have a goal
+         I already take supplements
        </button>
      </div>
    </div>
