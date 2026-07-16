@@ -1,13 +1,13 @@
-import type { BrandOption } from "./brandOption";
+import type { ProductOption } from "./productOption";
 
-export type BrandComparison = {
- brands: BrandOption[];
+export type ProductComparison = {
+ products: ProductOption[];
 };
 
-export function buildBrandComparison(
- brands: BrandOption[]
-): BrandComparison {
+export function buildProductComparison(
+ products: ProductOption[]
+): ProductComparison {
  return {
-   brands,
+   products,
  };
 }

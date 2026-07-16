@@ -8,7 +8,7 @@ import type {
    
    /*
    * Represents a relevant Google Shopping
-   * result before VitaPouch decides whether
+   * result before VidaPouch decides whether
    * it contains enough information for
    * reliable monthly pricing.
    *

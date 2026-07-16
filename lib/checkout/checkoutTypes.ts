@@ -8,7 +8,6 @@ import type {
 
 
    import type {
- ProductScore,
  RecommendationReason,
 } from "@/lib/recommendations/recommendationTypes";
 
@@ -62,7 +61,7 @@ import type {
    
     bottlesRequired: number;
    
-    score?: ProductScore;
+    score?: BrandScoreBreakdown;
    
     selected: boolean;
    
@@ -170,7 +169,17 @@ import type {
    
     monthlyCapsuleQuantity: number;
    
+    
+    
     customerMonthlyPrice: number;
+
+    baseCustomerMonthlyPrice: number;
+
+    allocatedServiceAmount: number;
+
+
+    displayedMonthlyPrice: number;
+
    
     pricingStatus: CheckoutPricingStatus;
    

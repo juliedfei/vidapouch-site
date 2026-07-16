@@ -268,7 +268,7 @@ export default function BrandComparisonCard({
              <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
                <div>
                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#8C1D40]">
-                   ⭐ VitaPouch Pick
+                   ⭐ VidaPouch Pick
                  </p>
 
                  <p className="mt-1 font-semibold text-[#081620]">
@@ -374,8 +374,8 @@ export default function BrandComparisonCard({
                          <div className="flex items-start gap-2">
                            {isRecommended && (
                              <span
-                               aria-label="VitaPouch recommendation"
-                               title="VitaPouch recommendation"
+                               aria-label="VidaPouch recommendation"
+                               title="VidaPouch recommendation"
                                className="mt-0.5 text-[15px]">
 
                                ⭐

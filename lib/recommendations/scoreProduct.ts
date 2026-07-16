@@ -1,162 +1,82 @@
-import type { RetailProduct } from "../pricing/types";
-
-import type { ProductScore } from "./recommendationTypes";
-
-import { DEFAULT_RECOMMENDATION_WEIGHTS } from "./recommendationCriteria";
-
-import { getBrandProfile } from "./brandProfiles";
-
-export function scoreProduct(
- product: RetailProduct
-): ProductScore {
- const brand =
-   getBrandProfile(product.brand);
-
+import type {
+  ProductScoringInput,
+ } from "./productScoringInput";
+ 
+ import type {
+  ProductScore,
+ } from "./recommendationTypes";
+ 
+ import {
+  DEFAULT_RECOMMENDATION_WEIGHTS,
+ } from "./recommendationCriteria";
+ 
  /*
-  * Quality
-  */
-
- let quality = 5;
-
- if (
-   brand.profile?.thirdPartyTesting
-     .value
- ) {
-   quality += 2;
+ * Combines the evaluated category
+ * scores into one overall product
+ * recommendation score.
+ *
+ * IMPORTANT:
+ *
+ * This file performs NO AI,
+ * NO pricing,
+ * NO searching,
+ * NO database lookups.
+ *
+ * Every category has already been
+ * evaluated before reaching this
+ * function.
+ */
+ export function scoreProduct(
+  scoring: ProductScoringInput
+ ): ProductScore {
+ 
+  const weights =
+    DEFAULT_RECOMMENDATION_WEIGHTS;
+ 
+  const overall =
+ 
+    (
+ 
+      scoring.quality *
+      weights.quality +
+ 
+      scoring.reviews *
+      weights.reviews +
+ 
+      scoring.value *
+      weights.value +
+ 
+      scoring.evidence *
+      weights.evidence +
+ 
+      scoring.availability *
+      weights.availability
+ 
+    ) / 100;
+ 
+  return {
+ 
+    quality:
+      scoring.quality,
+ 
+    reviews:
+      scoring.reviews,
+ 
+    value:
+      scoring.value,
+ 
+    evidence:
+      scoring.evidence,
+ 
+    availability:
+      scoring.availability,
+ 
+    overall:
+      Math.round(
+        overall * 10
+      ) / 10,
+ 
+  };
+ 
  }
-
- if (
-   brand.profile?.cGmpCompliant
-     .value
- ) {
-   quality += 2;
- }
-
- if (
-   brand.profile?.practitionerGrade
-     .value
- ) {
-   quality += 1;
- }
-
- quality = Math.min(
-   quality,
-   10
- );
-
- /*
-  * Reviews
-  *
-  * Placeholder until
-  * retailer APIs are connected.
-  */
-
- const reviews = 8;
-
- /*
-  * Value
-  */
-
- let value = 6;
-
- switch (
-   brand.profile?.priceTier
- ) {
-   case "budget":
-     value = 10;
-     break;
-
-   case "value":
-     value = 9;
-     break;
-
-   case "premium":
-     value = 7;
-     break;
-
-   case "professional":
-     value = 5;
-     break;
- }
-
- /*
-  * Evidence
-  */
-
- let evidence = 6;
-
- if (
-   brand.profile?.thirdPartyTesting
-     .value
- ) {
-   evidence += 2;
- }
-
- if (
-   brand.profile
-     ?.certifications.length
- ) {
-   evidence += 2;
- }
-
- evidence = Math.min(
-   evidence,
-   10
- );
-
- /*
-  * Availability
-  */
-
- let availability = 5;
-
- switch (
-   brand.profile?.availability
- ) {
-   case "national":
-     availability = 10;
-     break;
-
-   case "moderate":
-     availability = 7;
-     break;
-
-   case "limited":
-     availability = 5;
-     break;
- }
-
- const weights =
-   DEFAULT_RECOMMENDATION_WEIGHTS;
-
- const overall =
-   (
-     quality *
-       weights.quality +
-     reviews *
-       weights.reviews +
-     value *
-       weights.value +
-     evidence *
-       weights.evidence +
-     availability *
-       weights.availability
-   ) / 100;
-
- return {
-   quality,
-
-   reviews,
-
-   value,
-
-   evidence,
-
-   availability,
-
-   overall:
-     Math.round(
-       overall * 10
-     ) / 10,
- };
-}
+ 

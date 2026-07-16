@@ -130,6 +130,14 @@ enum JobStatus {
  CANCELLED
 }
 
+enum ProductResearchStatus {
+PENDING
+RUNNING
+COMPLETED
+FAILED
+}
+
+
 model Manufacturer {
  id            String   @id @default(cuid())
  canonicalName String   @unique
@@ -780,3 +788,72 @@ model KnowledgeRefreshJob {
  @@index([entityType, entityId])
  @@index([scheduledFor])
 }
+
+
+model PricingStrategy {
+ id String @id @default(cuid())
+
+ active Boolean @default(true)
+
+ morningConciergeFee Decimal @db.Decimal(10,2)
+ eveningConciergeFee Decimal @db.Decimal(10,2)
+ dualConciergeFee Decimal @db.Decimal(10,2)
+
+ serviceAllocationMode String
+
+ fixedServiceAllocation Decimal @db.Decimal(10,2)
+
+ serviceAllocationPercent Decimal @db.Decimal(5,4)
+
+ inventoryBufferPercent Decimal @db.Decimal(5,4)
+
+ supplementMarginPercent Decimal @db.Decimal(5,4)
+
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+}
+
+model ProductResearchCache {
+id String @id @default(cuid())
+
+// Normalized brand + supplement identity.
+// Example: "nowfoods|vitaminc"
+normalizedKey String @unique
+
+// The name originally sent to the researcher.
+requestedProductName String
+
+// Identity returned by completed research.
+canonicalProductName String?
+brand                String?
+supplement           String?
+
+// Complete ProductResearch object returned
+// by the OpenAI research pipeline.
+research Json?
+
+status ProductResearchStatus @default(PENDING)
+
+aiConfidence Decimal? @db.Decimal(5, 4)
+
+sourceProvider String @default("openai")
+modelName      String?
+
+methodologyVersion String @default("product-research-v1")
+
+researchedAt DateTime?
+expiresAt    DateTime?
+
+lastError String?
+
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+
+@@index([status])
+@@index([expiresAt])
+@@index([brand, supplement])
+@@index([updatedAt])
+}
+
+
+

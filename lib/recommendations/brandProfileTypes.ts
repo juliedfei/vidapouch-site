@@ -25,7 +25,7 @@ export type BrandCertification = {
  name: string;
 
  /*
-  * Whether VitaPouch has confirmed the
+  * Whether VidaPouch has confirmed the
   * certification from an appropriate
   * authoritative source.
   */

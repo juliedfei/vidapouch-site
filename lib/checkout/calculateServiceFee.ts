@@ -46,7 +46,7 @@ import type {
           "morning_and_evening",
    
         label:
-          "Morning + Evening VitaPouch Concierge",
+          "Morning + Evening VidaPouch Concierge",
    
         fee:
           DUAL_POUCH_SERVICE_FEE,
@@ -62,7 +62,7 @@ import type {
           "morning_only",
    
         label:
-          "Morning VitaPouch Concierge",
+          "Morning VidaPouch Concierge",
    
         fee:
           SINGLE_POUCH_SERVICE_FEE,
@@ -78,7 +78,7 @@ import type {
           "evening_only",
    
         label:
-          "Evening VitaPouch Concierge",
+          "Evening VidaPouch Concierge",
    
         fee:
           SINGLE_POUCH_SERVICE_FEE,
@@ -93,7 +93,7 @@ import type {
         "morning_only",
    
       label:
-        "VitaPouch Concierge",
+        "VidaPouch Concierge",
    
       fee: 0,
    

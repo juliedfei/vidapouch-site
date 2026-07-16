@@ -40,7 +40,7 @@ export default function RecommendationCard({
        <div>
          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8C1D40]">
            {wasChosenByVidaPouch
-             ? "Why VitaPouch chose this"
+             ? "Why VidaPouch chose this"
              : "Brand selection"}
          </p>
 

@@ -101,7 +101,7 @@ import type {
     monthlyUnitQuantity: number;
    
     /*
-     * The option VitaPouch recommends.
+     * The option VidaPouch recommends.
      */
     recommendedOption:
       | CheckoutPurchaseOption

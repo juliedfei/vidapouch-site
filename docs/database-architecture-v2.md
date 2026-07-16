@@ -1,8 +1,8 @@
-# VitaPouch Database Architecture — Version 2
+# VidaPouch Database Architecture — Version 2
 
 ## Purpose
 
-This document defines the long-term architecture for the VitaPouch data platform.
+This document defines the long-term architecture for the VidaPouch data platform.
 
 The goal is to build a knowledge system that is:
 
@@ -20,7 +20,7 @@ External searches, AI research, retailer data, and APIs are discovery mechanisms
 
 # Vision
 
-VitaPouch should know:
+VidaPouch should know:
 
 - Every major supplement brand
 - Every important supplement ingredient
@@ -339,8 +339,8 @@ The long-term system will eventually include:
 
 The database is not simply a storage system.
 
-It is VitaPouch's knowledge base.
+It is VidaPouch's knowledge base.
 
 Every recommendation made by the AI should become faster, smarter, more accurate, and more explainable because of the information stored here.
 
-This architecture is designed so VitaPouch can continuously learn while maintaining a trusted, curated database instead of relying entirely on live web searches.
+This architecture is designed so VidaPouch can continuously learn while maintaining a trusted, curated database instead of relying entirely on live web searches.

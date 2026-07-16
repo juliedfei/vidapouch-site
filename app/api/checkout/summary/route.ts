@@ -51,14 +51,25 @@ export async function POST(
      );
    }
 
-   const summary =
-     await buildCheckoutSummary(
-       body.plan
-     );
 
-   return NextResponse.json({
-     summary,
-   });
+
+
+   const summary =
+   await buildCheckoutSummary(
+     body.plan
+   );
+  
+  console.log(
+   JSON.stringify(summary, null, 2)
+  );
+  
+  return NextResponse.json({
+   summary,
+  });
+
+
+
+
  } catch (error) {
    console.error(
      "Checkout summary route failed:",

@@ -94,7 +94,7 @@ export default function OrderSummary({
        <div className="flex items-start justify-between gap-4">
          <div>
            <span className="text-[15px] text-[#5D686C]">
-             VitaPouch Concierge
+             VidaPouch Concierge
            </span>
 
            <p className="mt-1 text-xs text-[#6D777B]">
@@ -137,7 +137,7 @@ export default function OrderSummary({
      </div>
 
      <p className="mt-2 text-right text-xs text-[#6D777B]">
-       per monthly VitaPouch cycle
+       per monthly VidaPouch cycle
      </p>
 
      {summary.service
@@ -174,7 +174,7 @@ export default function OrderSummary({
        <p className="mt-1 text-xs leading-5 text-[#5D686C]">
          Your supplement price is based
          on the quantity included in your
-         monthly pouches. VitaPouch will
+         monthly pouches. VidaPouch will
          not charge an additional amount
          without your approval.
        </p>

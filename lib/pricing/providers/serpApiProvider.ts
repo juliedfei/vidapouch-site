@@ -1,3 +1,12 @@
+import {
+  registerDiscoveredProducts,
+ } from "@/lib/intelligence/registerDiscoveredProducts";
+ 
+
+import {
+  registerDiscoveredBrands,
+ } from "@/lib/intelligence/registerDiscoveredBrands";
+
 import type { RetailProduct } from "../types";
 
 import {
@@ -851,6 +860,41 @@ rawResults.forEach((item, index) => {
              Boolean(product)
          )
      ).slice(0, MAX_PRODUCTS);
+
+
+     try {
+      await registerDiscoveredBrands(
+        products
+      );
+     } catch (error) {
+      /*
+       * Brand registration must never prevent
+       * the customer from reaching checkout.
+       */
+      console.error(
+        "Unable to register discovered brands:",
+        error
+      );
+     }
+
+     try {
+      await registerDiscoveredProducts(
+        products
+      );
+     } catch (error) {
+      /*
+       * Product registration must never block
+       * the customer from reaching checkout.
+       */
+      console.error(
+        "Unable to register discovered products:",
+        error
+      );
+     }
+     
+
+
+
 
 
      console.log("FINAL PRODUCTS:");

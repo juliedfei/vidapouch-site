@@ -1,80 +1,109 @@
 import type {
-  BrandOption,
-  } from "./brandOption";
-  
-  import type {
+  ProductOption,
+ } from "./productOption";
+ 
+ import type {
   Recommendation,
   RecommendationReason,
-  } from "./recommendationTypes";
-  
-  export function recommendProduct(
-  brands: BrandOption[]
-  ): Recommendation | null {
-  
-  if (brands.length === 0) {
+ } from "./recommendationTypes";
+ 
+ export function recommendProduct(
+  products: ProductOption[]
+ ): Recommendation | null {
+ 
+  if (products.length === 0) {
     return null;
   }
-  
+ 
   /*
-   * Highest recommendation score wins.
-   * If two brands receive the same score,
-   * the lower monthly price wins.
+   * Rank products.
+   *
+   * Primary:
+   *   Overall recommendation score.
+   *
+   * Secondary:
+   *   Confidence.
+   *
+   * Tertiary:
+   *   Lower displayed monthly cost.
    */
-  const ranked = [...brands].sort(
-    (left, right) => {
-  
-      if (
-        left.score.overall !==
-        right.score.overall
-      ) {
+  const ranked =
+    [...products].sort(
+      (left, right) => {
+ 
+        if (
+          left.score.overall !==
+          right.score.overall
+        ) {
+          return (
+            right.score.overall -
+            left.score.overall
+          );
+        }
+ 
+        if (
+          left.confidenceScore !==
+          right.confidenceScore
+        ) {
+          return (
+            right.confidenceScore -
+            left.confidenceScore
+          );
+        }
+ 
         return (
-          right.score.overall -
-          left.score.overall
+          left.displayedMonthlyCost -
+          right.displayedMonthlyCost
         );
+ 
       }
-  
-      return (
-        left.estimatedMonthlyCost -
-        right.estimatedMonthlyCost
-      );
-    }
-  );
-  
-  const winner = ranked[0];
-  
-  const reasons: RecommendationReason[] = [
+    );
+ 
+  const winner =
+    ranked[0];
+ 
+  winner.recommended = true;
+ 
+  const reasons:
+    RecommendationReason[] = [
+ 
     {
       title:
         "Highest overall recommendation",
-  
+ 
       description:
-        `This brand achieved an overall recommendation score of ${winner.score.overall}/100.`,
-  
+        `VIDAPouch determined that ${winner.productName} provides the strongest overall combination of quality, evidence, value, and availability.`,
+ 
       importance: 100,
     },
+ 
   ];
-  
-  winner.recommended = true;
-  
-
-
-
+ 
   return {
-    product: winner.representativeProduct,
-   
-    score: winner.score,
-   
+ 
+    product:
+      winner.representativeProduct,
+ 
+    score:
+      winner.score,
+ 
     recommended: true,
-   
-    confidence: winner.confidence,
-   
+ 
+    confidence:
+      winner.confidence,
+ 
     reasons,
-   
-    alternatives: ranked
-      .slice(1)
-      .map((brand) => brand.representativeProduct),
-   };
-
-
-
-  }
+ 
+    alternatives:
+      ranked
+        .slice(1)
+        .map(
+          (
+            product
+          ) =>
+            product.representativeProduct
+        ),
+ 
+  };
+ 
+ }

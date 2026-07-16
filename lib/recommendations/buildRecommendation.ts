@@ -3,20 +3,16 @@ import type {
  } from "@/lib/pricing/types";
  
  import type {
-  BrandOption,
- } from "./brandOption";
+  ProductOption,
+ } from "./productOption";
  
  import type {
   Recommendation,
  } from "./recommendationTypes";
  
  import {
-  buildBrandOptions,
- } from "./buildBrandOptions";
- 
- import {
-  buildBrandComparison,
- } from "./buildBrandComparison";
+  buildProductOptions,
+ } from "./buildProductOptions";
  
  import {
   recommendProduct,
@@ -24,31 +20,28 @@ import type {
  
  export type BuildRecommendationResult = {
   recommendation: Recommendation;
-  brandOptions: BrandOption[];
+ 
+  productOptions: ProductOption[];
  };
  
- export function buildRecommendation(
+ export async function buildRecommendation(
   products: RetailProduct[],
   capsulesPerDay: number
- ): BuildRecommendationResult | null {
-  const brandOptions =
-    buildBrandOptions(
+ ): Promise<BuildRecommendationResult | null> {
+ 
+  const productOptions =
+    await buildProductOptions(
       products,
       capsulesPerDay
     );
  
-  if (brandOptions.length === 0) {
+  if (productOptions.length === 0) {
     return null;
   }
  
-  const comparison =
-    buildBrandComparison(
-      brandOptions
-    );
- 
   const recommendation =
     recommendProduct(
-      comparison.brands
+      productOptions
     );
  
   if (!recommendation) {
@@ -57,8 +50,9 @@ import type {
  
   return {
     recommendation,
-    brandOptions:
-      comparison.brands,
+ 
+    productOptions,
   };
+ 
  }
  
