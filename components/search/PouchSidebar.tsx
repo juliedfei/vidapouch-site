@@ -731,7 +731,7 @@ export default function PouchSidebar({
          className="
            flex
            items-center
-           gap-[6px]
+           gap-[12px]
          ">
 
 <div
