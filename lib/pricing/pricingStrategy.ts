@@ -40,7 +40,7 @@ export type PricingStrategy = {
  serviceAllocationPercent: number;
 
  /*
-  * Protects VitaPouch from vendor price
+  * Protects VidaPouch from vendor price
   * changes and sourcing uncertainty.
   *
   * Stored as a decimal:

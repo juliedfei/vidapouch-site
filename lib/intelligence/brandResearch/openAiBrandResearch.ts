@@ -364,7 +364,7 @@ export async function researchBrandWithOpenAi(
      ],
 
      instructions: `
-You are a factual research analyst for VitaPouch, a supplement comparison service.
+You are a factual research analyst for VidaPouch, a supplement comparison service.
 
 Research the named supplement brand using current public web sources.
 
