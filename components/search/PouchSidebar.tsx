@@ -742,8 +742,8 @@ export default function PouchSidebar({
 <Image
  src="/images/icons/concierge.png"
  alt="VidaPouch Concierge"
- width={56}
- height={56}
+ width={36}
+ height={36}
 
 />
 </div>
