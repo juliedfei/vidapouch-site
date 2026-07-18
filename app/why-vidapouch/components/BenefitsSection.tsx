@@ -1,25 +1,25 @@
 export default function BenefitsSection() {
     const benefits = [
       {
-        icon: "/images/home-v2/trust/personalized-for-you.png",
+        icon: "/images/home-v2/trust/personalized-for-you.PNG",
         title: "Personalized for You",
         description:
           "AI-powered recommendations tailored to your goals, routine, lifestyle, and the supplements you actually need.",
       },
       {
-        icon: "/images/home-v2/icons/personalized.png",
+        icon: "/images/home-v2/icons/personalized.PNG",
         title: "One Daily Routine",
         description:
           "No more opening bottle after bottle. Grab your personalized pouch, take it, and move on with your day.",
       },
       {
-        icon: "/images/home-v2/trust/quality-you-can-trust.png",
+        icon: "/images/home-v2/trust/quality-you-can-trust.PNG",
         title: "Clean, Trusted Ingredients",
         description:
           "High-quality supplements from trusted brands selected to fit your personalized wellness plan.",
       },
       {
-        icon: "/images/home-v2/icons/delivery.png",
+        icon: "/images/home-v2/icons/delivery.PNG",
         title: "Everything Together",
         description:
           "One shipment. One refill date. No more discovering one supplement ran out while the others are still full.",
