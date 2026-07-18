@@ -6,7 +6,7 @@ export default function ComparisonSection() {
           {/* Decorative Leaf */}
    
           <img
-            src="/images/why-vidapouch/section-leaf.png"
+            src="/images/why-vidapouch/section-leaf.PNG"
             alt=""
             className="mx-auto -mb-2 h-12 w-auto"
           />
@@ -37,7 +37,7 @@ export default function ComparisonSection() {
    
           <div className="mt-6">
             <img
-              src="/images/why-vidapouch/comparison.png"
+              src="/images/why-vidapouch/comparison.PNG"
               alt="The old way of managing supplements compared to the organized VidaPouch system."
               className="block w-full rounded-[22px]"
             />
