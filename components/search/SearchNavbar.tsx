@@ -8,7 +8,7 @@ export default function SearchNavbar() {
      <div className="mx-auto flex max-w-[1440px] items-center justify-between px-5 py-4 lg:px-10">
        <Link href="/v2" className="shrink-0">
          <img
-           src="/vidasearch_logo.png"
+           src="/vidasearch_logo.PNG"
            alt="VidaSearch logo"
            className="h-[42px] w-auto sm:h-[52px] lg:h-[60px]"
          />
