@@ -111,10 +111,10 @@ function PouchCard({
            {pouch.label}
          </p>
 
-         <p className="mt-2 text-sm text-[#5D686C]">
+         {/* <p className="mt-2 text-sm text-[#5D686C]">
            Your personalized monthly
            pouch contents
-         </p>
+         </p> */}
        </div>
 
        <div className="pointer-events-none absolute left-1/2 top-[-30px] -translate-x-1/2">

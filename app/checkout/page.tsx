@@ -717,9 +717,8 @@ export default function CheckoutPage() {
                VidaPouch
              </h1>
 
-             <p className="mt-2 max-w-[720px] text-sm leading-6 text-[#5D686C]">
-               Review your personalized
-               VidaPouch recommendation,
+             <p className="mt-2 max-w-[750px] text-sm leading-6 text-[#5D686C]">
+               Review your personalized VidaPouch,
                monthly supplement
                pricing, and concierge
                service before completing

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import Navbar from "@/components/home/Navbar";
+import SearchNavbar from "@/components/search/SearchNavbar";
 import SearchLanding from "@/components/search/SearchLanding";
 import SearchWorkspace from "@/components/search/SearchWorkspace";
 import BottomBenefits from "@/components/search/BottomBenefits";
@@ -13,7 +13,7 @@ export default function VitaPouchV2Page() {
 
  return (
    <main className="min-h-screen bg-white text-[#081620]">
-     <Navbar />
+     <SearchNavbar />
 
      <SearchLanding
        query={query}

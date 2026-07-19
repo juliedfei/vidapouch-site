@@ -829,6 +829,24 @@ import type {
     "customer"
       ? validatedProducts[0]
       : recommendation.product;
+
+
+      const selectedProductOption =
+ productOptions.find(
+   (option) =>
+     option.brand
+       .trim()
+       .toLowerCase() ===
+     selectedProduct.brand
+       .trim()
+       .toLowerCase()
+ );
+
+
+
+
+
+
  
   const capsulesPerDay =
     extractCapsulesPerDay(
@@ -848,6 +866,16 @@ import type {
       internalCost,
       pricingStrategy
     );
+
+    const customerMonthlyPrice =
+ selectedProductOption
+   ?.displayedMonthlyCost ??
+ displayedPrice
+   .customerMonthlyPrice;
+
+
+
+
  
   const pricingSource =
     getPricingSource(
@@ -882,9 +910,7 @@ import type {
  
       capsulesPerDay,
  
-      customerMonthlyPrice:
-        displayedPrice
-          .customerMonthlyPrice,
+      customerMonthlyPrice,
  
       pricingSource,
     });
@@ -953,20 +979,24 @@ import type {
         internalCost
           .monthlyCapsules,
  
-      baseCustomerMonthlyPrice:
-        displayedPrice
-          .customerMonthlyPrice,
- 
-      customerMonthlyPrice:
-        displayedPrice
-          .customerMonthlyPrice,
- 
-      allocatedServiceAmount:
-        0,
- 
-      displayedMonthlyPrice:
-        displayedPrice
-          .customerMonthlyPrice,
+
+
+          baseCustomerMonthlyPrice:
+          customerMonthlyPrice,
+         
+         customerMonthlyPrice,
+         
+         allocatedServiceAmount:
+          0,
+         
+         displayedMonthlyPrice:
+          customerMonthlyPrice,
+         
+
+
+
+
+
  
       pricingStatus:
         "ready",
