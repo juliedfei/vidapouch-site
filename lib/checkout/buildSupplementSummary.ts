@@ -409,15 +409,27 @@ import type {
      * real evaluated product score instead
      * of undefined.
      */
+
+
+
     score:
-      option.score,
- 
-    selected,
- 
-    rejectionReason:
-      selected
-        ? undefined
-        : "A higher-ranked product was selected.",
+    option.score,
+   
+   selected,
+   
+   recommended:
+    option.recommended,
+   
+   rejectionReason:
+    selected
+      ? undefined
+      : "A higher-ranked product was selected.",
+   
+
+
+
+
+
   };
  }
  
@@ -789,6 +801,8 @@ import type {
         supplement.dosage
           .trim(),
     });
+
+    
  
   /*
    * If comparison search fails, fall back to
@@ -900,6 +914,8 @@ import type {
         ]
       : recommendation.reasons;
  
+
+
   const internalAudit =
     await buildInternalPricingAudit({
       supplement,
@@ -914,6 +930,29 @@ import type {
  
       pricingSource,
     });
+
+
+    console.log(
+      "BRANDS SENT TO COMPARISON CARD:",
+      internalAudit.sourceOptions.map(
+        (option) => ({
+          brand:
+            option.product.brand,
+     
+          selected:
+            option.selected,
+
+          recommended:
+            option.recommended,
+
+     
+          monthlyCost:
+            option.estimatedMonthlyCost,
+        })
+      )
+     );
+
+
  
   const checkoutSupplement:
     CheckoutSupplement = {

@@ -195,8 +195,20 @@ export default function BrandComparisonCard({
    );
  }, [supplement.recommendation]);
 
+
+
+
+
  const recommendedOption =
-   options[0];
+ options.find(
+   (option) =>
+     option.recommended
+ ) ?? options[0];
+
+
+
+
+
 
  const lowestMonthlyCost =
    options.length > 0
@@ -340,9 +352,14 @@ export default function BrandComparisonCard({
                    const isCurrent =
                      option.selected;
 
+
+
                    const isRecommended =
-                     option ===
-                     recommendedOption;
+                     option.recommended;
+
+
+
+
 
                    const trustScore =
                      getTrustScore(

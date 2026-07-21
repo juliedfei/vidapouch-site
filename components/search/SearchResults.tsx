@@ -1,42 +1,161 @@
+"use client";
+
+import {
+ useEffect,
+ useState,
+} from "react";
+
 import ProductCard from "./ProductCard";
-import { mockProducts } from "./data/mockProducts";
+
+import {
+ useSearch,
+} from "@/lib/search/useSearch";
 
 type SearchResultsProps = {
  query: string;
 };
 
+const INITIAL_VISIBLE_RESULTS = 6;
+
 export default function SearchResults({
  query,
 }: SearchResultsProps) {
- const normalized = query.trim().toLowerCase();
+ const {
+   results: filteredProducts,
+   loading,
+   error,
+ } = useSearch(query);
 
- const filteredProducts =
-   normalized.length === 0
-     ? mockProducts
-     : mockProducts.filter((product) => {
-         return (
-           product.productName
-             .toLowerCase()
-             .includes(normalized) ||
-           product.brand
-             .toLowerCase()
-             .includes(normalized) ||
-           product.representativeProduct.supplement
-             .toLowerCase()
-             .includes(normalized)
-         );
-       });
+ const [
+   visibleResultCount,
+   setVisibleResultCount,
+ ] = useState(
+   INITIAL_VISIBLE_RESULTS
+ );
+
+ useEffect(() => {
+   setVisibleResultCount(
+     INITIAL_VISIBLE_RESULTS
+   );
+ }, [query]);
 
  const resultLabel =
    query.trim().length > 0
      ? query.trim()
      : "All Products";
 
+ const visibleProducts =
+   filteredProducts.slice(
+     0,
+     visibleResultCount
+   );
+
+ const hiddenResultCount =
+   Math.max(
+     0,
+     filteredProducts.length -
+       visibleProducts.length
+   );
+
+ function showAllResults() {
+   setVisibleResultCount(
+     filteredProducts.length
+   );
+ }
+
+ if (loading) {
+   return (
+     <div
+       className="
+         w-full
+         rounded-[10px]
+         border
+         border-[#EEE7DF]
+         bg-white
+         px-8
+         py-16
+         text-center
+       ">
+
+       <h3
+         className="
+           text-[26px]
+           text-[#081620]
+         "
+         style={{
+           fontFamily:
+             'Georgia, "Times New Roman", serif',
+         }}>
+
+         Searching products
+       </h3>
+
+       <p
+         className="
+           mt-3
+           text-[#667074]
+         ">
+
+         Comparing available products and
+         retailers.
+       </p>
+     </div>
+   );
+ }
+
+ if (error) {
+   return (
+     <div
+       className="
+         w-full
+         rounded-[10px]
+         border
+         border-[#EEE7DF]
+         bg-white
+         px-8
+         py-16
+         text-center
+       ">
+
+       <h3
+         className="
+           text-[26px]
+           text-[#081620]
+         "
+         style={{
+           fontFamily:
+             'Georgia, "Times New Roman", serif',
+         }}>
+
+         Unable to load products
+       </h3>
+
+       <p
+         className="
+           mt-3
+           text-[#667074]
+         ">
+
+         Please try the search again.
+       </p>
+     </div>
+   );
+ }
+
  return (
    <div className="w-full bg-white">
      {/* Results heading and sort control */}
 
-     <div className="flex flex-wrap items-start justify-between gap-5 pb-4">
+     <div
+       className="
+         flex
+         flex-wrap
+         items-start
+         justify-between
+         gap-5
+         pb-4
+       ">
+
        <div>
          <h2
            className="
@@ -56,8 +175,16 @@ export default function SearchResults({
            </span>
          </h2>
 
-         <p className="mt-2 text-[13px] text-[#667074]">
-           Showing {filteredProducts.length} result
+         <p
+           className="
+             mt-2
+             text-[13px]
+             text-[#667074]
+           ">
+
+           Showing{" "}
+           {visibleProducts.length} of{" "}
+           {filteredProducts.length} result
            {filteredProducts.length !== 1
              ? "s"
              : ""}
@@ -97,11 +224,15 @@ export default function SearchResults({
            style={{
              backgroundImage:
                "linear-gradient(45deg, transparent 50%, #667074 50%), linear-gradient(135deg, #667074 50%, transparent 50%)",
+
              backgroundPosition:
                "calc(100% - 8px) 50%, calc(100% - 3px) 50%",
+
              backgroundSize:
                "5px 5px, 5px 5px",
-             backgroundRepeat: "no-repeat",
+
+             backgroundRepeat:
+               "no-repeat",
            }}>
 
            <option value="best-match">
@@ -147,7 +278,14 @@ export default function SearchResults({
              lg:grid
            ">
 
-           <div className="px-5 text-[13px] font-semibold text-[#081620]">
+           <div
+             className="
+               px-5
+               text-[13px]
+               font-semibold
+               text-[#081620]
+             ">
+
              Product &amp; Quality
            </div>
 
@@ -162,8 +300,16 @@ export default function SearchResults({
              ">
 
              Buy Bottle{" "}
-             <span className="ml-1 font-medium text-[#596366]">
-               <br/>(Other Retailers)
+
+             <span
+               className="
+                 ml-1
+                 font-medium
+                 text-[#596366]
+               ">
+
+               <br />
+               (Other Retailers)
              </span>
            </div>
 
@@ -223,7 +369,13 @@ export default function SearchResults({
            </div>
 
            <div>
-             <h3 className="text-[17px] font-semibold text-[#081620]">
+             <h3
+               className="
+                 text-[17px]
+                 font-semibold
+                 text-[#081620]
+               ">
+
                Choose how you want to buy
              </h3>
 
@@ -247,48 +399,69 @@ export default function SearchResults({
          {/* Product comparison rows */}
 
          <div>
-           {filteredProducts.map((product) => (
-             <ProductCard
-               key={`${product.brand}-${product.productName}`}
-               product={product}
-             />
-           ))}
+           {visibleProducts.map(
+             (product) => (
+               <ProductCard
+                 key={`${product.brand}-${product.productName}`}
+                 product={product}
+               />
+             )
+           )}
          </div>
 
          {/* Results footer */}
 
-         <div
-           className="
-             border-t
-             border-[#EEE7DF]
-             bg-white
-             px-5
-             py-4
-             text-center
-           ">
-
-           <button
-             type="button"
+         {hiddenResultCount > 0 && (
+           <div
              className="
-               inline-flex
-               items-center
-               gap-2
-               text-[13px]
-               font-semibold
-               text-[#081620]
-               transition
-               hover:text-[#8C1D40]
+               border-t
+               border-[#EEE7DF]
+               bg-white
+               px-5
+               py-4
+               text-center
              ">
 
-             See all {filteredProducts.length} results
-             <span
-               aria-hidden="true"
-               className="text-[17px]">
+             <button
+               type="button"
+               onClick={showAllResults}
+               className="
+                 inline-flex
+                 items-center
+                 gap-2
+                 text-[13px]
+                 font-semibold
+                 text-[#081620]
+                 transition
+                 hover:text-[#8C1D40]
+               ">
 
-               ↓
-             </span>
-           </button>
-         </div>
+               See all{" "}
+               {filteredProducts.length}{" "}
+               results
+
+               <span
+                 aria-hidden="true"
+                 className="text-[17px]">
+
+                 ↓
+               </span>
+             </button>
+
+             <p
+               className="
+                 mt-1
+                 text-[10px]
+                 text-[#7A8386]
+               ">
+
+               {hiddenResultCount} more product
+               {hiddenResultCount !== 1
+                 ? "s"
+                 : ""}
+             </p>
+           </div>
+         )}
        </div>
      ) : (
        <div
@@ -303,7 +476,10 @@ export default function SearchResults({
          ">
 
          <h3
-           className="text-[26px] text-[#081620]"
+           className="
+             text-[26px]
+             text-[#081620]
+           "
            style={{
              fontFamily:
                'Georgia, "Times New Roman", serif',
@@ -312,9 +488,14 @@ export default function SearchResults({
            No products found
          </h3>
 
-         <p className="mt-3 text-[#667074]">
-           Try searching for another ingredient,
-           brand, or health goal.
+         <p
+           className="
+             mt-3
+             text-[#667074]
+           ">
+
+           Try searching for another
+           ingredient, brand, or health goal.
          </p>
        </div>
      )}

@@ -8,10 +8,13 @@ import {
  researchProduct,
 } from "./researchProduct";
 
+import {
+ saveProductResearch,
+} from "./saveProductResearch";
+
 export async function getProductResearch(
  productName: string
 ): Promise<ProductResearch> {
-
  const cached =
    await getCachedProductResearch(
      productName
@@ -21,5 +24,15 @@ export async function getProductResearch(
    return cached;
  }
 
- return researchProduct(productName);
+ const research =
+   await researchProduct(
+     productName
+   );
+
+ await saveProductResearch(
+   productName,
+   research
+ );
+
+ return research;
 }

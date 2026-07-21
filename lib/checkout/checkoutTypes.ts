@@ -63,9 +63,24 @@ import type {
    
     score?: BrandScoreBreakdown;
    
+
+
     selected: boolean;
-   
+
+    /*
+    * True when this option is the
+    * highest-ranked VidaPouch recommendation.
+    *
+    * This is separate from selected because
+    * the customer may select another brand.
+    */
+    recommended: boolean;
+    
     rejectionReason?: string;
+
+
+
+
    };
    
    export type InternalPricingAudit = {
