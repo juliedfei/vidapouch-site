@@ -1,9 +1,18 @@
 "use client";
 
+import {
+ useState,
+} from "react";
+
+import type {
+ ReactNode,
+} from "react";
+
 import Image from "next/image";
 
 import type {
  SearchPouchItem,
+ SearchPouchTimingPreference,
 } from "./types/searchPouch";
 
 type PouchSidebarProps = {
@@ -12,6 +21,12 @@ type PouchSidebarProps = {
 
  onRemoveItem: (
    itemId: string
+ ) => void;
+
+ onTimingChange: (
+   itemId: string,
+   timingPreference:
+     SearchPouchTimingPreference
  ) => void;
 };
 
@@ -23,19 +38,75 @@ function formatPrice(
  return `$${value.toFixed(2)}`;
 }
 
+function getPluralUnitLabel(
+ unitLabel:
+   SearchPouchItem["unitLabel"],
+ count: number
+) {
+ if (count === 1) {
+   return unitLabel;
+ }
+
+ switch (unitLabel) {
+   case "capsule":
+     return "capsules";
+
+   case "tablet":
+     return "tablets";
+
+   case "caplet":
+     return "caplets";
+
+   case "softgel":
+     return "softgels";
+
+   case "gummy":
+     return "gummies";
+
+   case "serving":
+     return "servings";
+
+   case "unit":
+   default:
+     return "units";
+ }
+}
+
 function getUnitsPerDayLabel(
  item:
    SearchPouchItem
 ) {
- const unit =
-   item.unitsPerDay === 1
-     ? item.unitLabel
-     : item.unitLabel ===
-         "gummy"
-       ? "gummies"
-       : `${item.unitLabel}s`;
+ const unitLabel =
+   getPluralUnitLabel(
+     item.unitLabel,
+     item.unitsPerDay
+   );
 
- return `${item.unitsPerDay} ${unit} per day`;
+ return `${item.unitsPerDay} ${unitLabel} per day`;
+}
+
+function getTimingStatusLabel(
+ item:
+   SearchPouchItem
+) {
+ if (
+   item.timingPreference ===
+   "vidapouch"
+ ) {
+   return `Placed in ${
+     item.timing ===
+     "morning"
+       ? "Morning"
+       : "Evening"
+   } by VidaPouch`;
+ }
+
+ return `Moved to ${
+   item.timing ===
+   "morning"
+     ? "Morning"
+     : "Evening"
+ } by you`;
 }
 
 function SunIcon() {
@@ -83,7 +154,36 @@ function MoonIcon() {
  );
 }
 
-function RemoveIcon() {
+function MoreIcon() {
+ return (
+   <svg
+     viewBox="0 0 24 24"
+     fill="currentColor"
+     aria-hidden="true"
+     className="h-[17px] w-[17px]">
+
+     <circle
+       cx="5"
+       cy="12"
+       r="1.5"
+     />
+
+     <circle
+       cx="12"
+       cy="12"
+       r="1.5"
+     />
+
+     <circle
+       cx="19"
+       cy="12"
+       r="1.5"
+     />
+   </svg>
+ );
+}
+
+function CheckIcon() {
  return (
    <svg
      viewBox="0 0 20 20"
@@ -92,12 +192,67 @@ function RemoveIcon() {
      className="h-[14px] w-[14px]">
 
      <path
-       d="M5 5l10 10M15 5 5 15"
+       d="m4.5 10.3 3.2 3.2 7.8-7.8"
        stroke="currentColor"
-       strokeWidth="1.7"
+       strokeWidth="1.8"
        strokeLinecap="round"
+       strokeLinejoin="round"
      />
    </svg>
+ );
+}
+
+type TimingMenuOptionProps = {
+ label: string;
+
+ selected: boolean;
+
+ onSelect: () => void;
+};
+
+function TimingMenuOption({
+ label,
+ selected,
+ onSelect,
+}: TimingMenuOptionProps) {
+ return (
+   <button
+     type="button"
+     role="menuitem"
+     onClick={
+       onSelect
+     }
+     className="
+       flex
+       w-full
+       items-center
+       justify-between
+       gap-3
+       px-3
+       py-2.5
+       text-left
+       text-[11px]
+       font-medium
+       text-[#3B3530]
+       transition
+       hover:bg-[#F7F1EB]
+     ">
+
+     <span>
+       {label}
+     </span>
+
+     {selected && (
+       <span
+         className="
+           shrink-0
+           text-[#7D0E1C]
+         ">
+
+         <CheckIcon />
+       </span>
+     )}
+   </button>
  );
 }
 
@@ -108,15 +263,53 @@ type ItemRowProps = {
  onRemoveItem: (
    itemId: string
  ) => void;
+
+ onTimingChange: (
+   itemId: string,
+   timingPreference:
+     SearchPouchTimingPreference
+ ) => void;
 };
 
 function ItemRow({
  item,
  onRemoveItem,
+ onTimingChange,
 }: ItemRowProps) {
+ const [
+   menuOpen,
+   setMenuOpen,
+ ] =
+   useState(false);
+
+ function selectTiming(
+   timingPreference:
+     SearchPouchTimingPreference
+ ) {
+   onTimingChange(
+     item.id,
+     timingPreference
+   );
+
+   setMenuOpen(
+     false
+   );
+ }
+
+ function removeItem() {
+   setMenuOpen(
+     false
+   );
+
+   onRemoveItem(
+     item.id
+   );
+ }
+
  return (
    <div
      className="
+       relative
        border-b
        border-[#EEE5DC]
        py-[11px]
@@ -155,34 +348,126 @@ function ItemRow({
          </p>
        </div>
 
-       <button
-         type="button"
-         onClick={
-           () =>
-             onRemoveItem(
-               item.id
-             )
-         }
-         aria-label={`Remove ${item.productName} from VidaPouch`}
-         className="
-           flex
-           h-[25px]
-           w-[25px]
-           shrink-0
-           items-center
-           justify-center
-           rounded-full
-           border
-           border-[#DED4CA]
-           bg-[#FFFDF9]
-           text-[#766E68]
-           transition
-           hover:border-[#BFA99A]
-           hover:text-[#7D0E1C]
-         ">
+       <div className="relative shrink-0">
+         <button
+           type="button"
+           onClick={
+             () =>
+               setMenuOpen(
+                 (current) =>
+                   !current
+               )
+           }
+           aria-expanded={
+             menuOpen
+           }
+           aria-haspopup="menu"
+           aria-label={`Change timing for ${item.productName}`}
+           className="
+             flex
+             h-[27px]
+             w-[31px]
+             items-center
+             justify-center
+             rounded-[7px]
+             border
+             border-[#DED4CA]
+             bg-[#FFFDF9]
+             text-[#6F6862]
+             transition
+             hover:border-[#BFA99A]
+             hover:bg-white
+             hover:text-[#7D0E1C]
+           ">
 
-         <RemoveIcon />
-       </button>
+           <MoreIcon />
+         </button>
+
+         {menuOpen && (
+           <div
+             role="menu"
+             className="
+               absolute
+               right-0
+               top-[33px]
+               z-30
+               w-[190px]
+               overflow-hidden
+               rounded-[9px]
+               border
+               border-[#DDD2C7]
+               bg-white
+               py-1
+               shadow-[0_10px_30px_rgba(47,31,20,0.16)]
+             ">
+
+             <TimingMenuOption
+               label="Move to Morning"
+               selected={
+                 item.timingPreference ===
+                 "morning"
+               }
+               onSelect={
+                 () =>
+                   selectTiming(
+                     "morning"
+                   )
+               }
+             />
+
+             <TimingMenuOption
+               label="Move to Evening"
+               selected={
+                 item.timingPreference ===
+                 "evening"
+               }
+               onSelect={
+                 () =>
+                   selectTiming(
+                     "evening"
+                   )
+               }
+             />
+
+             <TimingMenuOption
+               label="Let VidaPouch Choose"
+               selected={
+                 item.timingPreference ===
+                 "vidapouch"
+               }
+               onSelect={
+                 () =>
+                   selectTiming(
+                     "vidapouch"
+                   )
+               }
+             />
+
+             <div className="my-1 border-t border-[#EEE6DE]" />
+
+             <button
+               type="button"
+               role="menuitem"
+               onClick={
+                 removeItem
+               }
+               className="
+                 w-full
+                 px-3
+                 py-2.5
+                 text-left
+                 text-[11px]
+                 font-medium
+                 text-[#A23636]
+                 transition
+                 hover:bg-[#FCF2F2]
+               ">
+
+               Remove from VidaPouch
+             </button>
+           </div>
+         )}
+       </div>
      </div>
 
      <div
@@ -236,6 +521,44 @@ function ItemRow({
          )}
        </span>
      </div>
+
+     <div
+       className="
+         mt-[8px]
+         rounded-[6px]
+         bg-[#F4EFE9]
+         px-2
+         py-1.5
+       ">
+
+       <p
+         className="
+           text-[9px]
+           font-semibold
+           leading-[13px]
+           text-[#625B55]
+         ">
+
+         {getTimingStatusLabel(
+           item
+         )}
+       </p>
+
+       {item.timingPreference ===
+         "vidapouch" &&
+         item.timingReason && (
+         <p
+           className="
+             mt-[2px]
+             text-[9px]
+             leading-[13px]
+             text-[#77706A]
+           ">
+
+           {item.timingReason}
+         </p>
+       )}
+     </div>
    </div>
  );
 }
@@ -244,13 +567,19 @@ type PouchSectionProps = {
  title: string;
 
  icon:
-   React.ReactNode;
+   ReactNode;
 
  items:
    SearchPouchItem[];
 
  onRemoveItem: (
    itemId: string
+ ) => void;
+
+ onTimingChange: (
+   itemId: string,
+   timingPreference:
+     SearchPouchTimingPreference
  ) => void;
 };
 
@@ -259,6 +588,7 @@ function PouchSection({
  icon,
  items,
  onRemoveItem,
+ onTimingChange,
 }: PouchSectionProps) {
  if (
    items.length === 0
@@ -313,6 +643,9 @@ function PouchSection({
              item={item}
              onRemoveItem={
                onRemoveItem
+             }
+             onTimingChange={
+               onTimingChange
              }
            />
          )
@@ -390,6 +723,7 @@ function PriceRow({
 export default function PouchSidebar({
  items,
  onRemoveItem,
+ onTimingChange,
 }: PouchSidebarProps) {
  const morningItems =
    items.filter(
@@ -424,15 +758,12 @@ export default function PouchSidebar({
    <aside
      className="
        w-full
-       overflow-hidden
        rounded-[12px]
        border
        border-[#E5DCD2]
        bg-[#FBF8F3]
        shadow-[0_8px_24px_rgba(44,30,18,0.05)]
      ">
-
-     {/* Header */}
 
      <header
        className="
@@ -505,6 +836,9 @@ export default function PouchSidebar({
        onRemoveItem={
          onRemoveItem
        }
+       onTimingChange={
+         onTimingChange
+       }
      />
 
      {morningItems.length >
@@ -525,11 +859,12 @@ export default function PouchSidebar({
        onRemoveItem={
          onRemoveItem
        }
+       onTimingChange={
+         onTimingChange
+       }
      />
 
      <div className="border-t border-[#EAE1D7]" />
-
-     {/* Pricing */}
 
      <section className="px-[17px] py-[15px]">
        <div className="space-y-[8px]">
@@ -598,8 +933,6 @@ export default function PouchSidebar({
      </section>
 
      <div className="border-t border-[#EAE1D7]" />
-
-     {/* Concierge */}
 
      <section className="px-[17px] py-[14px]">
        <div

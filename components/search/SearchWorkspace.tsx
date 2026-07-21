@@ -18,6 +18,7 @@ import type {
 
 import type {
  SearchPouchItem,
+ SearchPouchTimingPreference,
 } from "./types/searchPouch";
 
 import TrustBar from "./TrustBar";
@@ -176,10 +177,6 @@ export default function SearchWorkspace({
      }
    );
 
-   /*
-    * Adding the first product makes the
-    * pouch visible and opens it immediately.
-    */
    setLayout(
      (current) => ({
        ...current,
@@ -224,6 +221,50 @@ export default function SearchWorkspace({
 
        return nextItems;
      }
+   );
+ }
+
+ function updatePouchItemTiming(
+   itemId: string,
+   timingPreference:
+     SearchPouchTimingPreference
+ ) {
+   setPouchItems(
+     (currentItems) =>
+       currentItems.map(
+         (item) => {
+           if (
+             item.id !==
+             itemId
+           ) {
+             return item;
+           }
+
+           if (
+             timingPreference ===
+             "vidapouch"
+           ) {
+             return {
+               ...item,
+
+               timing:
+                 item.recommendedTiming,
+
+               timingPreference:
+                 "vidapouch",
+             };
+           }
+
+           return {
+             ...item,
+
+             timing:
+               timingPreference,
+
+             timingPreference,
+           };
+         }
+       )
    );
  }
 
@@ -365,6 +406,9 @@ export default function SearchWorkspace({
                    }
                    onRemoveItem={
                      removePouchItem
+                   }
+                   onTimingChange={
+                     updatePouchItemTiming
                    }
                  />
                </div>

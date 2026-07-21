@@ -57,10 +57,21 @@ import type {
       string[];
    
     /*
-     * The actual pouch section where the
-     * product currently appears.
+     * The pouch section where the product
+     * currently appears.
      */
     timing:
+      SearchPouchTiming;
+   
+    /*
+     * The original timing selected by the
+     * VidaPouch timing engine.
+     *
+     * This remains unchanged when the user
+     * manually moves the product so that
+     * "Let VidaPouch Choose" can restore it.
+     */
+    recommendedTiming:
       SearchPouchTiming;
    
     /*

@@ -489,8 +489,16 @@ function handleAddToPouch() {
     recommendedPouchTiming
       .timing,
 
+  recommendedTiming:
+    recommendedPouchTiming
+      .timing,
+
   timingPreference:
     "vidapouch",
+
+
+
+
 
   timingReason:
     recommendedPouchTiming
