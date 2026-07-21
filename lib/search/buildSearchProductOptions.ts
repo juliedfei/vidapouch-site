@@ -719,6 +719,9 @@ import type {
   );
  }
  
+
+
+
  function buildPreliminaryScore({
   value,
   availability,
@@ -730,16 +733,17 @@ import type {
  
   dataCompleteness: number;
  }): SearchProductScore {
-  const overall =
-    clampScore(
-      value * 0.45 +
-        availability * 0.35 +
-        dataCompleteness *
-          0.2
-    );
- 
+  /*
+   * Do not display an overall VidaPouch
+   * Score until product research exists.
+   *
+   * Price, availability, and listing
+   * completeness are still preserved for
+   * internal comparison, but they are not
+   * presented as a finished quality score.
+   */
   return {
-    overall,
+    overall: null,
  
     value:
       clampScore(value),
@@ -759,6 +763,10 @@ import type {
       ),
   };
  }
+
+
+
+
  
  async function prepareSearchProduct({
   group,
