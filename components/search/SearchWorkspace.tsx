@@ -1,24 +1,24 @@
 "use client";
 
 import {
-  useState,
- } from "react";
- 
- import type {
-  SearchLayoutState,
- } from "./types/searchLayout";
- 
- import {
-  DEFAULT_SEARCH_FILTERS,
- } from "./types/searchFilters";
- 
- import type {
-  SearchFilterState,
- } from "./types/searchFilters";
- 
+ useState,
+} from "react";
 
+import type {
+ SearchLayoutState,
+} from "./types/searchLayout";
 
+import {
+ DEFAULT_SEARCH_FILTERS,
+} from "./types/searchFilters";
 
+import type {
+ SearchFilterState,
+} from "./types/searchFilters";
+
+import type {
+ SearchPouchItem,
+} from "./types/searchPouch";
 
 import TrustBar from "./TrustBar";
 import SearchControls from "./SearchControls";
@@ -95,10 +95,10 @@ function RightChevronIcon() {
 export default function SearchWorkspace({
  query,
 }: SearchWorkspaceProps) {
- 
- 
- 
-  const [layout, setLayout] =
+ const [
+   layout,
+   setLayout,
+ ] =
    useState<SearchLayoutState>({
      hasSearched: false,
      filtersOpen: false,
@@ -106,54 +106,142 @@ export default function SearchWorkspace({
      hasPouchItems: false,
    });
 
+ const [
+   filters,
+   setFilters,
+ ] =
+   useState<SearchFilterState>(
+     DEFAULT_SEARCH_FILTERS
+   );
 
+ const [
+   availableBrands,
+   setAvailableBrands,
+ ] =
+   useState<string[]>(
+     []
+   );
 
-
-   const [
-    filters,
-    setFilters,
-  ] =
-    useState<SearchFilterState>(
-      DEFAULT_SEARCH_FILTERS
-    );
-
-
-  const [
-  availableBrands,
-  setAvailableBrands,
-] =
-  useState<string[]>(
-    []
-  );
-
-
+ const [
+   pouchItems,
+   setPouchItems,
+ ] =
+   useState<SearchPouchItem[]>(
+     []
+   );
 
  function toggleFilters() {
-   setLayout((current) => ({
-     ...current,
-     filtersOpen: !current.filtersOpen,
-   }));
+   setLayout(
+     (current) => ({
+       ...current,
+
+       filtersOpen:
+         !current.filtersOpen,
+     })
+   );
  }
 
  function togglePouch() {
-   setLayout((current) => ({
-     ...current,
-     pouchOpen: !current.pouchOpen,
-   }));
+   setLayout(
+     (current) => ({
+       ...current,
+
+       pouchOpen:
+         !current.pouchOpen,
+     })
+   );
  }
 
- const filterWidth = layout.filtersOpen
-   ? "290px"
-   : "52px";
+ function addPouchItem(
+   item:
+     SearchPouchItem
+ ) {
+   setPouchItems(
+     (currentItems) => {
+       const alreadyAdded =
+         currentItems.some(
+           (currentItem) =>
+             currentItem.id ===
+             item.id
+         );
+
+       if (alreadyAdded) {
+         return currentItems;
+       }
+
+       return [
+         ...currentItems,
+         item,
+       ];
+     }
+   );
+
+   /*
+    * Adding the first product makes the
+    * pouch visible and opens it immediately.
+    */
+   setLayout(
+     (current) => ({
+       ...current,
+
+       hasPouchItems:
+         true,
+
+       pouchOpen:
+         true,
+     })
+   );
+ }
+
+ function removePouchItem(
+   itemId: string
+ ) {
+   setPouchItems(
+     (currentItems) => {
+       const nextItems =
+         currentItems.filter(
+           (item) =>
+             item.id !==
+             itemId
+         );
+
+       if (
+         nextItems.length ===
+         0
+       ) {
+         setLayout(
+           (current) => ({
+             ...current,
+
+             hasPouchItems:
+               false,
+
+             pouchOpen:
+               false,
+           })
+         );
+       }
+
+       return nextItems;
+     }
+   );
+ }
+
+ const filterWidth =
+   layout.filtersOpen
+     ? "290px"
+     : "52px";
 
  const pouchWidth =
-   layout.hasPouchItems && layout.pouchOpen
+   layout.hasPouchItems &&
+   layout.pouchOpen
      ? "340px"
      : "52px";
 
- const gridColumns = layout.hasPouchItems
-   ? `${filterWidth} minmax(0, 1fr) ${pouchWidth}`
-   : `${filterWidth} minmax(0, 1fr)`;
+ const gridColumns =
+   layout.hasPouchItems
+     ? `${filterWidth} minmax(0, 1fr) ${pouchWidth}`
+     : `${filterWidth} minmax(0, 1fr)`;
 
  return (
    <section className="mx-auto max-w-[1440px] px-5 py-8 lg:px-10">
@@ -172,50 +260,51 @@ export default function SearchWorkspace({
          ease-in-out
        "
        style={{
-         gridTemplateColumns: gridColumns,
+         gridTemplateColumns:
+           gridColumns,
        }}>
 
        <aside className="min-w-0">
-         
-         
-         
-       <SearchControls
-          open={layout.filtersOpen}
-          onToggle={toggleFilters}
-          filters={filters}
-          onFiltersChange={
-            setFilters
-          }
-          availableBrands={
-            availableBrands
-          }
-        />
-
-
-
-
+         <SearchControls
+           open={
+             layout.filtersOpen
+           }
+           onToggle={
+             toggleFilters
+           }
+           filters={
+             filters
+           }
+           onFiltersChange={
+             setFilters
+           }
+           availableBrands={
+             availableBrands
+           }
+         />
        </aside>
 
        <section className="min-w-0">
-         
-         
-         
-         
-         
-       <SearchResults
-          query={query}
-          filters={filters}
-          onFiltersChange={
-            setFilters
-          }
-          onAvailableBrandsChange={
-            setAvailableBrands
-          }
-        />
-
-
-
-
+         <SearchResults
+           query={
+             query
+           }
+           filters={
+             filters
+           }
+           onFiltersChange={
+             setFilters
+           }
+           onAvailableBrandsChange={
+             setAvailableBrands
+           }
+           pouchItems={
+             pouchItems
+           }
+           onAddToPouch={
+             addPouchItem
+           }
+         />
        </section>
 
        {layout.hasPouchItems && (
@@ -234,7 +323,9 @@ export default function SearchWorkspace({
              <div className="min-w-[340px]">
                <button
                  type="button"
-                 onClick={togglePouch}
+                 onClick={
+                   togglePouch
+                 }
                  aria-expanded="true"
                  aria-label="Collapse My Pouch"
                  className="
@@ -268,13 +359,22 @@ export default function SearchWorkspace({
                </button>
 
                <div className="p-3">
-                 <PouchSidebar />
+                 <PouchSidebar
+                   items={
+                     pouchItems
+                   }
+                   onRemoveItem={
+                     removePouchItem
+                   }
+                 />
                </div>
              </div>
            ) : (
              <button
                type="button"
-               onClick={togglePouch}
+               onClick={
+                 togglePouch
+               }
                aria-expanded="false"
                aria-label="Open My Pouch"
                className="
@@ -291,6 +391,24 @@ export default function SearchWorkspace({
                ">
 
                <PouchIcon />
+
+               <span
+                 className="
+                   flex
+                   h-[23px]
+                   min-w-[23px]
+                   items-center
+                   justify-center
+                   rounded-full
+                   bg-[#7D0E1C]
+                   px-[6px]
+                   text-[10px]
+                   font-bold
+                   text-white
+                 ">
+
+                 {pouchItems.length}
+               </span>
 
                <span
                  className="

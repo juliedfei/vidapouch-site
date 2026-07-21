@@ -4,14 +4,34 @@ import {
  useState,
 } from "react";
 
+
+
+
 import type {
  SearchProductOption,
  SearchProductUnitLabel,
 } from "@/lib/search/searchProductOption";
 
-type ProductCardProps = {
- product: SearchProductOption;
-};
+
+import type {
+  SearchPouchItem,
+ } from "./types/searchPouch";
+
+
+
+
+ type ProductCardProps = {
+  product:
+    SearchProductOption;
+ 
+  isInPouch:
+    boolean;
+ 
+  onAddToPouch: (
+    item:
+      SearchPouchItem
+  ) => void;
+ };
 
 
 
@@ -174,9 +194,16 @@ function RatingStars({
  );
 }
 
+
 export default function ProductCard({
- product,
-}: ProductCardProps) {
+  product,
+  isInPouch,
+  onAddToPouch,
+ }: ProductCardProps) {
+
+
+
+
  const [
    isFindingVendorLink,
    setIsFindingVendorLink,
@@ -231,11 +258,22 @@ export default function ProductCard({
 
 
 
- /*
-  * This currently assumes one selected unit
-  * per day for a 30-day VitaPouch supply.
-  */
- const pouchUnitCount = 30;
+/*
+ * The Daily Dose filter places the actual
+ * required number of physical units per
+ * day on the product.
+ */
+const pouchUnitsPerDay =
+  product.unitsPerDay ??
+  1;
+
+const pouchUnitCount =
+  pouchUnitsPerDay *
+  30;
+
+
+
+
 
  const pouchPricePerUnit =
    pouchUnitCount > 0
@@ -353,9 +391,89 @@ export default function ProductCard({
        ? `Per ${unitLabel}`
        : null;
 
+
  const canAddToVitaPouch =
    product.vitaPouchFormEligible;
 
+
+const pouchItemId =
+  representative
+    .shoppingProductId ??
+  `${product.brand}-${product.productName}`;
+
+function handleAddToPouch() {
+  if (
+    !canAddToVitaPouch ||
+    isInPouch
+  ) {
+    return;
+  }
+
+  onAddToPouch({
+    id:
+      pouchItemId,
+
+    shoppingProductId:
+      representative
+        .shoppingProductId ??
+      null,
+
+    productName:
+      product.productName,
+
+    brand:
+      product.brand,
+
+    dosage:
+      product.dosage,
+
+    form:
+      product.form,
+
+    unitLabel:
+      product.unitLabel,
+
+    unitsPerDay:
+      pouchUnitsPerDay,
+
+    monthlyUnitCount:
+      pouchUnitCount,
+
+    monthlyPrice:
+      product
+        .displayedMonthlyCost,
+
+    bottlePrice:
+      representative
+        .bottlePrice,
+
+    retailer:
+      representative
+        .retailer,
+
+    imageUrl:
+      representative
+        .imageUrl ??
+      null,
+
+    vitaPouchScore:
+      vidaPouchScore,
+
+    certifications:
+      product.certifications,
+
+    qualityClaims:
+      product.qualityClaims,
+
+    /*
+     * Morning is the initial default.
+     * Timing can become editable inside
+     * My Pouch afterward.
+     */
+    timing:
+      "morning",
+  });
+}
 
 
 
@@ -1244,44 +1362,65 @@ export default function ProductCard({
              </div>
            </div>
 
+
+
+
+
            <button
-             type="button"
-             className="
-               mt-auto
-               flex
-               h-[38px]
-               w-full
-               min-w-0
-               items-center
-               justify-between
-               gap-2
-               whitespace-nowrap
-               rounded-[7px]
-               bg-[#8C1D40]
-               px-3
-               text-[11px]
-               font-semibold
-               text-white
-               transition
-               hover:bg-[#741935]
-             ">
+            type="button"
+            onClick={
+              handleAddToPouch
+            }
+            disabled={
+              isInPouch
+            }
+            className="
+              mt-auto
+              flex
+              h-[38px]
+              w-full
+              min-w-0
+              items-center
+              justify-between
+              gap-2
+              whitespace-nowrap
+              rounded-[7px]
+              bg-[#8C1D40]
+              px-3
+              text-[11px]
+              font-semibold
+              text-white
+              transition
+              hover:bg-[#741935]
+              disabled:cursor-default
+              disabled:bg-[#E9E2DC]
+              disabled:text-[#625B56]
+            ">
 
-             <span>
-               Add to VidaPouch
-             </span>
+            <span>
+              {isInPouch
+                ? "Added to VidaPouch"
+                : "Add to VidaPouch"}
+            </span>
 
-             <span
-               className="
-                 flex-none
-                 text-[18px]
-                 font-light
-                 leading-none
-               "
-               aria-hidden="true">
+            <span
+              className="
+                flex-none
+                text-[18px]
+                font-light
+                leading-none
+              "
+              aria-hidden="true">
 
-               +
-             </span>
-           </button>
+              {isInPouch
+                ? "✓"
+                : "+"}
+            </span>
+          </button>
+
+
+
+
          </>
        ) : (
          <div

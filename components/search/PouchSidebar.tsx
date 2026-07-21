@@ -1,77 +1,41 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
 
-type PouchItem = {
- id: string;
- name: string;
- monthlyPrice: number;
-};
+import type {
+ SearchPouchItem,
+} from "./types/searchPouch";
 
 type PouchSidebarProps = {
- /*
-  * SearchWorkspace will use this callback to widen
-  * the search-results column when the pouch collapses.
-  */
- onCollapsedChange?: (
-   isCollapsed: boolean
- ) => void;
+ items:
+   SearchPouchItem[];
 
- /*
-  * Replace this with real pouch state later.
-  * When false, the sidebar does not render.
-  */
- hasSelections?: boolean;
+ onRemoveItem: (
+   itemId: string
+ ) => void;
 };
 
-const MORNING_ITEMS: PouchItem[] = [
- {
-   id: "vitamin-d3",
-   name: "Vitamin D3",
-   monthlyPrice: 3.2,
- },
- {
-   id: "omega-3",
-   name: "Omega-3",
-   monthlyPrice: 11.4,
- },
- {
-   id: "b-complex",
-   name: "B-Complex",
-   monthlyPrice: 6.8,
- },
-];
-
-const EVENING_ITEMS: PouchItem[] = [
- {
-   id: "magnesium-glycinate",
-   name: "Magnesium Glycinate",
-   monthlyPrice: 8.14,
- },
- {
-   id: "l-theanine",
-   name: "L-Theanine",
-   monthlyPrice: 4.2,
- },
- {
-   id: "apigenin",
-   name: "Apigenin",
-   monthlyPrice: 2.84,
- },
-];
-
-const SUPPLEMENT_COST = 36.58;
 const SERVICE_COST = 19;
-const MONTHLY_TOTAL =
- SUPPLEMENT_COST + SERVICE_COST;
 
-const RETAIL_VALUE = 84.12;
-const ESTIMATED_SAVINGS =
- RETAIL_VALUE - MONTHLY_TOTAL;
-
-function formatPrice(value: number) {
+function formatPrice(
+ value: number
+) {
  return `$${value.toFixed(2)}`;
+}
+
+function getUnitsPerDayLabel(
+ item:
+   SearchPouchItem
+) {
+ const unit =
+   item.unitsPerDay === 1
+     ? item.unitLabel
+     : item.unitLabel ===
+         "gummy"
+       ? "gummies"
+       : `${item.unitLabel}s`;
+
+ return `${item.unitsPerDay} ${unit} per day`;
 }
 
 function SunIcon() {
@@ -119,123 +83,189 @@ function MoonIcon() {
  );
 }
 
-function PouchIcon() {
- return (
-   <svg
-     viewBox="0 0 24 24"
-     fill="none"
-     aria-hidden="true"
-     className="h-[19px] w-[19px]">
-
-     <path
-       d="M7 4.5h10l1 15H6l1-15Z"
-       stroke="currentColor"
-       strokeWidth="1.5"
-       strokeLinejoin="round"
-     />
-
-     <path
-       d="M8 8h8"
-       stroke="currentColor"
-       strokeWidth="1.5"
-       strokeLinecap="round"
-     />
-
-     <path
-       d="M10 12.2h4"
-       stroke="currentColor"
-       strokeWidth="1.5"
-       strokeLinecap="round"
-     />
-   </svg>
- );
-}
-
-function ChevronIcon({
- direction,
-}: {
- direction: "left" | "right";
-}) {
+function RemoveIcon() {
  return (
    <svg
      viewBox="0 0 20 20"
      fill="none"
      aria-hidden="true"
-     className="h-[17px] w-[17px]">
+     className="h-[14px] w-[14px]">
 
      <path
-       d={
-         direction === "left"
-           ? "m12 5-5 5 5 5"
-           : "m8 5 5 5-5 5"
-       }
+       d="M5 5l10 10M15 5 5 15"
        stroke="currentColor"
        strokeWidth="1.7"
        strokeLinecap="round"
-       strokeLinejoin="round"
      />
    </svg>
  );
 }
 
 type ItemRowProps = {
- item: PouchItem;
+ item:
+   SearchPouchItem;
+
+ onRemoveItem: (
+   itemId: string
+ ) => void;
 };
 
 function ItemRow({
  item,
+ onRemoveItem,
 }: ItemRowProps) {
  return (
    <div
      className="
-       flex
-       items-center
-       justify-between
-       gap-3
-       py-[4px]
+       border-b
+       border-[#EEE5DC]
+       py-[11px]
+       last:border-b-0
      ">
 
-     <span
+     <div
        className="
-         min-w-0
-         truncate
-         text-[12px]
-         font-medium
-         leading-[17px]
-         text-[#38332E]
+         flex
+         items-start
+         justify-between
+         gap-3
        ">
 
-       {item.name}
-     </span>
+       <div className="min-w-0">
+         <p
+           className="
+             text-[12px]
+             font-semibold
+             leading-[17px]
+             text-[#302A26]
+           ">
 
-     <span
+           {item.productName}
+         </p>
+
+         <p
+           className="
+             mt-[2px]
+             text-[10px]
+             font-medium
+             text-[#706963]
+           ">
+
+           {item.brand}
+         </p>
+       </div>
+
+       <button
+         type="button"
+         onClick={
+           () =>
+             onRemoveItem(
+               item.id
+             )
+         }
+         aria-label={`Remove ${item.productName} from VidaPouch`}
+         className="
+           flex
+           h-[25px]
+           w-[25px]
+           shrink-0
+           items-center
+           justify-center
+           rounded-full
+           border
+           border-[#DED4CA]
+           bg-[#FFFDF9]
+           text-[#766E68]
+           transition
+           hover:border-[#BFA99A]
+           hover:text-[#7D0E1C]
+         ">
+
+         <RemoveIcon />
+       </button>
+     </div>
+
+     <div
        className="
-         shrink-0
-         text-[12px]
-         font-semibold
-         tabular-nums
-         text-[#74101D]
+         mt-[7px]
+         flex
+         items-end
+         justify-between
+         gap-3
        ">
 
-       {formatPrice(
-         item.monthlyPrice
-       )}
-     </span>
+       <div
+         className="
+           min-w-0
+           text-[10px]
+           leading-[15px]
+           text-[#706963]
+         ">
+
+         {item.dosage && (
+           <p>
+             {item.dosage}
+             {item.form
+               ? ` · ${item.form}`
+               : ""}
+           </p>
+         )}
+
+         <p>
+           {getUnitsPerDayLabel(
+             item
+           )}
+         </p>
+
+         <p>
+           {item.monthlyUnitCount} units monthly
+         </p>
+       </div>
+
+       <span
+         className="
+           shrink-0
+           text-[12px]
+           font-semibold
+           tabular-nums
+           text-[#74101D]
+         ">
+
+         {formatPrice(
+           item.monthlyPrice
+         )}
+       </span>
+     </div>
    </div>
  );
 }
 
 type PouchSectionProps = {
  title: string;
- icon: React.ReactNode;
- items: PouchItem[];
+
+ icon:
+   React.ReactNode;
+
+ items:
+   SearchPouchItem[];
+
+ onRemoveItem: (
+   itemId: string
+ ) => void;
 };
 
 function PouchSection({
  title,
  icon,
  items,
+ onRemoveItem,
 }: PouchSectionProps) {
+ if (
+   items.length === 0
+ ) {
+   return null;
+ }
+
  return (
    <section className="px-[17px] py-[14px]">
      <div
@@ -275,13 +305,18 @@ function PouchSection({
        </h3>
      </div>
 
-     <div className="mt-[9px]">
-       {items.map((item) => (
-         <ItemRow
-           key={item.id}
-           item={item}
-         />
-       ))}
+     <div className="mt-[7px]">
+       {items.map(
+         (item) => (
+           <ItemRow
+             key={item.id}
+             item={item}
+             onRemoveItem={
+               onRemoveItem
+             }
+           />
+         )
+       )}
      </div>
    </section>
  );
@@ -289,16 +324,16 @@ function PouchSection({
 
 type PriceRowProps = {
  label: string;
+
  value: string;
+
  emphasized?: boolean;
- savings?: boolean;
 };
 
 function PriceRow({
  label,
  value,
  emphasized = false,
- savings = false,
 }: PriceRowProps) {
  return (
    <div
@@ -317,16 +352,10 @@ function PriceRow({
                font-semibold
                text-[#2A211E]
              `
-           : savings
-             ? `
-                 text-[12px]
-                 font-semibold
-                 text-[#5D554E]
-               `
-             : `
-                 text-[12px]
-                 text-[#6E6862]
-               `
+           : `
+               text-[12px]
+               text-[#6E6862]
+             `
        }>
 
        {label}
@@ -343,21 +372,13 @@ function PriceRow({
                tabular-nums
                text-[#7D0E1C]
              `
-           : savings
-             ? `
-                 shrink-0
-                 text-[13px]
-                 font-bold
-                 tabular-nums
-                 text-[#7D0E1C]
-               `
-             : `
-                 shrink-0
-                 text-[13px]
-                 font-semibold
-                 tabular-nums
-                 text-[#2A211E]
-               `
+           : `
+               shrink-0
+               text-[13px]
+               font-semibold
+               tabular-nums
+               text-[#2A211E]
+             `
        }>
 
        {value}
@@ -367,145 +388,41 @@ function PriceRow({
 }
 
 export default function PouchSidebar({
- onCollapsedChange,
- hasSelections = true,
+ items,
+ onRemoveItem,
 }: PouchSidebarProps) {
- const [
-   isCollapsed,
-   setIsCollapsed,
- ] = useState(false);
-
- const totalItemCount =
-   MORNING_ITEMS.length +
-   EVENING_ITEMS.length;
-
- function updateCollapsedState(
-   nextValue: boolean
- ) {
-   setIsCollapsed(nextValue);
-   onCollapsedChange?.(nextValue);
- }
-
- if (!hasSelections) {
-   return null;
- }
-
- /*
-  * The outer element remains full height in both states.
-  * Only its width changes.
-  */
- if (isCollapsed) {
-   return (
-     <aside
-       className="
-         sticky
-         top-6
-         flex
-         h-full
-         min-h-[580px]
-         w-[54px]
-         justify-self-end
-         overflow-hidden
-         rounded-[12px]
-         border
-         border-[#E5DCD2]
-         bg-[#FBF8F3]
-         shadow-[0_8px_24px_rgba(44,30,18,0.05)]
-       ">
-
-       <button
-         type="button"
-         onClick={() =>
-           updateCollapsedState(false)
-         }
-         aria-label="Expand My Pouch"
-         className="
-           flex
-           h-full
-           min-h-[580px]
-           w-full
-           flex-col
-           items-center
-           px-[8px]
-           py-[15px]
-           text-[#75101D]
-           transition-colors
-           hover:bg-[#F6F0E9]
-         ">
-
-         <ChevronIcon direction="left" />
-
-         <span
-           className="
-             mt-[17px]
-             flex
-             h-[32px]
-             w-[32px]
-             items-center
-             justify-center
-             rounded-full
-             bg-[#F2E6D9]
-             text-[#8A5C23]
-           ">
-
-           <PouchIcon />
-         </span>
-
-         <span
-           className="
-             mt-[13px]
-             flex
-             h-[23px]
-             min-w-[23px]
-             items-center
-             justify-center
-             rounded-full
-             bg-[#7D0E1C]
-             px-[6px]
-             text-[10px]
-             font-bold
-             text-white
-           ">
-
-           {totalItemCount}
-         </span>
-
-         <span
-           className="
-             mt-[17px]
-             [writing-mode:vertical-rl]
-             rotate-180
-             text-[10px]
-             font-semibold
-             tracking-[0.08em]
-             text-[#403A35]
-           ">
-
-           My Pouch
-         </span>
-
-         <span
-           aria-hidden="true"
-           className="
-             mt-auto
-             mb-[2px]
-             h-[42px]
-             w-px
-             bg-[#E4D9CE]
-           "
-         />
-       </button>
-     </aside>
+ const morningItems =
+   items.filter(
+     (item) =>
+       item.timing ===
+       "morning"
    );
- }
+
+ const eveningItems =
+   items.filter(
+     (item) =>
+       item.timing ===
+       "evening"
+   );
+
+ const supplementCost =
+   items.reduce(
+     (
+       total,
+       item
+     ) =>
+       total +
+       item.monthlyPrice,
+     0
+   );
+
+ const monthlyTotal =
+   supplementCost +
+   SERVICE_COST;
 
  return (
    <aside
      className="
-       sticky
-       top-6
-       h-fit
-       min-h-[580px]
        w-full
        overflow-hidden
        rounded-[12px]
@@ -528,109 +445,86 @@ export default function PouchSidebar({
        <div
          className="
            flex
-           items-start
-           justify-between
-           gap-3
+           items-center
+           gap-[8px]
          ">
 
-         <div className="min-w-0">
-           <div
-             className="
-               flex
-               items-center
-               gap-[8px]
-             ">
+         <h2
+           className="
+             font-serif
+             text-[20px]
+             font-semibold
+             leading-none
+             tracking-[-0.02em]
+             text-[#4F1118]
+           ">
 
-             <h2
-               className="
-                 font-serif
-                 text-[20px]
-                 font-semibold
-                 leading-none
-                 tracking-[-0.02em]
-                 text-[#4F1118]
-               ">
+           My Pouch
+         </h2>
 
-               My Pouch
-             </h2>
-
-             <span
-               className="
-                 flex
-                 h-[22px]
-                 min-w-[22px]
-                 items-center
-                 justify-center
-                 rounded-full
-                 bg-[#7D0E1C]
-                 px-[6px]
-                 text-[10px]
-                 font-bold
-                 text-white
-               ">
-
-               {totalItemCount}
-             </span>
-           </div>
-
-           <p
-             className="
-               mt-[6px]
-               max-w-[190px]
-               text-[10.5px]
-               leading-[15px]
-               text-[#6E6862]
-             ">
-
-             Your personalized monthly
-             supplement routine.
-           </p>
-         </div>
-
-         <button
-           type="button"
-           onClick={() =>
-             updateCollapsedState(true)
-           }
-           aria-label="Collapse My Pouch"
+         <span
            className="
              flex
-             h-[29px]
-             w-[29px]
-             shrink-0
+             h-[22px]
+             min-w-[22px]
              items-center
              justify-center
              rounded-full
-             border
-             border-[#DED4CA]
-             bg-[#FFFDF9]
-             text-[#5B524C]
-             transition
-             hover:border-[#BFA99A]
-             hover:text-[#74101D]
+             bg-[#7D0E1C]
+             px-[6px]
+             text-[10px]
+             font-bold
+             text-white
            ">
 
-           <ChevronIcon direction="right" />
-         </button>
+           {items.length}
+         </span>
        </div>
-     </header>
 
-     {/* Morning */}
+       <p
+         className="
+           mt-[6px]
+           text-[10.5px]
+           leading-[15px]
+           text-[#6E6862]
+         ">
+
+         Your personalized monthly
+         supplement routine.
+       </p>
+     </header>
 
      <PouchSection
        title="Morning Pouch"
-       icon={<SunIcon />}
-       items={MORNING_ITEMS}
+       icon={
+         <SunIcon />
+       }
+       items={
+         morningItems
+       }
+       onRemoveItem={
+         onRemoveItem
+       }
      />
 
-     <div className="border-t border-[#EAE1D7]" />
-
-     {/* Evening */}
+     {morningItems.length >
+       0 &&
+       eveningItems.length >
+         0 && (
+       <div className="border-t border-[#EAE1D7]" />
+     )}
 
      <PouchSection
        title="Evening Pouch"
-       icon={<MoonIcon />}
-       items={EVENING_ITEMS}
+       icon={
+         <MoonIcon />
+       }
+       items={
+         eveningItems
+       }
+       onRemoveItem={
+         onRemoveItem
+       }
      />
 
      <div className="border-t border-[#EAE1D7]" />
@@ -641,16 +535,20 @@ export default function PouchSidebar({
        <div className="space-y-[8px]">
          <PriceRow
            label="Supplement Cost"
-           value={formatPrice(
-             SUPPLEMENT_COST
-           )}
+           value={
+             formatPrice(
+               supplementCost
+             )
+           }
          />
 
          <PriceRow
            label="VidaPouch Service"
-           value={formatPrice(
-             SERVICE_COST
-           )}
+           value={
+             formatPrice(
+               SERVICE_COST
+             )
+           }
          />
        </div>
 
@@ -664,36 +562,13 @@ export default function PouchSidebar({
 
        <PriceRow
          label="Monthly Total"
-         value={formatPrice(
-           MONTHLY_TOTAL
-         )}
+         value={
+           formatPrice(
+             monthlyTotal
+           )
+         }
          emphasized
        />
-
-       <div
-         className="
-           mt-[13px]
-           space-y-[7px]
-           border-t
-           border-[#E5DCD2]
-           pt-[12px]
-         ">
-
-         <PriceRow
-           label="Retail Value"
-           value={formatPrice(
-             RETAIL_VALUE
-           )}
-         />
-
-         <PriceRow
-           label="You Save"
-           value={formatPrice(
-             ESTIMATED_SAVINGS
-           )}
-           savings
-         />
-       </div>
 
        <button
          type="button"
@@ -718,7 +593,7 @@ export default function PouchSidebar({
            focus-visible:ring-offset-2
          ">
 
-         Review Pouches & Checkout
+         Review Pouches &amp; Checkout
        </button>
      </section>
 
@@ -734,25 +609,16 @@ export default function PouchSidebar({
            gap-[12px]
          ">
 
-<div
- className="
-   shrink-0
- ">
+         <div className="shrink-0">
+           <Image
+             src="/images/icons/concierge.png"
+             alt="VidaPouch Concierge"
+             width={36}
+             height={36}
+           />
+         </div>
 
-<Image
- src="/images/icons/concierge.png"
- alt="VidaPouch Concierge"
- width={36}
- height={36}
-
-/>
-</div>
-
-
-
-
-
-         <div className="flex-1">
+         <div className="min-w-0 flex-1">
            <p
              className="
                text-[11px]
@@ -766,7 +632,6 @@ export default function PouchSidebar({
            <p
              className="
                mt-[2px]
-               whitespace-nowrap
                text-[11px]
                leading-[16px]
                text-[#716A63]

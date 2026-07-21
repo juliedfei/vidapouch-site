@@ -156,11 +156,29 @@ import type {
   medianMonthlyCost:
     number;
  
-  displayedMonthlyCost:
+
+
+    displayedMonthlyCost:
+    number;
+ 
+  /*
+   * Number of physical capsules, tablets,
+   * gummies, or other units required each
+   * day for the active Daily Dose filter.
+   *
+   * Defaults to one when no adjusted daily
+   * dose has been applied.
+   */
+  unitsPerDay?:
     number;
  
   score:
     SearchProductScore;
+ 
+
+
+
+
  
   researchStatus:
     | "complete"

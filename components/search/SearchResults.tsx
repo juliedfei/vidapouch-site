@@ -31,6 +31,8 @@ import type {
  SearchProductOption,
 } from "@/lib/search/searchProductOption";
 
+
+
 import type {
  SearchFilterState,
  SearchSortOption,
@@ -38,10 +40,16 @@ import type {
 } from "./types/searchFilters";
 
 
+import type {
+  SearchPouchItem,
+ } from "./types/searchPouch";
 
 
 
-type SearchResultsProps = {
+
+
+
+ type SearchResultsProps = {
   query: string;
  
   filters:
@@ -60,7 +68,16 @@ type SearchResultsProps = {
         string[]
  >
  >;
+ 
+  pouchItems:
+    SearchPouchItem[];
+ 
+  onAddToPouch: (
+    item:
+      SearchPouchItem
+  ) => void;
  };
+ 
  
 
 
@@ -485,6 +502,8 @@ export default function SearchResults({
   filters,
   onFiltersChange,
   onAvailableBrandsChange,
+  pouchItems,
+  onAddToPouch,
  }: SearchResultsProps) {
 
 
@@ -1039,10 +1058,32 @@ const filteredProducts =
          <div>
            {visibleProducts.map(
              (product) => (
-               <ProductCard
-                 key={`${product.brand}-${product.productName}`}
-                 product={product}
-               />
+               
+               
+               
+<ProductCard
+ key={`${product.brand}-${product.productName}`}
+ product={product}
+ isInPouch={
+   pouchItems.some(
+     (item) =>
+       item.id ===
+       (
+         product
+           .representativeProduct
+           .shoppingProductId ??
+         `${product.brand}-${product.productName}`
+       )
+   )
+ }
+ onAddToPouch={
+   onAddToPouch
+ }
+/>
+
+
+
+
              )
            )}
          </div>

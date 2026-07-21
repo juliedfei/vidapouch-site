@@ -83,9 +83,14 @@ import type {
    
     unitsPerDay: number;
    }): DailyDoseProductResult {
+    
+    
+    
     return {
       product: {
         ...product,
+
+        unitsPerDay,
    
         lowestMonthlyCost:
           multiplyPrice(
@@ -93,6 +98,11 @@ import type {
               .lowestMonthlyCost,
             unitsPerDay
           ),
+
+
+
+
+
    
         highestMonthlyCost:
           multiplyPrice(
