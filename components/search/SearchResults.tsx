@@ -17,6 +17,16 @@ import {
  useSearch,
 } from "@/lib/search/useSearch";
 
+import {
+  applySearchDailyDose,
+ } from "@/lib/search/applySearchDailyDose";
+ 
+ import {
+  parseSearchDailyDose,
+ } from "@/lib/search/parseSearchDailyDose";
+
+
+
 import type {
  SearchProductOption,
 } from "@/lib/search/searchProductOption";
@@ -558,13 +568,37 @@ export default function SearchResults({
 
 
 
- const filteredProducts =
+const filteredProducts =
    useMemo(
      () => {
+       const parsedDailyDose =
+         parseSearchDailyDose(
+           filters.dailyDose
+         );
+
+       const doseAdjustedProducts =
+         searchProducts.flatMap(
+           (product) => {
+             const adjusted =
+               applySearchDailyDose({
+                 product,
+
+                 dailyDose:
+                   parsedDailyDose,
+               });
+
+             return adjusted
+               ? [
+                   adjusted.product,
+                 ]
+               : [];
+           }
+         );
+
        const matchingProducts =
          filterProducts({
            products:
-             searchProducts,
+             doseAdjustedProducts,
 
            filters,
          });
@@ -577,6 +611,13 @@ export default function SearchResults({
            filters.sort,
        });
      },
+
+
+
+
+
+
+
      [
        searchProducts,
        filters,
