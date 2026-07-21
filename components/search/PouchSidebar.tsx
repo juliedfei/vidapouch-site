@@ -1,6 +1,8 @@
 "use client";
 
 import {
+ useEffect,
+ useRef,
  useState,
 } from "react";
 
@@ -30,7 +32,16 @@ type PouchSidebarProps = {
  ) => void;
 };
 
+type TimingConfirmationMap =
+ Record<
+   string,
+   string>
+;
+
 const SERVICE_COST = 19;
+
+const TIMING_CONFIRMATION_DURATION =
+ 5000;
 
 function formatPrice(
  value: number
@@ -83,30 +94,6 @@ function getUnitsPerDayLabel(
    );
 
  return `${item.unitsPerDay} ${unitLabel} per day`;
-}
-
-function getTimingStatusLabel(
- item:
-   SearchPouchItem
-) {
- if (
-   item.timingPreference ===
-   "vidapouch"
- ) {
-   return `Placed in ${
-     item.timing ===
-     "morning"
-       ? "Morning"
-       : "Evening"
-   } by VidaPouch`;
- }
-
- return `Moved to ${
-   item.timing ===
-   "morning"
-     ? "Morning"
-     : "Evening"
- } by you`;
 }
 
 function SunIcon() {
@@ -205,14 +192,11 @@ function CheckIcon() {
 type TimingMenuOptionProps = {
  label: string;
 
- selected: boolean;
-
  onSelect: () => void;
 };
 
 function TimingMenuOption({
  label,
- selected,
  onSelect,
 }: TimingMenuOptionProps) {
  return (
@@ -223,11 +207,7 @@ function TimingMenuOption({
        onSelect
      }
      className="
-       flex
        w-full
-       items-center
-       justify-between
-       gap-3
        px-3
        py-2.5
        text-left
@@ -238,20 +218,7 @@ function TimingMenuOption({
        hover:bg-[#F7F1EB]
      ">
 
-     <span>
-       {label}
-     </span>
-
-     {selected && (
-       <span
-         className="
-           shrink-0
-           text-[#7D0E1C]
-         ">
-
-         <CheckIcon />
-       </span>
-     )}
+     {label}
    </button>
  );
 }
@@ -260,12 +227,16 @@ type ItemRowProps = {
  item:
    SearchPouchItem;
 
+ timingConfirmation:
+   string | undefined;
+
  onRemoveItem: (
    itemId: string
  ) => void;
 
- onTimingChange: (
-   itemId: string,
+ onSelectTiming: (
+   item:
+     SearchPouchItem,
    timingPreference:
      SearchPouchTimingPreference
  ) => void;
@@ -273,8 +244,9 @@ type ItemRowProps = {
 
 function ItemRow({
  item,
+ timingConfirmation,
  onRemoveItem,
- onTimingChange,
+ onSelectTiming,
 }: ItemRowProps) {
  const [
    menuOpen,
@@ -286,13 +258,13 @@ function ItemRow({
    timingPreference:
      SearchPouchTimingPreference
  ) {
-   onTimingChange(
-     item.id,
-     timingPreference
-   );
-
    setMenuOpen(
      false
+   );
+
+   onSelectTiming(
+     item,
+     timingPreference
    );
  }
 
@@ -305,6 +277,18 @@ function ItemRow({
      item.id
    );
  }
+
+ const oppositeTiming =
+   item.timing ===
+   "morning"
+     ? "evening"
+     : "morning";
+
+ const oppositeTimingLabel =
+   oppositeTiming ===
+   "morning"
+     ? "Move to Morning"
+     : "Move to Evening";
 
  return (
    <div
@@ -362,7 +346,7 @@ function ItemRow({
              menuOpen
            }
            aria-haspopup="menu"
-           aria-label={`Change timing for ${item.productName}`}
+           aria-label={`Manage ${item.productName}`}
            className="
              flex
              h-[27px]
@@ -402,46 +386,29 @@ function ItemRow({
              ">
 
              <TimingMenuOption
-               label="Move to Morning"
-               selected={
-                 item.timingPreference ===
-                 "morning"
+               label={
+                 oppositeTimingLabel
                }
                onSelect={
                  () =>
                    selectTiming(
-                     "morning"
+                     oppositeTiming
                    )
                }
              />
 
-             <TimingMenuOption
-               label="Move to Evening"
-               selected={
-                 item.timingPreference ===
-                 "evening"
-               }
-               onSelect={
-                 () =>
-                   selectTiming(
-                     "evening"
-                   )
-               }
-             />
-
-             <TimingMenuOption
-               label="Let VidaPouch Choose"
-               selected={
-                 item.timingPreference ===
-                 "vidapouch"
-               }
-               onSelect={
-                 () =>
-                   selectTiming(
-                     "vidapouch"
-                   )
-               }
-             />
+             {item.timingPreference !==
+               "vidapouch" && (
+               <TimingMenuOption
+                 label="Let VidaPouch Choose"
+                 onSelect={
+                   () =>
+                     selectTiming(
+                       "vidapouch"
+                     )
+                 }
+               />
+             )}
 
              <div className="my-1 border-t border-[#EEE6DE]" />
 
@@ -522,43 +489,37 @@ function ItemRow({
        </span>
      </div>
 
-     <div
-       className="
-         mt-[8px]
-         rounded-[6px]
-         bg-[#F4EFE9]
-         px-2
-         py-1.5
-       ">
-
-       <p
+     {timingConfirmation && (
+       <div
          className="
-           text-[9px]
-           font-semibold
-           leading-[13px]
-           text-[#625B55]
-         ">
+           mt-[8px]
+           flex
+           items-center
+           gap-1.5
+           rounded-[6px]
+           bg-[#F1F3EC]
+           px-2
+           py-1.5
+           text-[#46514B]
+           animate-[fadeOut_5s_ease-in-out_forwards]
+         "
+         role="status">
 
-         {getTimingStatusLabel(
-           item
-         )}
-       </p>
+         <span className="shrink-0">
+           <CheckIcon />
+         </span>
 
-       {item.timingPreference ===
-         "vidapouch" &&
-         item.timingReason && (
          <p
            className="
-             mt-[2px]
              text-[9px]
+             font-semibold
              leading-[13px]
-             text-[#77706A]
            ">
 
-           {item.timingReason}
+           {timingConfirmation}
          </p>
-       )}
-     </div>
+       </div>
+     )}
    </div>
  );
 }
@@ -572,12 +533,16 @@ type PouchSectionProps = {
  items:
    SearchPouchItem[];
 
+ timingConfirmations:
+   TimingConfirmationMap;
+
  onRemoveItem: (
    itemId: string
  ) => void;
 
- onTimingChange: (
-   itemId: string,
+ onSelectTiming: (
+   item:
+     SearchPouchItem,
    timingPreference:
      SearchPouchTimingPreference
  ) => void;
@@ -587,8 +552,9 @@ function PouchSection({
  title,
  icon,
  items,
+ timingConfirmations,
  onRemoveItem,
- onTimingChange,
+ onSelectTiming,
 }: PouchSectionProps) {
  if (
    items.length === 0
@@ -641,11 +607,16 @@ function PouchSection({
            <ItemRow
              key={item.id}
              item={item}
+             timingConfirmation={
+               timingConfirmations[
+                 item.id
+               ]
+             }
              onRemoveItem={
                onRemoveItem
              }
-             onTimingChange={
-               onTimingChange
+             onSelectTiming={
+               onSelectTiming
              }
            />
          )
@@ -725,6 +696,169 @@ export default function PouchSidebar({
  onRemoveItem,
  onTimingChange,
 }: PouchSidebarProps) {
+ const [
+   timingConfirmations,
+   setTimingConfirmations,
+ ] =
+   useState<TimingConfirmationMap>(
+     {}
+   );
+
+ const confirmationTimers =
+   useRef<
+     Record<
+       string,
+       ReturnType<
+         typeof setTimeout
+>
+>
+>({});
+
+ useEffect(
+   () => {
+     const activeTimers =
+       confirmationTimers.current;
+
+     return () => {
+       Object.values(
+         activeTimers
+       ).forEach(
+         (timer) =>
+           clearTimeout(
+             timer
+           )
+       );
+     };
+   },
+   []
+ );
+
+ function showTimingConfirmation(
+   itemId: string,
+   message: string
+ ) {
+   const existingTimer =
+     confirmationTimers
+       .current[itemId];
+
+   if (existingTimer) {
+     clearTimeout(
+       existingTimer
+     );
+   }
+
+   setTimingConfirmations(
+     (current) => ({
+       ...current,
+
+       [itemId]:
+         message,
+     })
+   );
+
+   confirmationTimers
+     .current[itemId] =
+     setTimeout(
+       () => {
+         setTimingConfirmations(
+           (current) => {
+             const next = {
+               ...current,
+             };
+
+             delete next[
+               itemId
+             ];
+
+             return next;
+           }
+         );
+
+         delete confirmationTimers
+           .current[itemId];
+       },
+       TIMING_CONFIRMATION_DURATION
+     );
+ }
+
+ function handleSelectTiming(
+   item:
+     SearchPouchItem,
+   timingPreference:
+     SearchPouchTimingPreference
+ ) {
+   let confirmationMessage:
+     string;
+
+   if (
+     timingPreference ===
+     "vidapouch"
+   ) {
+     const restoredTiming =
+       item.recommendedTiming ===
+       "morning"
+         ? "Morning"
+         : "Evening";
+
+     confirmationMessage =
+       `VidaPouch timing restored to ${restoredTiming}`;
+   } else {
+     const selectedTiming =
+       timingPreference ===
+       "morning"
+         ? "Morning"
+         : "Evening";
+
+     confirmationMessage =
+       `Moved to ${selectedTiming}`;
+   }
+
+   showTimingConfirmation(
+     item.id,
+     confirmationMessage
+   );
+
+   onTimingChange(
+     item.id,
+     timingPreference
+   );
+ }
+
+ function handleRemoveItem(
+   itemId: string
+ ) {
+   const existingTimer =
+     confirmationTimers
+       .current[itemId];
+
+   if (existingTimer) {
+     clearTimeout(
+       existingTimer
+     );
+
+     delete confirmationTimers
+       .current[itemId];
+   }
+
+   setTimingConfirmations(
+     (current) => {
+       const next = {
+         ...current,
+       };
+
+       delete next[
+         itemId
+       ];
+
+       return next;
+     }
+   );
+
+   onRemoveItem(
+     itemId
+   );
+ }
+
  const morningItems =
    items.filter(
      (item) =>
@@ -833,11 +967,14 @@ export default function PouchSidebar({
        items={
          morningItems
        }
-       onRemoveItem={
-         onRemoveItem
+       timingConfirmations={
+         timingConfirmations
        }
-       onTimingChange={
-         onTimingChange
+       onRemoveItem={
+         handleRemoveItem
+       }
+       onSelectTiming={
+         handleSelectTiming
        }
      />
 
@@ -856,11 +993,14 @@ export default function PouchSidebar({
        items={
          eveningItems
        }
-       onRemoveItem={
-         onRemoveItem
+       timingConfirmations={
+         timingConfirmations
        }
-       onTimingChange={
-         onTimingChange
+       onRemoveItem={
+         handleRemoveItem
+       }
+       onSelectTiming={
+         handleSelectTiming
        }
      />
 
