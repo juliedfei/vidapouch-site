@@ -6,6 +6,11 @@ import type {
     | "morning"
     | "evening";
    
+   export type SearchPouchTimingPreference =
+    | "vidapouch"
+    | "morning"
+    | "evening";
+   
    export type SearchPouchItem = {
     /*
      * Stable identity for preventing the
@@ -51,6 +56,28 @@ import type {
     qualityClaims:
       string[];
    
+    /*
+     * The actual pouch section where the
+     * product currently appears.
+     */
     timing:
       SearchPouchTiming;
+   
+    /*
+     * "vidapouch" means the timing engine
+     * selected the current section.
+     *
+     * "morning" or "evening" means the
+     * customer manually overrode it.
+     */
+    timingPreference:
+      SearchPouchTimingPreference;
+   
+    /*
+     * Short customer-facing explanation for
+     * the automatic timing recommendation.
+     */
+    timingReason:
+      string;
    };
+   

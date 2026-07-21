@@ -17,6 +17,10 @@ import type {
   SearchPouchItem,
  } from "./types/searchPouch";
 
+ import {
+  getSearchPouchTiming,
+ } from "@/lib/search/getSearchPouchTiming";
+
 
 
 
@@ -396,6 +400,15 @@ const pouchUnitCount =
    product.vitaPouchFormEligible;
 
 
+   const recommendedPouchTiming =
+   getSearchPouchTiming(
+     product
+   );
+ 
+
+
+
+
 const pouchItemId =
   representative
     .shoppingProductId ??
@@ -470,8 +483,22 @@ function handleAddToPouch() {
      * Timing can become editable inside
      * My Pouch afterward.
      */
+
+
     timing:
-      "morning",
+    recommendedPouchTiming
+      .timing,
+
+  timingPreference:
+    "vidapouch",
+
+  timingReason:
+    recommendedPouchTiming
+      .reason,
+
+
+
+
   });
 }
 
