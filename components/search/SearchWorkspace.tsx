@@ -1,8 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import {
+  useState,
+ } from "react";
+ 
+ import type {
+  SearchLayoutState,
+ } from "./types/searchLayout";
+ 
+ import {
+  DEFAULT_SEARCH_FILTERS,
+ } from "./types/searchFilters";
+ 
+ import type {
+  SearchFilterState,
+ } from "./types/searchFilters";
+ 
 
-import type { SearchLayoutState } from "./types/searchLayout";
+
+
 
 import TrustBar from "./TrustBar";
 import SearchControls from "./SearchControls";
@@ -79,13 +95,38 @@ function RightChevronIcon() {
 export default function SearchWorkspace({
  query,
 }: SearchWorkspaceProps) {
- const [layout, setLayout] =
+ 
+ 
+ 
+  const [layout, setLayout] =
    useState<SearchLayoutState>({
      hasSearched: false,
      filtersOpen: false,
      pouchOpen: false,
      hasPouchItems: false,
    });
+
+
+
+
+   const [
+    filters,
+    setFilters,
+  ] =
+    useState<SearchFilterState>(
+      DEFAULT_SEARCH_FILTERS
+    );
+
+
+  const [
+  availableBrands,
+  setAvailableBrands,
+] =
+  useState<string[]>(
+    []
+  );
+
+
 
  function toggleFilters() {
    setLayout((current) => ({
@@ -135,14 +176,46 @@ export default function SearchWorkspace({
        }}>
 
        <aside className="min-w-0">
-         <SearchControls
-           open={layout.filtersOpen}
-           onToggle={toggleFilters}
-         />
+         
+         
+         
+       <SearchControls
+          open={layout.filtersOpen}
+          onToggle={toggleFilters}
+          filters={filters}
+          onFiltersChange={
+            setFilters
+          }
+          availableBrands={
+            availableBrands
+          }
+        />
+
+
+
+
        </aside>
 
        <section className="min-w-0">
-         <SearchResults query={query} />
+         
+         
+         
+         
+         
+       <SearchResults
+          query={query}
+          filters={filters}
+          onFiltersChange={
+            setFilters
+          }
+          onAvailableBrandsChange={
+            setAvailableBrands
+          }
+        />
+
+
+
+
        </section>
 
        {layout.hasPouchItems && (

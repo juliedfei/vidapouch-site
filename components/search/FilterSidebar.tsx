@@ -1,31 +1,75 @@
 "use client";
 
-import { useState } from "react";
+import type {
+ Dispatch,
+ SetStateAction,
+} from "react";
 
-const FORM_OPTIONS = [
- "Capsule",
- "Softgel",
- "Tablet",
- "Powder",
- "Gummy",
- "Liquid",
-];
+import {
+ DEFAULT_SEARCH_FILTERS,
+} from "./types/searchFilters";
 
-const DIETARY_OPTIONS = [
- "Vegan",
- "Vegetarian",
- "Gluten Free",
- "Dairy Free",
- "Soy Free",
- "Non-GMO",
-];
+import type {
+ SearchDietaryFilter,
+ SearchFilterState,
+ SearchFormFilter,
+ SearchTestingFilter,
+} from "./types/searchFilters";
 
-const TESTING_OPTIONS = [
- "USP Verified",
- "NSF Certified",
- "ConsumerLab Tested",
- "Informed Choice",
-];
+const FORM_OPTIONS:
+ SearchFormFilter[] = [
+   "Capsule",
+   "Softgel",
+   "Tablet",
+   "Powder",
+   "Gummy",
+   "Liquid",
+ ];
+
+const DIETARY_OPTIONS:
+ SearchDietaryFilter[] = [
+   "Vegan",
+   "Vegetarian",
+   "Gluten Free",
+   "Dairy Free",
+   "Soy Free",
+   "Non-GMO",
+ ];
+
+const TESTING_OPTIONS:
+ SearchTestingFilter[] = [
+   "USP Verified",
+   "NSF Certified",
+   "ConsumerLab Tested",
+   "Informed Choice",
+   "Third-Party Tested",
+   "GMP Quality Assured",
+   "cGMP Manufactured",
+   "NPA GMP Certified",
+ ];
+
+
+
+
+ type FilterSidebarProps = {
+  filters:
+    SearchFilterState;
+ 
+  onFiltersChange:
+    Dispatch<
+      SetStateAction<
+        SearchFilterState
+ >
+ >;
+ 
+  availableBrands:
+    string[];
+ };
+ 
+
+
+
+
 
 function InfoIcon() {
  return (
@@ -53,16 +97,18 @@ function InfoIcon() {
 
 type FilterCheckboxProps = {
  label: string;
- defaultChecked?: boolean;
+
+ checked: boolean;
+
+ onChange:
+   () => void;
 };
 
 function FilterCheckbox({
  label,
- defaultChecked = false,
+ checked,
+ onChange,
 }: FilterCheckboxProps) {
- const [checked, setChecked] =
-   useState(defaultChecked);
-
  return (
    <label
      className="
@@ -77,9 +123,7 @@ function FilterCheckbox({
        type="button"
        role="checkbox"
        aria-checked={checked}
-       onClick={() =>
-         setChecked((current) => !current)
-       }
+       onClick={onChange}
        className={`
          flex
          h-[17px]
@@ -131,9 +175,13 @@ function FilterCheckbox({
 
 type FilterSectionProps = {
  number: number;
+
  title: string;
+
  showInfo?: boolean;
- children: React.ReactNode;
+
+ children:
+   React.ReactNode;
 };
 
 function FilterSection({
@@ -156,7 +204,9 @@ function FilterSection({
          {number}. {title}
        </h3>
 
-       {showInfo && <InfoIcon />}
+       {showInfo && (
+         <InfoIcon />
+       )}
      </div>
 
      <div className="mt-[9px]">
@@ -166,7 +216,111 @@ function FilterSection({
  );
 }
 
-export default function FilterSidebar() {
+
+
+
+export default function FilterSidebar({
+  filters,
+  onFiltersChange,
+  availableBrands,
+ }: FilterSidebarProps) {
+ 
+
+
+
+
+ function toggleForm(
+   form:
+     SearchFormFilter
+ ) {
+   onFiltersChange(
+     (current) => ({
+       ...current,
+
+       forms:
+         current.forms.includes(
+           form
+         )
+           ? current.forms.filter(
+               (
+                 currentForm
+               ) =>
+                 currentForm !==
+                 form
+             )
+           : [
+               ...current.forms,
+               form,
+             ],
+     })
+   );
+ }
+
+ function toggleDietaryPreference(
+   preference:
+     SearchDietaryFilter
+ ) {
+   onFiltersChange(
+     (current) => ({
+       ...current,
+
+       dietaryPreferences:
+         current
+           .dietaryPreferences
+           .includes(
+             preference
+           )
+           ? current
+               .dietaryPreferences
+               .filter(
+                 (
+                   currentPreference
+                 ) =>
+                   currentPreference !==
+                   preference
+               )
+           : [
+               ...current
+                 .dietaryPreferences,
+               preference,
+             ],
+     })
+   );
+ }
+
+ function toggleTesting(
+   testing:
+     SearchTestingFilter
+ ) {
+   onFiltersChange(
+     (current) => ({
+       ...current,
+
+       testing:
+         current.testing.includes(
+           testing
+         )
+           ? current.testing.filter(
+               (
+                 currentTesting
+               ) =>
+                 currentTesting !==
+                 testing
+             )
+           : [
+               ...current.testing,
+               testing,
+             ],
+     })
+   );
+ }
+
+ function resetFilters() {
+   onFiltersChange(
+     DEFAULT_SEARCH_FILTERS
+   );
+ }
+
  return (
    <aside
      className="
@@ -197,6 +351,9 @@ export default function FilterSidebar() {
 
        <button
          type="button"
+         onClick={
+           resetFilters
+         }
          className="
            shrink-0
            text-[10px]
@@ -218,7 +375,21 @@ export default function FilterSidebar() {
 
          <input
            type="text"
-           defaultValue="1 capsule"
+           value={
+             filters.dailyDose
+           }
+           onChange={
+             (event) =>
+               onFiltersChange(
+                 (current) => ({
+                   ...current,
+
+                   dailyDose:
+                     event.target
+                       .value,
+                 })
+               )
+           }
            aria-label="Daily dose"
            className="
              h-[37px]
@@ -256,15 +427,25 @@ export default function FilterSidebar() {
          title="Form">
 
          <div className="space-y-[1px]">
-           {FORM_OPTIONS.map((option) => (
-             <FilterCheckbox
-               key={option}
-               label={option}
-               defaultChecked={
-                 option === "Capsule"
-               }
-             />
-           ))}
+           {FORM_OPTIONS.map(
+             (option) => (
+               <FilterCheckbox
+                 key={option}
+                 label={option}
+                 checked={
+                   filters.forms.includes(
+                     option
+                   )
+                 }
+                 onChange={
+                   () =>
+                     toggleForm(
+                       option
+                     )
+                 }
+               />
+             )
+           )}
          </div>
        </FilterSection>
 
@@ -278,6 +459,19 @@ export default function FilterSidebar() {
                <FilterCheckbox
                  key={option}
                  label={option}
+                 checked={
+                   filters
+                     .dietaryPreferences
+                     .includes(
+                       option
+                     )
+                 }
+                 onChange={
+                   () =>
+                     toggleDietaryPreference(
+                       option
+                     )
+                 }
                />
              )
            )}
@@ -294,6 +488,17 @@ export default function FilterSidebar() {
                <FilterCheckbox
                  key={option}
                  label={option}
+                 checked={
+                   filters.testing.includes(
+                     option
+                   )
+                 }
+                 onChange={
+                   () =>
+                     toggleTesting(
+                       option
+                     )
+                 }
                />
              )
            )}
@@ -306,7 +511,21 @@ export default function FilterSidebar() {
 
          <div className="relative">
            <select
-             defaultValue="all"
+             value={
+               filters.brand
+             }
+             onChange={
+               (event) =>
+                 onFiltersChange(
+                   (current) => ({
+                     ...current,
+
+                     brand:
+                       event.target
+                         .value,
+                   })
+                 )
+             }
              aria-label="Brand"
              className="
                h-[37px]
@@ -325,29 +544,28 @@ export default function FilterSidebar() {
                focus:border-[#8A1423]
              ">
 
+
+
+
              <option value="all">
                All Brands
              </option>
 
-             <option value="thorne">
-               Thorne
-             </option>
 
-             <option value="pure">
-               Pure Encapsulations
-             </option>
 
-             <option value="now">
-               NOW Foods
-             </option>
 
-             <option value="life-extension">
-               Life Extension
-             </option>
+             {availableBrands.map(
+ (brand) => (
+   <option
+     key={brand}
+     value={brand
+       .toLowerCase()
+       .trim()}>
 
-             <option value="nordic-naturals">
-               Nordic Naturals
-             </option>
+     {brand}
+   </option>
+ )
+)}
            </select>
 
            <svg
@@ -401,7 +619,21 @@ export default function FilterSidebar() {
 
              <input
                type="text"
-               defaultValue="0"
+               value={
+                 filters.minimumPrice
+               }
+               onChange={
+                 (event) =>
+                   onFiltersChange(
+                     (current) => ({
+                       ...current,
+
+                       minimumPrice:
+                         event.target
+                           .value,
+                     })
+                   )
+               }
                aria-label="Minimum price"
                className="
                  min-w-0
@@ -445,7 +677,21 @@ export default function FilterSidebar() {
 
              <input
                type="text"
-               defaultValue="100+"
+               value={
+                 filters.maximumPrice
+               }
+               onChange={
+                 (event) =>
+                   onFiltersChange(
+                     (current) => ({
+                       ...current,
+
+                       maximumPrice:
+                         event.target
+                           .value,
+                     })
+                   )
+               }
                aria-label="Maximum price"
                className="
                  min-w-0

@@ -2,7 +2,13 @@
 
 import {
  useEffect,
+ useMemo,
  useState,
+} from "react";
+
+import type {
+ Dispatch,
+ SetStateAction,
 } from "react";
 
 import ProductCard from "./ProductCard";
@@ -11,20 +17,461 @@ import {
  useSearch,
 } from "@/lib/search/useSearch";
 
+import type {
+ SearchProductOption,
+} from "@/lib/search/searchProductOption";
+
+import type {
+ SearchFilterState,
+ SearchSortOption,
+ SearchTestingFilter,
+} from "./types/searchFilters";
+
+
+
+
+
 type SearchResultsProps = {
- query: string;
-};
+  query: string;
+ 
+  filters:
+    SearchFilterState;
+ 
+  onFiltersChange:
+    Dispatch<
+      SetStateAction<
+        SearchFilterState
+ >
+ >;
+ 
+  onAvailableBrandsChange:
+    Dispatch<
+      SetStateAction<
+        string[]
+ >
+ >;
+ };
+ 
+
+
+
+
+
 
 const INITIAL_VISIBLE_RESULTS = 6;
 
+function normalizeText(
+ value: string
+) {
+ return value
+   .toLowerCase()
+   .replace(/['’]/g, "")
+   .replace(
+     /[^a-z0-9]+/g,
+     " "
+   )
+   .trim();
+}
+
+function parsePrice(
+ value: string,
+ fallback: number
+) {
+ const cleaned =
+   value.replace(
+     /[^0-9.]/g,
+     ""
+   );
+
+ if (!cleaned) {
+   return fallback;
+ }
+
+ const parsed =
+   Number(cleaned);
+
+ return Number.isFinite(
+   parsed
+ )
+   ? parsed
+   : fallback;
+}
+
+function containsClaim(
+ claims: string[],
+ expectedClaim: string
+) {
+ const normalizedExpected =
+   normalizeText(
+     expectedClaim
+   );
+
+ return claims.some(
+   (claim) =>
+     normalizeText(
+       claim
+     ).includes(
+       normalizedExpected
+     )
+ );
+}
+
+function matchesTestingFilter(
+ product:
+   SearchProductOption,
+
+ filter:
+   SearchTestingFilter
+) {
+ switch (filter) {
+   case "USP Verified":
+     return (
+       product
+         .thirdPartyTesting
+         .uspVerified ||
+       containsClaim(
+         product.certifications,
+         "USP Verified"
+       )
+     );
+
+   case "NSF Certified":
+     return (
+       product
+         .thirdPartyTesting
+         .nsfCertified ||
+       containsClaim(
+         product.certifications,
+         "NSF Certified"
+       )
+     );
+
+   case "ConsumerLab Tested":
+     return (
+       product
+         .thirdPartyTesting
+         .consumerLabTested ||
+       containsClaim(
+         product.certifications,
+         "ConsumerLab"
+       ) ||
+       containsClaim(
+         product.qualityClaims,
+         "ConsumerLab"
+       )
+     );
+
+   case "Informed Choice":
+     return (
+       product
+         .thirdPartyTesting
+         .informedChoice ||
+       containsClaim(
+         product.certifications,
+         "Informed Choice"
+       ) ||
+       containsClaim(
+         product.certifications,
+         "Informed Sport"
+       )
+     );
+
+   case "Third-Party Tested":
+     return (
+       product
+         .thirdPartyTesting
+         .thirdPartyTested ||
+       containsClaim(
+         product.qualityClaims,
+         "Third-Party Tested"
+       )
+     );
+
+   case "GMP Quality Assured":
+     return containsClaim(
+       product.qualityClaims,
+       "GMP Quality Assured"
+     );
+
+   case "cGMP Manufactured":
+     return containsClaim(
+       product.qualityClaims,
+       "cGMP Manufactured"
+     );
+
+   case "NPA GMP Certified":
+     return containsClaim(
+       product.qualityClaims,
+       "NPA GMP Certified"
+     );
+
+   default:
+     return false;
+ }
+}
+
+function matchesDietaryFilters(
+ product:
+   SearchProductOption,
+
+ filters:
+   SearchFilterState
+) {
+ return filters
+   .dietaryPreferences
+   .every(
+     (preference) => {
+       switch (
+         preference
+       ) {
+         case "Vegan":
+           return product
+             .dietaryPreferences
+             .vegan;
+
+         case "Vegetarian":
+           return product
+             .dietaryPreferences
+             .vegetarian;
+
+         case "Gluten Free":
+           return product
+             .dietaryPreferences
+             .glutenFree;
+
+         case "Dairy Free":
+           return product
+             .dietaryPreferences
+             .dairyFree;
+
+         case "Soy Free":
+           return product
+             .dietaryPreferences
+             .soyFree;
+
+         case "Non-GMO":
+           return product
+             .dietaryPreferences
+             .nonGmo;
+
+         default:
+           return true;
+       }
+     }
+   );
+}
+
+function filterProducts({
+ products,
+ filters,
+}: {
+ products:
+   SearchProductOption[];
+
+ filters:
+   SearchFilterState;
+}) {
+ const minimumPrice =
+   parsePrice(
+     filters.minimumPrice,
+     0
+   );
+
+ const maximumPrice =
+   parsePrice(
+     filters.maximumPrice,
+     Number
+       .POSITIVE_INFINITY
+   );
+
+ const selectedBrand =
+   normalizeText(
+     filters.brand
+   );
+
+ return products.filter(
+   (product) => {
+     const matchesForm =
+       filters.forms.length ===
+         0 ||
+       filters.forms.some(
+         (form) =>
+           normalizeText(
+             product.form ??
+             ""
+           ) ===
+           normalizeText(
+             form
+           )
+       );
+
+     if (!matchesForm) {
+       return false;
+     }
+
+     if (
+       !matchesDietaryFilters(
+         product,
+         filters
+       )
+     ) {
+       return false;
+     }
+
+     const matchesTesting =
+       filters.testing.length ===
+         0 ||
+       filters.testing.some(
+         (testingFilter) =>
+           matchesTestingFilter(
+             product,
+             testingFilter
+           )
+       );
+
+     if (!matchesTesting) {
+       return false;
+     }
+
+     const matchesBrand =
+       selectedBrand ===
+         "all" ||
+       normalizeText(
+         product.brand
+       ) ===
+         selectedBrand;
+
+     if (!matchesBrand) {
+       return false;
+     }
+
+     const monthlyPrice =
+       product
+         .displayedMonthlyCost;
+
+     return (
+       monthlyPrice >=
+         minimumPrice &&
+       monthlyPrice <=
+         maximumPrice
+     );
+   }
+ );
+}
+
+function sortProducts({
+ products,
+ sort,
+}: {
+ products:
+   SearchProductOption[];
+
+ sort:
+   SearchSortOption;
+}) {
+ const sorted =
+   [...products];
+
+ switch (sort) {
+   case "quality":
+     return sorted.sort(
+       (
+         left,
+         right
+       ) =>
+         (
+           right.score
+             .productQuality ??
+           -1
+         ) -
+         (
+           left.score
+             .productQuality ??
+           -1
+         ) ||
+         (
+           right.score
+             .overall ??
+           -1
+         ) -
+         (
+           left.score
+             .overall ??
+           -1
+         )
+     );
+
+   case "price-low":
+     return sorted.sort(
+       (
+         left,
+         right
+       ) =>
+         left
+           .displayedMonthlyCost -
+         right
+           .displayedMonthlyCost
+     );
+
+   case "value":
+     return sorted.sort(
+       (
+         left,
+         right
+       ) =>
+         (
+           right.score.value ??
+           -1
+         ) -
+         (
+           left.score.value ??
+           -1
+         )
+     );
+
+   case "best-match":
+   default:
+     return sorted.sort(
+       (
+         left,
+         right
+       ) =>
+         (
+           right.score.overall ??
+           -1
+         ) -
+         (
+           left.score.overall ??
+           -1
+         ) ||
+         right.vendorsCompared -
+           left.vendorsCompared
+     );
+ }
+}
+
+
+
+
 export default function SearchResults({
- query,
-}: SearchResultsProps) {
+  query,
+  filters,
+  onFiltersChange,
+  onAvailableBrandsChange,
+ }: SearchResultsProps) {
+
+
+
+
  const {
-   results: filteredProducts,
+   results:
+     searchProducts,
    loading,
    error,
  } = useSearch(query);
+
+
+
 
  const [
    visibleResultCount,
@@ -33,11 +480,120 @@ export default function SearchResults({
    INITIAL_VISIBLE_RESULTS
  );
 
- useEffect(() => {
-   setVisibleResultCount(
-     INITIAL_VISIBLE_RESULTS
+
+ useEffect(
+  () => {
+    const brands =
+      Array.from(
+        new Set(
+          searchProducts
+            .map(
+              (product) =>
+                product.brand
+                  .trim()
+            )
+            .filter(
+              (brand) =>
+                brand.length >
+                  0 &&
+                brand
+                  .toLowerCase() !==
+                  "unknown brand"
+            )
+        )
+      ).sort(
+        (
+          left,
+          right
+        ) =>
+          left.localeCompare(
+            right
+          )
+      );
+
+    onAvailableBrandsChange(
+      brands
+    );
+
+    /*
+     * Reset a previously selected brand
+     * when it is not present in the new
+     * search results.
+     */
+    onFiltersChange(
+      (current) => {
+        if (
+          current.brand ===
+            "all" ||
+          brands.some(
+            (brand) =>
+              normalizeText(
+                brand
+              ) ===
+              normalizeText(
+                current.brand
+              )
+          )
+        ) {
+          return current;
+        }
+
+        return {
+          ...current,
+
+          brand:
+            "all",
+        };
+      }
+    );
+  },
+  [
+    searchProducts,
+    onAvailableBrandsChange,
+    onFiltersChange,
+  ]
+);
+
+
+
+
+
+ const filteredProducts =
+   useMemo(
+     () => {
+       const matchingProducts =
+         filterProducts({
+           products:
+             searchProducts,
+
+           filters,
+         });
+
+       return sortProducts({
+         products:
+           matchingProducts,
+
+         sort:
+           filters.sort,
+       });
+     },
+     [
+       searchProducts,
+       filters,
+     ]
    );
- }, [query]);
+
+ useEffect(
+   () => {
+     setVisibleResultCount(
+       INITIAL_VISIBLE_RESULTS
+     );
+   },
+   [
+     query,
+     filters,
+   ]
+ );
 
  const resultLabel =
    query.trim().length > 0
@@ -60,6 +616,19 @@ export default function SearchResults({
  function showAllResults() {
    setVisibleResultCount(
      filteredProducts.length
+   );
+ }
+
+ function changeSort(
+   sort:
+     SearchSortOption
+ ) {
+   onFiltersChange(
+     (current) => ({
+       ...current,
+
+       sort,
+     })
    );
  }
 
@@ -210,7 +779,17 @@ export default function SearchResults({
          <span>Sort by:</span>
 
          <select
-           defaultValue="best-match"
+           value={
+             filters.sort
+           }
+           onChange={
+             (event) =>
+               changeSort(
+                 event.target
+                   .value as
+                   SearchSortOption
+               )
+           }
            aria-label="Sort products"
            className="
              cursor-pointer
@@ -254,7 +833,8 @@ export default function SearchResults({
        </label>
      </div>
 
-     {filteredProducts.length > 0 ? (
+     {filteredProducts.length >
+     0 ? (
        <div
          className="
            overflow-hidden
@@ -411,7 +991,8 @@ export default function SearchResults({
 
          {/* Results footer */}
 
-         {hiddenResultCount > 0 && (
+         {hiddenResultCount >
+           0 && (
            <div
              className="
                border-t
@@ -424,7 +1005,9 @@ export default function SearchResults({
 
              <button
                type="button"
-               onClick={showAllResults}
+               onClick={
+                 showAllResults
+               }
                className="
                  inline-flex
                  items-center
@@ -456,7 +1039,8 @@ export default function SearchResults({
                ">
 
                {hiddenResultCount} more product
-               {hiddenResultCount !== 1
+               {hiddenResultCount !==
+               1
                  ? "s"
                  : ""}
              </p>
@@ -485,7 +1069,7 @@ export default function SearchResults({
                'Georgia, "Times New Roman", serif',
            }}>
 
-           No products found
+           No matching products
          </h3>
 
          <p
@@ -494,8 +1078,8 @@ export default function SearchResults({
              text-[#667074]
            ">
 
-           Try searching for another
-           ingredient, brand, or health goal.
+           Clear one or more filters to see
+           additional products.
          </p>
        </div>
      )}

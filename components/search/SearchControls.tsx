@@ -1,11 +1,46 @@
 "use client";
 
-import FilterSidebar from "./FilterSidebar";
+import type {
+ Dispatch,
+ SetStateAction,
+} from "react";
+
+import type {
+ SearchFilterState,
+} from "./types/searchFilters";
+
+import FilterSidebar from
+"./FilterSidebar"
+;
+
+
+
 
 type SearchControlsProps = {
- open: boolean;
- onToggle: () => void;
-};
+  open: boolean;
+ 
+  onToggle:
+    () => void;
+ 
+  filters:
+    SearchFilterState;
+ 
+  onFiltersChange:
+    Dispatch<
+      SetStateAction<
+        SearchFilterState
+ >
+ >;
+ 
+  availableBrands:
+    string[];
+ };
+ 
+ 
+
+
+
+
 
 function FilterIcon() {
  return (
@@ -63,10 +98,21 @@ function RightChevronIcon() {
  );
 }
 
+
+
+
 export default function SearchControls({
- open,
- onToggle,
-}: SearchControlsProps) {
+  open,
+  onToggle,
+  filters,
+  onFiltersChange,
+  availableBrands,
+ }: SearchControlsProps) {
+ 
+
+
+
+
  return (
    <div
      className="
@@ -117,7 +163,22 @@ export default function SearchControls({
          </button>
 
          <div className="p-3">
-           <FilterSidebar />
+
+
+
+         <FilterSidebar
+            filters={filters}
+            onFiltersChange={
+              onFiltersChange
+            }
+            availableBrands={
+              availableBrands
+            }
+          />
+
+
+
+
          </div>
        </div>
      ) : (
