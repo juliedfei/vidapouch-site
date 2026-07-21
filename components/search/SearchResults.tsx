@@ -351,13 +351,30 @@ function filterProducts({
        ) ===
          selectedBrand;
 
-     if (!matchesBrand) {
-       return false;
-     }
 
-     const monthlyPrice =
-       product
-         .displayedMonthlyCost;
+
+
+         if (!matchesBrand) {
+          return false;
+        }
+   
+        if (
+          filters
+            .vitaPouchEligibleOnly &&
+          !product
+            .vitaPouchFormEligible
+        ) {
+          return false;
+        }
+   
+        const monthlyPrice =
+          product
+            .displayedMonthlyCost;
+   
+
+
+
+
 
      return (
        monthlyPrice >=

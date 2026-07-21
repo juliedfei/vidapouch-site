@@ -505,8 +505,36 @@ export default function FilterSidebar({
          </div>
        </FilterSection>
 
+       
        <FilterSection
          number={5}
+         title="VidaPouch Availability">
+
+         <FilterCheckbox
+           label="Available for VidaPouch"
+           checked={
+             filters
+               .vitaPouchEligibleOnly
+           }
+           onChange={
+             () =>
+               onFiltersChange(
+                 (current) => ({
+                   ...current,
+
+                   vitaPouchEligibleOnly:
+                     !current
+                       .vitaPouchEligibleOnly,
+                 })
+               )
+           }
+         />
+       </FilterSection>
+
+
+       
+       <FilterSection
+         number={6}
          title="Brand">
 
          <div className="relative">
@@ -595,7 +623,7 @@ export default function FilterSidebar({
        </FilterSection>
 
        <FilterSection
-         number={6}
+         number={7}
          title="Price Range (per month)">
 
          <div className="flex items-center gap-[7px]">

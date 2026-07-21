@@ -44,6 +44,9 @@ export type SearchFilterState = {
 
  brand: string;
 
+ vitaPouchEligibleOnly:
+   boolean;
+
  minimumPrice: string;
 
  maximumPrice: string;
@@ -68,6 +71,9 @@ export const DEFAULT_SEARCH_FILTERS:
 
    brand:
      "all",
+
+   vitaPouchEligibleOnly:
+     false,
 
    minimumPrice:
      "0",
