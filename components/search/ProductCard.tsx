@@ -278,42 +278,62 @@ export default function ProductCard({
      "number" &&
    retailerRating > 0;
 
- const productClaims = [
-   product.verifiedClaims
-     .nsfCertified
-     ? "NSF Certified"
-     : null,
 
-   product.verifiedClaims
-     .uspVerified
-     ? "USP Verified"
-     : null,
 
-   product.verifiedClaims
-     .thirdPartyTested
-     ? "Third-Party Tested"
-     : null,
 
-   product.verifiedClaims
-     .vegan
-     ? "Vegan"
-     : null,
 
-   product.verifiedClaims
-     .nonGmo
-     ? "Non-GMO"
-     : null,
 
-   product.verifiedClaims
-     .glutenFree
-     ? "Gluten-Free"
-     : null,
- ].filter(
-   (
-     claim
-   ): claim is string =>
-     Boolean(claim)
- );
+   const productClaims =
+   Array.from(
+     new Set([
+       ...product.certifications,
+ 
+       ...product.qualityClaims,
+ 
+       product.verifiedClaims
+         .nsfCertified
+         ? "NSF Certified"
+         : null,
+ 
+       product.verifiedClaims
+         .uspVerified
+         ? "USP Verified"
+         : null,
+ 
+       product.verifiedClaims
+         .thirdPartyTested
+         ? "Third-Party Tested"
+         : null,
+ 
+       product.verifiedClaims
+         .vegan
+         ? "Vegan"
+         : null,
+ 
+       product.verifiedClaims
+         .nonGmo
+         ? "Non-GMO"
+         : null,
+ 
+       product.verifiedClaims
+         .glutenFree
+         ? "Gluten-Free"
+         : null,
+     ])
+   ).filter(
+     (
+       claim
+     ): claim is string =>
+       typeof claim ===
+         "string" &&
+       claim.trim().length >
+         0
+   );
+
+
+
+
+
 
  const dosageLabel =
    product.dosage ||

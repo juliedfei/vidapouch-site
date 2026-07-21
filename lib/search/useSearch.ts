@@ -17,16 +17,40 @@ import type {
  SearchProductOption,
 } from "./searchProductOption";
 
-const SEARCH_DELAY_MS = 700;
-
-const ENABLE_LIVE_ENRICHMENT = false;
+const SEARCH_DELAY_MS =
+ 700;
 
 /*
-* Do not launch research for every result
-* simultaneously. OpenAI web research can
-* be expensive and slow.
+* Controlled merchant-page test.
+*
+* Only one uncached product is enriched
+* during each search.
 */
-const ENRICHMENT_CONCURRENCY = 2;
+
+
+
+const ENABLE_LIVE_ENRICHMENT =
+ true;
+
+/*
+* Enrich every uncached product returned
+* in the current 20-card search result.
+*/
+const MAX_LIVE_ENRICHMENT_PRODUCTS =
+ 20;
+
+/*
+* Process four products concurrently.
+*
+* All 20 are queued, but we avoid sending
+* 20 simultaneous requests to SerpApi and
+* merchant websites.
+*/
+const ENRICHMENT_CONCURRENCY =
+ 4;
+
+
+
 
 function mergeEnrichment({
  product,
@@ -51,7 +75,7 @@ function mergeEnrichment({
      .thirdPartyTesting
  ) {
    console.log(
-     "VitaSearch enrichment not merged:",
+     "VidaSearch enrichment not merged:",
      {
        productName:
          product.productName,
@@ -94,13 +118,29 @@ function mergeEnrichment({
 
    form:
      enrichment.form ??
+     product.form ??
      null,
 
    dietaryPreferences,
 
+
+
+
    thirdPartyTesting,
 
+   certifications:
+     enrichment.certifications ??
+     product.certifications,
+
+   qualityClaims:
+     enrichment.qualityClaims ??
+     product.qualityClaims,
+
    verifiedClaims: {
+
+
+
+
      nsfCertified:
        thirdPartyTesting
          .nsfCertified,
@@ -114,10 +154,12 @@ function mergeEnrichment({
          .thirdPartyTested,
 
      vegan:
-       dietaryPreferences.vegan,
+       dietaryPreferences
+         .vegan,
 
      nonGmo:
-       dietaryPreferences.nonGmo,
+       dietaryPreferences
+         .nonGmo,
 
      glutenFree:
        dietaryPreferences
@@ -139,17 +181,20 @@ async function enrichProducts({
 
  onProductEnriched: (
    productName: string,
-   enrichment: Awaited<
-     ReturnType<
-       typeof enrichSearchProduct
+
+   enrichment:
+     Awaited<
+       ReturnType<
+         typeof enrichSearchProduct
 >
 >
  ) => void;
 }) {
- let nextIndex = 0;
+ let nextIndex =
+   0;
 
  console.log(
-   "VitaSearch enrichment queue started:",
+   "VidaSearch merchant enrichment queue started:",
    {
      productCount:
        products.length,
@@ -170,20 +215,46 @@ async function enrichProducts({
      const currentIndex =
        nextIndex;
 
-     nextIndex += 1;
+     nextIndex +=
+       1;
 
      const product =
-       products[currentIndex];
+       products[
+         currentIndex
+       ];
+
+     const representativeProduct =
+       product
+         .representativeProduct;
 
      console.log(
-       "VitaSearch enrichment worker started product:",
+       "VidaSearch merchant enrichment worker started product:",
        {
          workerNumber,
 
          currentIndex,
 
          productName:
-           product.productName,
+           product
+             .productName,
+
+         brand:
+           product.brand,
+
+         retailer:
+           representativeProduct
+             .retailer,
+
+         shoppingProductId:
+           representativeProduct
+             .shoppingProductId ??
+           null,
+
+         hasImmersiveProductPageToken:
+           Boolean(
+             representativeProduct
+               .immersiveProductPageToken
+           ),
        }
      );
 
@@ -191,7 +262,31 @@ async function enrichProducts({
        const enrichment =
          await enrichSearchProduct({
            productName:
-             product.productName,
+             product
+               .productName,
+
+           brand:
+             product.brand,
+
+           retailer:
+             representativeProduct
+               .retailer,
+
+           bottlePrice:
+             representativeProduct
+               .bottlePrice,
+
+           shoppingProductId:
+             representativeProduct
+               .shoppingProductId,
+
+           immersiveProductPageToken:
+             representativeProduct
+               .immersiveProductPageToken,
+
+           serpApiImmersiveProductUrl:
+             representativeProduct
+               .serpApiImmersiveProductUrl,
 
            signal,
          });
@@ -208,14 +303,22 @@ async function enrichProducts({
        );
 
        console.log(
-         "VitaSearch enrichment worker completed product:",
+         "VidaSearch merchant enrichment worker completed product:",
          {
            workerNumber,
 
            currentIndex,
 
            productName:
-             product.productName,
+             product
+               .productName,
+
+           shoppingProductId:
+             enrichment
+               .shoppingProductId ??
+             representativeProduct
+               .shoppingProductId ??
+             null,
 
            researchStatus:
              enrichment
@@ -241,13 +344,30 @@ async function enrichProducts({
                .certifications ??
              [],
 
+           qualityClaims:
+             enrichment
+               .qualityClaims ??
+             [],
+
            evidenceCount:
              enrichment
                .evidenceCount ??
              0,
+
+           sourceUrl:
+             enrichment
+               .sourceUrl ??
+             null,
+
+           durationMs:
+             enrichment
+               .durationMs ??
+             null,
          }
        );
-     } catch (error) {
+     } catch (
+       error
+     ) {
        if (
          signal.aborted
        ) {
@@ -255,14 +375,20 @@ async function enrichProducts({
        }
 
        console.error(
-         "VitaSearch enrichment worker failed product:",
+         "VidaSearch merchant enrichment worker failed product:",
          {
            workerNumber,
 
            currentIndex,
 
            productName:
-             product.productName,
+             product
+               .productName,
+
+           shoppingProductId:
+             representativeProduct
+               .shoppingProductId ??
+             null,
 
            error:
              error instanceof
@@ -291,13 +417,18 @@ async function enrichProducts({
          ),
      },
 
-     (_, index) =>
-       worker(index + 1)
+     (
+       _,
+       index
+     ) =>
+       worker(
+         index + 1
+       )
    )
  );
 
  console.log(
-   "VitaSearch enrichment queue finished:",
+   "VidaSearch merchant enrichment queue finished:",
    {
      productCount:
        products.length,
@@ -314,207 +445,290 @@ export function useSearch(
  const [
    results,
    setResults,
- ] = useState<
-   SearchProductOption[]
->([]);
+ ] =
+   useState<
+     SearchProductOption[]>
+([]);
 
  const [
    loading,
    setLoading,
- ] = useState(false);
+ ] =
+   useState(
+     false
+   );
 
  const [
    error,
    setError,
- ] = useState<
-   string | null>
+ ] =
+   useState<
+     string | null>
 (null);
 
- useEffect(() => {
-   const trimmed =
-     query.trim();
+ useEffect(
+   () => {
+     const trimmed =
+       query.trim();
 
-   if (!trimmed) {
-     setResults([]);
-     setError(null);
-     setLoading(false);
+     if (!trimmed) {
+       setResults(
+         []
+       );
 
-     return;
-   }
+       setError(
+         null
+       );
 
-   const searchController =
-     new AbortController();
+       setLoading(
+         false
+       );
 
-   const enrichmentController =
-     new AbortController();
+       return;
+     }
 
-   const timeout =
-     window.setTimeout(
-       async () => {
-         try {
-           setLoading(true);
-           setError(null);
+     const searchController =
+       new AbortController();
 
-           console.log(
-             "VitaSearch product search started:",
-             {
-               query:
-                 trimmed,
+     const enrichmentController =
+       new AbortController();
+
+     const timeout =
+       window.setTimeout(
+         async () => {
+           try {
+             setLoading(
+               true
+             );
+
+             setError(
+               null
+             );
+
+             console.log(
+               "VidaSearch product search started:",
+               {
+                 query:
+                   trimmed,
+               }
+             );
+
+             const products =
+               await searchProducts({
+                 supplement:
+                   trimmed,
+
+                 signal:
+                   searchController
+                     .signal,
+               });
+
+             if (
+               searchController
+                 .signal
+                 .aborted
+             ) {
+               return;
              }
-           );
 
-           const products =
-             await searchProducts({
-               supplement:
-                 trimmed,
+             console.log(
+               "VidaSearch product search completed:",
+               {
+                 query:
+                   trimmed,
 
-               signal:
-                 searchController
-                   .signal,
-             });
+                 productCount:
+                   products
+                     .length,
 
-           if (
-             searchController
-               .signal.aborted
-           ) {
-             return;
-           }
+                 productNames:
+                   products.map(
+                     (
+                       product
+                     ) =>
+                       product
+                         .productName
+                   ),
+               }
+             );
 
-           console.log(
-             "VitaSearch product search completed:",
-             {
-               query:
-                 trimmed,
+             /*
+              * Display all products immediately.
+              *
+              * The enrichment queue below does
+              * not filter the visible results.
+              */
+             setResults(
+               products
+             );
 
-               productCount:
-                 products.length,
+             if (
+               ENABLE_LIVE_ENRICHMENT
+             ) {
+               const enrichmentCandidates =
+                 products
+                   .filter(
+                     (
+                       product
+                     ) =>
+                       product
+                         .researchStatus !==
+                         "complete" &&
+                       product.brand
+                         .trim()
+                         .toLowerCase() !==
+                         "unknown brand" &&
+                       Boolean(
+                         product
+                           .representativeProduct
+                           .shoppingProductId
+                       ) &&
+                       Boolean(
+                         product
+                           .representativeProduct
+                           .immersiveProductPageToken
+                       )
+                   )
+                   .slice(
+                     0,
+                     MAX_LIVE_ENRICHMENT_PRODUCTS
+                   );
 
-               productNames:
-                 products.map(
-                   (product) =>
+               console.log(
+                 "VidaSearch controlled merchant enrichment candidates:",
+                 enrichmentCandidates.map(
+                   (
                      product
-                       .productName
-                 ),
+                   ) => ({
+                     productName:
+                       product
+                         .productName,
+
+                     retailer:
+                       product
+                         .representativeProduct
+                         .retailer,
+
+                     shoppingProductId:
+                       product
+                         .representativeProduct
+                         .shoppingProductId ??
+                       null,
+                   })
+                 )
+               );
+
+               void enrichProducts({
+                 products:
+                   enrichmentCandidates,
+
+                 signal:
+                   enrichmentController
+                     .signal,
+
+                 onProductEnriched: (
+                   productName,
+                   enrichment
+                 ) => {
+                   setResults(
+                     (
+                       currentResults
+                     ) =>
+                       currentResults.map(
+                         (
+                           product
+                         ) =>
+                           product
+                             .productName ===
+                           productName
+                             ? mergeEnrichment({
+                                 product,
+                                 enrichment,
+                               })
+                             : product
+                       )
+                   );
+                 },
+               });
+             } else {
+               console.log(
+                 "VidaSearch live merchant enrichment is disabled."
+               );
              }
-           );
-
-           /*
-            * Display products before any
-            * OpenAI enrichment begins.
-            */
-           setResults(
-             products
-           );
-
-
-
-
-           if (
-            ENABLE_LIVE_ENRICHMENT
+           } catch (
+             err
            ) {
-            void enrichProducts({
-              products,
-           
-              signal:
-                enrichmentController
-                  .signal,
-           
-              onProductEnriched: (
-                productName,
-                enrichment
-              ) => {
-                setResults(
-                  (
-                    currentResults
-                  ) =>
-                    currentResults.map(
-                      (product) =>
-                        product
-                          .productName ===
-                        productName
-                          ? mergeEnrichment({
-                              product,
-                              enrichment,
-                            })
-                          : product
-                    )
-                );
-              },
-            });
-           } else {
-            console.log(
-              "VitaSearch live OpenAI enrichment is disabled."
-            );
-           }
-
-
-
-
-
-
-         } catch (err) {
-           if (
-             err instanceof
-               DOMException &&
-             err.name ===
-               "AbortError"
-           ) {
-             return;
-           }
-
-           console.error(
-             "VitaSearch product search failed:",
-             {
-               query:
-                 trimmed,
-
-               error:
-                 err instanceof
-                   Error
-                   ? {
-                       name:
-                         err.name,
-
-                       message:
-                         err.message,
-                     }
-                   : err,
+             if (
+               err instanceof
+                 DOMException &&
+               err.name ===
+                 "AbortError"
+             ) {
+               return;
              }
-           );
 
-           setError(
-             "Unable to search products."
-           );
-         } finally {
-           if (
-             !searchController
-               .signal.aborted
-           ) {
-             setLoading(false);
+             console.error(
+               "VidaSearch product search failed:",
+               {
+                 query:
+                   trimmed,
+
+                 error:
+                   err instanceof
+                     Error
+                     ? {
+                         name:
+                           err.name,
+
+                         message:
+                           err.message,
+                       }
+                     : err,
+               }
+             );
+
+             setError(
+               "Unable to search products."
+             );
+           } finally {
+             if (
+               !searchController
+                 .signal
+                 .aborted
+             ) {
+               setLoading(
+                 false
+               );
+             }
            }
+         },
+         SEARCH_DELAY_MS
+       );
+
+     return () => {
+       window.clearTimeout(
+         timeout
+       );
+
+       searchController
+         .abort();
+
+       enrichmentController
+         .abort();
+
+       console.log(
+         "VidaSearch search and enrichment cancelled:",
+         {
+           query:
+             trimmed,
          }
-       },
-       SEARCH_DELAY_MS
-     );
-
-   return () => {
-     window.clearTimeout(
-       timeout
-     );
-
-     searchController.abort();
-
-     enrichmentController.abort();
-
-     console.log(
-       "VitaSearch search and enrichment cancelled:",
-       {
-         query:
-           trimmed,
-       }
-     );
-   };
- }, [query]);
+       );
+     };
+   },
+   [
+     query,
+   ]
+ );
 
  return {
    results,

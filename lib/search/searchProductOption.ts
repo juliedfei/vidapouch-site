@@ -193,6 +193,30 @@ import type {
     SearchThirdPartyTesting;
  
   /*
+   * Formal product-level certifications.
+   *
+   * Examples:
+   * USP Verified
+   * NSF Certified
+   * NSF Certified for Sport
+   * Non-GMO Project Verified
+   */
+  certifications: string[];
+ 
+  /*
+   * Testing, manufacturing, and quality
+   * claims that are useful to customers but
+   * are not necessarily formal product-level
+   * certifications.
+   *
+   * Examples:
+   * GMP Quality Assured
+   * cGMP Manufactured
+   * Third-Party Tested
+   */
+  qualityClaims: string[];
+ 
+  /*
    * Temporary compatibility field for the
    * existing ProductCard while the display
    * is migrated to separate sections.

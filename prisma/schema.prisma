@@ -813,12 +813,20 @@ model PricingStrategy {
  updatedAt DateTime @updatedAt
 }
 
+
+
 model ProductResearchCache {
 id String @id @default(cuid())
 
 // Normalized brand + supplement identity.
 // Example: "nowfoods|vitaminc"
 normalizedKey String @unique
+
+// Stable Google Shopping product identity.
+// This lets slightly different product titles
+// reuse the same cached product research.
+shoppingProductId String? @unique
+
 
 // The name originally sent to the researcher.
 requestedProductName String

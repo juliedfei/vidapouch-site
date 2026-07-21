@@ -23,7 +23,32 @@
 export type ProductFact =
  boolean | null;
 
-export type ProductResearchEvidence = {
+export type ProductResearchStatus =
+ | "pending"
+ | "partial"
+ | "verified"
+ | "not-found"
+ | "failed";
+
+export type ProductClaimStatus =
+ | "verified"
+ | "claimed"
+ | "not-verified"
+ | "not-found"
+ | "conflicting";
+
+export type ProductEvidenceType =
+ | "official-registry"
+ | "manufacturer-page"
+ | "product-label"
+ | "retailer-page"
+ | "structured-data"
+ | "third-party-database"
+ | "manual-review"
+ | "ai-extraction"
+ | "other";
+
+export type ProductClaimSource = {
  /*
   * Human-readable page or record title.
   */
@@ -36,11 +61,120 @@ export type ProductResearchEvidence = {
   * NOW Foods
   * NSF
   * USP
-  * iHerb
+  * NPA
+  * NIH DSLD
+  * Walmart
   */
  source: string;
 
  url: string;
+
+ sourceType:
+   ProductEvidenceType;
+
+ /*
+  * Exact supporting language when
+  * available.
+  *
+  * Keep this brief. It is evidence,
+  * not a complete page copy.
+  */
+ evidenceText?: string;
+
+ /*
+  * Confidence in this source and its
+  * relationship to this exact product.
+  *
+  * Expressed from 0 through 1.
+  */
+ confidence: number;
+
+ /*
+  * Date the source was checked.
+  *
+  * ISO 8601 date-time string.
+  */
+ checkedAt?: string;
+};
+
+export type ProductClaim = {
+ /*
+  * True:
+  * Evidence supports the claim.
+  *
+  * False:
+  * Reliable evidence specifically
+  * shows the claim does not apply.
+  *
+  * Null:
+  * The claim is unknown.
+  */
+ value: ProductFact;
+
+ /*
+  * A verified claim is supported by an
+  * authoritative product-level source.
+  *
+  * A claimed value may appear on a
+  * manufacturer or retailer page but has
+  * not been independently verified.
+  */
+ status:
+   ProductClaimStatus;
+
+ /*
+  * Confidence in the claim as it applies
+  * to this exact product.
+  *
+  * Expressed from 0 through 1.
+  */
+ confidence: number;
+
+ /*
+  * Product-level means the exact product
+  * was verified.
+  *
+  * Manufacturer-level means the evidence
+  * applies to the company or facility and
+  * must not be presented as certification
+  * of the exact product.
+  */
+ scope:
+   | "product"
+   | "manufacturer"
+   | "facility"
+   | "brand"
+   | "unknown";
+
+ sources:
+   ProductClaimSource[];
+
+ /*
+  * Optional human-readable clarification.
+  *
+  * Example:
+  * "The manufacturer participates in an
+  * NPA GMP program, but this is not a
+  * product-level certification."
+  */
+ note?: string;
+};
+
+export type ProductResearchEvidence = {
+ /*
+  * Human-readable page or record title.
+  */
+ title: string;
+
+ /*
+  * Source organization or website.
+  */
+ source: string;
+
+ url: string;
+
+ sourceType?:
+   ProductEvidenceType;
 
  /*
   * Confidence in this particular source,
@@ -52,6 +186,103 @@ export type ProductResearchEvidence = {
   * Facts extracted from this source.
   */
  extractedFacts: string[];
+
+ /*
+  * Date the source was checked.
+  *
+  * ISO 8601 date-time string.
+  */
+ checkedAt?: string;
+};
+
+export type ProductCertificationResearch = {
+ /*
+  * Formal product-level certifications.
+  */
+
+ nsfCertified:
+   ProductClaim;
+
+ nsfCertifiedForSport:
+   ProductClaim;
+
+ uspVerified:
+   ProductClaim;
+
+ nonGmoProjectVerified:
+   ProductClaim;
+
+ informedChoiceCertified:
+   ProductClaim;
+
+ informedSportCertified:
+   ProductClaim;
+
+ bannedSubstanceTested:
+   ProductClaim;
+
+ /*
+  * Manufacturing and quality programs.
+  *
+  * These may apply to the manufacturer or
+  * facility rather than the exact product.
+  */
+
+ gmpQualityAssured:
+   ProductClaim;
+
+ cgmpManufactured:
+   ProductClaim;
+
+ npaGmpCertified:
+   ProductClaim;
+
+ thirdPartyTested:
+   ProductClaim;
+};
+
+export type ProductDietaryResearch = {
+ vegan:
+   ProductClaim;
+
+ vegetarian:
+   ProductClaim;
+
+ glutenFree:
+   ProductClaim;
+
+ nonGmo:
+   ProductClaim;
+
+ soyFree:
+   ProductClaim;
+
+ dairyFree:
+   ProductClaim;
+
+ sugarFree:
+   ProductClaim;
+
+ kosher:
+   ProductClaim;
+
+ halal:
+   ProductClaim;
+
+ organic:
+   ProductClaim;
+
+ artificialColors:
+   ProductClaim;
+
+ artificialFlavors:
+   ProductClaim;
+
+ artificialSweeteners:
+   ProductClaim;
+
+ preservatives:
+   ProductClaim;
 };
 
 export type ProductResearch = {
@@ -65,9 +296,34 @@ export type ProductResearch = {
 
  productName: string;
 
+ /*
+  * Stable product identifiers used to
+  * match cached research to a search
+  * result.
+  */
+
+ shoppingProductId?: string;
+
+ upc?: string;
+
+ ndc?: string;
+
+ sku?: string;
+
+ manufacturerProductId?: string;
+
  dosage?: string;
 
+ dosageAmount?: number;
+
+ dosageUnit?: string;
+
+ dosageIsPerServing?:
+   boolean | null;
+
  servingSize?: string;
+
+ servingsPerContainer?: number;
 
  unitsPerContainer?: number;
 
@@ -91,9 +347,22 @@ export type ProductResearch = {
 
  ingredients: string[];
 
+ activeIngredients?: string[];
+
  inactiveIngredients: string[];
 
  allergens: string[];
+
+ /*
+  * Legacy fact fields.
+  *
+  * Keep these fields so existing search
+  * and card code continues to compile.
+  *
+  * New enrichment code should use the
+  * detailed dietaryClaims and
+  * certificationClaims objects below.
+  */
 
  vegan: ProductFact;
 
@@ -114,24 +383,101 @@ export type ProductResearch = {
  preservatives: ProductFact;
 
  /*
-  * Testing and manufacturing facts
+  * Legacy testing and manufacturing
+  * fields.
   */
 
- thirdPartyTested: ProductFact;
+ thirdPartyTested:
+   ProductFact;
 
- uspVerified: ProductFact;
+ uspVerified:
+   ProductFact;
 
- nsfCertified: ProductFact;
+ nsfCertified:
+   ProductFact;
 
- cgmpManufactured: ProductFact;
+ cgmpManufactured:
+   ProductFact;
 
  /*
-  * Product-specific certifications.
+  * Detailed claim records.
   *
-  * Brand-wide programs should not be
-  * automatically applied to every product.
+  * These preserve whether a statement is
+  * verified, merely claimed, unknown, or
+  * tied only to a manufacturer or facility.
+  */
+
+ certificationClaims?:
+   ProductCertificationResearch;
+
+ dietaryClaims?:
+   ProductDietaryResearch;
+
+ /*
+  * Product-specific certification names.
+  *
+  * Brand-wide or facility-wide programs
+  * should not be automatically applied to
+  * every product.
   */
  certifications: string[];
+
+ /*
+  * Quality or manufacturing statements
+  * that are not formal product-level
+  * certifications.
+  *
+  * Examples:
+  * GMP Quality Assured
+  * Manufactured in a cGMP facility
+  */
+ qualityClaims?: string[];
+
+ /*
+  * Filter values that have enough evidence
+  * to be safely used by the customer-facing
+  * search filters.
+  *
+  * These should be derived from the
+  * detailed claim objects rather than from
+  * unverified title text.
+  */
+ filterableClaims?: {
+   nsfCertified: boolean;
+
+   nsfCertifiedForSport:
+     boolean;
+
+   uspVerified: boolean;
+
+   nonGmoProjectVerified:
+     boolean;
+
+   gmpQualityAssured:
+     boolean;
+
+   npaGmpCertified:
+     boolean;
+
+   thirdPartyTested:
+     boolean;
+
+   vegan: boolean;
+
+   vegetarian: boolean;
+
+   glutenFree: boolean;
+
+   nonGmo: boolean;
+
+   soyFree: boolean;
+
+   dairyFree: boolean;
+
+   sugarFree: boolean;
+
+   organic: boolean;
+ };
 
  /*
   * Review intelligence aggregated across
@@ -150,6 +496,19 @@ export type ProductResearch = {
  reviewSummary?: string;
 
  /*
+  * Research lifecycle
+  */
+
+ researchStatus?:
+   ProductResearchStatus;
+
+ researchedAt?: string;
+
+ lastVerifiedAt?: string;
+
+ researchVersion?: number;
+
+ /*
   * AI synthesis
   */
 
@@ -161,5 +520,6 @@ export type ProductResearch = {
   */
  aiConfidence: number;
 
- evidence: ProductResearchEvidence[];
+ evidence:
+   ProductResearchEvidence[];
 };

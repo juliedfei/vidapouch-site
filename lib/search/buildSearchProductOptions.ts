@@ -1,3 +1,8 @@
+import {
+  getCachedProductResearch,
+ } from "@/lib/intelligence/productResearch/getCachedProductResearch";
+ 
+
 import type {
   SearchRetailProduct,
  } from "./searchRetailProduct";
@@ -770,13 +775,32 @@ import type {
  >
  >;
  }): Promise<PreparedSearchProduct> {
-  /*
-   * Initial product results never wait for
-   * database or OpenAI enrichment.
-   */
-  const research:
-    ProductResearch | null =
-      null;
+  
+  
+  
+/*
+* Search reads only previously saved
+* research.
+*
+* This does not call OpenAI and does not
+* perform live web research.
+*/
+const representativeProduct =
+ chooseRepresentativeListing(
+   group.listings
+ );
+
+const research:
+ ProductResearch | null =
+   await getCachedProductResearch(
+     group.productName,
+     representativeProduct
+       .shoppingProductId
+   );
+
+
+
+
  
   const pricing =
     calculateDisplayedMonthlyCost(
@@ -788,10 +812,7 @@ import type {
   const monthlyUnits =
     pricing.monthlyCapsules;
  
-  const representativeProduct =
-    chooseRepresentativeListing(
-      group.listings
-    );
+
  
   return {
     productName:
@@ -1322,13 +1343,29 @@ import type {
               ? "complete"
               : "undetermined",
  
-          form,
- 
-          dietaryPreferences,
- 
-          thirdPartyTesting,
- 
-          verifiedClaims: {
+
+
+              form,
+
+              dietaryPreferences,
+     
+              thirdPartyTesting,
+     
+              certifications:
+                prepared.research
+                  ?.certifications ??
+                [],
+     
+              qualityClaims:
+                prepared.research
+                  ?.qualityClaims ??
+                [],
+     
+              verifiedClaims: {
+
+
+
+
             nsfCertified:
               thirdPartyTesting
                 .nsfCertified ||
