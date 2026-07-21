@@ -31,6 +31,12 @@ export type SearchSortOption =
  | "value";
 
 export type SearchFilterState = {
+ /*
+  * Blank means no dose filtering.
+  *
+  * A dose is applied only after the
+  * customer explicitly enters one.
+  */
  dailyDose: string;
 
  forms:
@@ -57,8 +63,15 @@ export type SearchFilterState = {
 
 export const DEFAULT_SEARCH_FILTERS:
  SearchFilterState = {
+   /*
+    * Do not default to "1 capsule."
+    *
+    * That would silently remove softgels,
+    * gummies, tablets, and products whose
+    * form is not yet known.
+    */
    dailyDose:
-     "1 capsule",
+     "",
 
    forms:
      [],

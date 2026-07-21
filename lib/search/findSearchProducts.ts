@@ -13,9 +13,16 @@ import type {
   SearchRetailProduct,
  } from "./searchRetailProduct";
  
- import {
-  getSupplementAliases,
- } from "@/lib/pricing/supplementAliases";
+
+
+import {
+ getSupplementAliases,
+ getSupplementSearchTerms,
+} from "@/lib/pricing/supplementAliases";
+
+
+
+
  
  import type {
   ProductSearchRequest,
@@ -178,18 +185,59 @@ import type {
   return false;
  }
  
- function buildSearchQuery({
+
+
+
+ function buildSearchQueries({
   supplement,
   brand,
  }: ProductSearchRequest) {
-  return [
+  const requestedQuery = [
     brand?.trim(),
     supplement.trim(),
     "supplement",
   ]
     .filter(Boolean)
     .join(" ");
+ 
+  const expandedQueries =
+    getSupplementSearchTerms(
+      supplement
+    ).map(
+      (searchTerm) =>
+        [
+          brand?.trim(),
+          searchTerm,
+        ]
+          .filter(Boolean)
+          .join(" ")
+    );
+ 
+  /*
+   * Keep the user's original request first,
+   * then supplement it with controlled
+   * alias searches.
+   *
+   * Four total SerpApi searches provides
+   * breadth without issuing every possible
+   * alias query.
+   */
+  return Array.from(
+    new Set([
+      requestedQuery,
+      ...expandedQueries,
+    ])
+  ).slice(
+    0,
+    4
+  );
  }
+ 
+
+
+
+
+
  
  function getExtensionsText(
   extensions: unknown
@@ -1381,39 +1429,16 @@ import type {
   );
  }
  
- export async function findSearchProducts(
-  request: ProductSearchRequest
- ): Promise<
-  SearchRetailProduct[]
+
+ async function fetchShoppingResults({
+  query,
+  apiKey,
+ }: {
+  query: string;
+  apiKey: string;
+ }): Promise<
+  SerpApiShoppingResult[]
  >{
-  const apiKey =
-    process.env.SERPAPI_API_KEY;
- 
-  if (!apiKey) {
-    throw new Error(
-      "SERPAPI_API_KEY is not configured."
-    );
-  }
- 
-  const query =
-    buildSearchQuery(
-      request
-    );
- 
-  console.log(
-    "VitaSearch retailer search started:",
-    {
-      query,
- 
-      supplement:
-        request.supplement,
- 
-      brand:
-        request.brand ??
-        null,
-    }
-  );
- 
   const params =
     new URLSearchParams({
       engine:
@@ -1439,7 +1464,8 @@ import type {
     await fetch(
       `${SERP_API_ENDPOINT}?${params.toString()}`,
       {
-        method: "GET",
+        method:
+          "GET",
  
         cache:
           "no-store",
@@ -1460,7 +1486,7 @@ import type {
         SerpApiResponse;
   } catch {
     throw new Error(
-      "SerpApi returned an invalid JSON response."
+      `SerpApi returned invalid JSON for "${query}".`
     );
   }
  
@@ -1469,7 +1495,7 @@ import type {
       stringValue(
         data.error
       ) ||
-        `SerpApi search failed with status ${response.status}.`
+        `SerpApi search failed with status ${response.status} for "${query}".`
     );
   }
  
@@ -1483,11 +1509,7 @@ import type {
     );
   }
  
-
-
-
-
-  const rawResults =
+  const results =
     Array.isArray(
       data.shopping_results
     )
@@ -1496,6 +1518,137 @@ import type {
             SerpApiShoppingResult[]
         )
       : [];
+ 
+  console.log(
+    "VidaSearch expanded query completed:",
+    {
+      query,
+ 
+      rawResultCount:
+        results.length,
+    }
+  );
+ 
+  return results;
+ }
+
+
+ export async function findSearchProducts(
+  request: ProductSearchRequest
+ ): Promise<
+  SearchRetailProduct[]
+ >{
+  const apiKey =
+    process.env.SERPAPI_API_KEY;
+ 
+  if (!apiKey) {
+    throw new Error(
+      "SERPAPI_API_KEY is not configured."
+    );
+  }
+ 
+
+
+
+
+  const queries =
+  buildSearchQueries(
+    request
+  );
+
+console.log(
+  "VidaSearch expanded retailer search started:",
+  {
+    queries,
+
+    supplement:
+      request.supplement,
+
+    brand:
+      request.brand ??
+      null,
+  }
+);
+
+const queryResults =
+  await Promise.allSettled(
+    queries.map(
+      (query) =>
+        fetchShoppingResults({
+          query,
+          apiKey,
+        })
+    )
+  );
+
+const successfulResults =
+  queryResults.flatMap(
+    (result) =>
+      result.status ===
+      "fulfilled"
+        ? result.value
+        : []
+  );
+
+const failedQueries =
+  queryResults.flatMap(
+    (
+      result,
+      index
+    ) =>
+      result.status ===
+      "rejected"
+        ? [
+            {
+              query:
+                queries[index],
+
+              error:
+                result.reason instanceof
+                  Error
+                  ? result.reason
+                      .message
+                  : String(
+                      result.reason
+                    ),
+            },
+          ]
+        : []
+  );
+
+if (
+  failedQueries.length >
+  0
+) {
+  console.error(
+    "VidaSearch expanded queries failed:",
+    failedQueries
+  );
+}
+
+if (
+  successfulResults.length ===
+    0 &&
+  failedQueries.length ===
+    queries.length
+) {
+  throw new Error(
+    failedQueries[0]
+      ?.error ||
+      "All supplement searches failed."
+  );
+}
+
+/*
+ * Results from all successful query
+ * expansions are validated against the
+ * original requested supplement below.
+ */
+const rawResults =
+  successfulResults;
+
+
+
 
 
 
@@ -1538,7 +1691,7 @@ import type {
     console.log(
       "VitaSearch retailer search completed:",
       {
-        query,
+        queries,
      
         rawResultCount:
           rawResults.length,
