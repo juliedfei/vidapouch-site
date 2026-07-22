@@ -39,6 +39,10 @@ import SearchControls from "./SearchControls";
 import SearchResults from "./SearchResults";
 import PouchSidebar from "./PouchSidebar";
 
+import {
+ usePooledPouchPricing,
+} from "./usePooledPouchPricing";
+
 type SearchWorkspaceProps = {
  query:
    string;
@@ -198,6 +202,35 @@ export default function SearchWorkspace({
      selectedPlanId
    );
 
+ /*
+  * Recalculate the complete current pouch whenever:
+  *
+  * - a product is added;
+  * - a product is removed;
+  * - a product quantity changes;
+  * - the selected tier changes;
+  * - an automatic tier upgrade occurs.
+  *
+  * The hook cancels or ignores stale requests, so
+  * a calculation from an earlier tier cannot replace
+  * a newer result.
+  */
+ const {
+   pricing:
+     pooledPricing,
+
+   loading:
+     pooledPricingLoading,
+
+   error:
+     pooledPricingError,
+ } =
+   usePooledPouchPricing({
+     selectedPlanId,
+
+     pouchItems,
+   });
+
  const largestPlan =
    SEARCH_PLANS[
      SEARCH_PLANS.length -
@@ -302,9 +335,9 @@ export default function SearchWorkspace({
      SearchPlanId
  ) {
    /*
-    * Clicking the active plan again means
-    * the customer wants to return to the
-    * standalone VidaSearch experience.
+    * Clicking the active plan again means the
+    * customer wants to return to the standalone
+    * VidaSearch experience.
     */
    if (
      selectedPlanId ===
@@ -341,8 +374,8 @@ export default function SearchWorkspace({
    }
 
    /*
-    * Do not allow a smaller plan that cannot
-    * hold the supplements already selected.
+    * Do not allow a smaller plan that cannot hold
+    * the supplements already selected.
     */
    if (
      pouchItems.length >
@@ -352,6 +385,11 @@ export default function SearchWorkspace({
      return;
    }
 
+   /*
+    * Changing this state triggers an entirely new
+    * pooled calculation using the requested tier.
+    * No result from the previous tier is retained.
+    */
    setSelectedPlanId(
      planId
    );
@@ -392,9 +430,9 @@ export default function SearchWorkspace({
          1;
 
        /*
-        * Premier currently supports up to
-        * eight supplements. More complex
-        * routines use the custom builder.
+        * Premier currently supports up to eight
+        * supplements. More complex routines use
+        * the custom builder.
         */
        if (
          nextSupplementCount >
@@ -422,6 +460,10 @@ export default function SearchWorkspace({
         *
         * Complete upgrades automatically to
         * Premier at supplement six.
+        *
+        * Both the new plan and new pouch items are
+        * used by the pooled-pricing hook on the next
+        * render.
         */
        if (
          nextSupplementCount >
@@ -486,6 +528,10 @@ export default function SearchWorkspace({
        /*
         * Removing a supplement does not
         * automatically downgrade the plan.
+        *
+        * Pricing is still recalculated using the
+        * remaining products and current selected
+        * tier.
         */
        return nextItems;
      }
@@ -655,7 +701,21 @@ export default function SearchWorkspace({
                border-[#E7DED3]
                bg-[#FBF8F3]
                shadow-[0_2px_10px_rgba(54,38,20,0.025)]
-             ">
+             "
+             data-pricing-status={
+               pooledPricing
+                 ?.status ??
+               "none"
+             }
+             data-pricing-loading={
+               pooledPricingLoading
+                 ? "true"
+                 : "false"
+             }
+             data-pricing-error={
+               pooledPricingError ??
+               undefined
+             }>
 
              {layout.pouchOpen ? (
                <div className="min-w-[340px]">
@@ -697,20 +757,36 @@ export default function SearchWorkspace({
                  </button>
 
                  <div className="p-3">
-                   <PouchSidebar
-                     items={
-                       pouchItems
-                     }
-                     selectedPlan={
-                       selectedPlan
-                     }
-                     onRemoveItem={
-                       removePouchItem
-                     }
-                     onTimingChange={
-                       updatePouchItemTiming
-                     }
-                   />
+                   
+                   
+                   
+                 <PouchSidebar
+ items={
+   pouchItems
+ }
+ selectedPlan={
+   selectedPlan
+ }
+ pooledPricing={
+   pooledPricing
+ }
+ pooledPricingLoading={
+   pooledPricingLoading
+ }
+ pooledPricingError={
+   pooledPricingError
+ }
+ onRemoveItem={
+   removePouchItem
+ }
+ onTimingChange={
+   updatePouchItemTiming
+ }
+/>
+
+
+
+
                  </div>
                </div>
              ) : (

@@ -12,8 +12,11 @@ import type {
 
 import Image from "next/image";
 
+import PooledPricingSummary from "./PooledPricingSummary";
+
 import type {
  SearchPouchItem,
+ SearchPouchPooledPricing,
  SearchPouchTimingPreference,
 } from "./types/searchPouch";
 
@@ -28,12 +31,28 @@ type PouchSidebarProps = {
  selectedPlan:
    SearchPlan;
 
+ /*
+  * Customer-safe result returned by the pooled
+  * pricing API for the complete current pouch.
+  */
+ pooledPricing?:
+   SearchPouchPooledPricing | null;
+
+ pooledPricingLoading?:
+   boolean;
+
+ pooledPricingError?:
+   string | null;
+
  onRemoveItem: (
-   itemId: string
+   itemId:
+     string
  ) => void;
 
  onTimingChange: (
-   itemId: string,
+   itemId:
+     string,
+
    timingPreference:
      SearchPouchTimingPreference
  ) => void;
@@ -49,21 +68,46 @@ const TIMING_CONFIRMATION_DURATION =
  5000;
 
 function formatPrice(
- value: number
+ value:
+   number
 ) {
- return `$${value.toFixed(2)}`;
+ return new Intl.NumberFormat(
+   "en-US",
+   {
+     style:
+       "currency",
+
+     currency:
+       "USD",
+
+     minimumFractionDigits:
+       2,
+
+     maximumFractionDigits:
+       2,
+   }
+ ).format(
+   value
+ );
 }
 
 function getPluralUnitLabel(
  unitLabel:
    SearchPouchItem["unitLabel"],
- count: number
+
+ count:
+   number
 ) {
- if (count === 1) {
+ if (
+   count ===
+   1
+ ) {
    return unitLabel;
  }
 
- switch (unitLabel) {
+ switch (
+   unitLabel
+ ) {
    case "capsule":
      return "capsules";
 
@@ -107,7 +151,10 @@ function SunIcon() {
      viewBox="0 0 24 24"
      fill="none"
      aria-hidden="true"
-     className="h-[17px] w-[17px]">
+     className="
+       h-[17px]
+       w-[17px]
+     ">
 
      <circle
        cx="12"
@@ -133,7 +180,10 @@ function MoonIcon() {
      viewBox="0 0 24 24"
      fill="none"
      aria-hidden="true"
-     className="h-[17px] w-[17px]">
+     className="
+       h-[17px]
+       w-[17px]
+     ">
 
      <path
        d="M19.4 15.1A8 8 0 0 1 8.9 4.6 8.2 8.2 0 1 0 19.4 15.1Z"
@@ -152,7 +202,10 @@ function MoreIcon() {
      viewBox="0 0 24 24"
      fill="currentColor"
      aria-hidden="true"
-     className="h-[17px] w-[17px]">
+     className="
+       h-[17px]
+       w-[17px]
+     ">
 
      <circle
        cx="5"
@@ -181,7 +234,10 @@ function CheckIcon() {
      viewBox="0 0 20 20"
      fill="none"
      aria-hidden="true"
-     className="h-[14px] w-[14px]">
+     className="
+       h-[14px]
+       w-[14px]
+     ">
 
      <path
        d="m4.5 10.3 3.2 3.2 7.8-7.8"
@@ -200,7 +256,10 @@ function PlanIcon() {
      viewBox="0 0 24 24"
      fill="none"
      aria-hidden="true"
-     className="h-[15px] w-[15px]">
+     className="
+       h-[15px]
+       w-[15px]
+     ">
 
      <rect
        x="5"
@@ -228,7 +287,10 @@ function ShieldIcon() {
      viewBox="0 0 24 24"
      fill="none"
      aria-hidden="true"
-     className="h-[15px] w-[15px]">
+     className="
+       h-[15px]
+       w-[15px]
+     ">
 
      <path
        d="M12 3.5 19 6v5.2c0 4.4-2.8 7.4-7 9.3-4.2-1.9-7-4.9-7-9.3V6l7-2.5Z"
@@ -248,10 +310,41 @@ function ShieldIcon() {
  );
 }
 
-type TimingMenuOptionProps = {
- label: string;
+function InfoIcon() {
+ return (
+   <svg
+     viewBox="0 0 24 24"
+     fill="none"
+     aria-hidden="true"
+     className="
+       h-[14px]
+       w-[14px]
+     ">
 
- onSelect: () => void;
+     <circle
+       cx="12"
+       cy="12"
+       r="8.5"
+       stroke="currentColor"
+       strokeWidth="1.5"
+     />
+
+     <path
+       d="M12 10.5v5M12 7.5h.01"
+       stroke="currentColor"
+       strokeWidth="1.7"
+       strokeLinecap="round"
+     />
+   </svg>
+ );
+}
+
+type TimingMenuOptionProps = {
+ label:
+   string;
+
+ onSelect:
+   () => void;
 };
 
 function TimingMenuOption({
@@ -290,12 +383,14 @@ type ItemRowProps = {
    string | undefined;
 
  onRemoveItem: (
-   itemId: string
+   itemId:
+     string
  ) => void;
 
  onSelectTiming: (
    item:
      SearchPouchItem,
+
    timingPreference:
      SearchPouchTimingPreference
  ) => void;
@@ -311,7 +406,9 @@ function ItemRow({
    menuOpen,
    setMenuOpen,
  ] =
-   useState(false);
+   useState(
+     false
+   );
 
  function selectTiming(
    timingPreference:
@@ -523,7 +620,13 @@ function ItemRow({
                    />
                  )}
 
-                 <div className="my-1 border-t border-[#EEE6DE]" />
+                 <div
+                   className="
+                     my-1
+                     border-t
+                     border-[#EEE6DE]
+                   "
+                 />
 
                  <button
                    type="button"
@@ -550,53 +653,40 @@ function ItemRow({
            </div>
          </div>
 
+         {/*
+          * No price, Pending badge, or Priced
+          * Together badge is displayed beside an
+          * individual supplement.
+          *
+          * Customer pricing appears only once in
+          * the pooled plan summary.
+          */}
          <div
            className="
              mt-[7px]
-             flex
-             items-end
-             justify-between
-             gap-3
+             text-[10px]
+             leading-[15px]
+             text-[#706963]
            ">
 
-           <div
-             className="
-               min-w-0
-               text-[10px]
-               leading-[15px]
-               text-[#706963]
-             ">
+           {item.dosage && (
+             <p>
+               {item.dosage}
+               {item.form
+                 ? ` · ${item.form}`
+                 : ""}
+             </p>
+           )}
 
-             {item.dosage && (
-               <p>
-                 {item.dosage}
-                 {item.form
-                   ? ` · ${item.form}`
-                   : ""}
-               </p>
+           <p>
+             {getUnitsPerDayLabel(
+               item
              )}
+           </p>
 
-             <p>
-               {getUnitsPerDayLabel(
-                 item
-               )}
-             </p>
-
-             <p>
-               {item.monthlyUnitCount} units monthly
-             </p>
-           </div>
-
-           <span
-             className="
-               shrink-0
-               text-[11px]
-               font-semibold
-               text-[#74101D]
-             ">
-
-             Included
-           </span>
+           <p>
+             {item.monthlyUnitCount} units monthly
+           </p>
          </div>
        </div>
      </div>
@@ -637,7 +727,8 @@ function ItemRow({
 }
 
 type PouchSectionProps = {
- title: string;
+ title:
+   string;
 
  icon:
    ReactNode;
@@ -649,12 +740,14 @@ type PouchSectionProps = {
    TimingConfirmationMap;
 
  onRemoveItem: (
-   itemId: string
+   itemId:
+     string
  ) => void;
 
  onSelectTiming: (
    item:
      SearchPouchItem,
+
    timingPreference:
      SearchPouchTimingPreference
  ) => void;
@@ -669,13 +762,19 @@ function PouchSection({
  onSelectTiming,
 }: PouchSectionProps) {
  if (
-   items.length === 0
+   items.length ===
+   0
  ) {
    return null;
  }
 
  return (
-   <section className="px-[17px] py-[14px]">
+   <section
+     className="
+       px-[17px]
+       py-[14px]
+     ">
+
      <div
        className="
          flex
@@ -735,8 +834,12 @@ function PouchSection({
        {items.map(
          (item) => (
            <ItemRow
-             key={item.id}
-             item={item}
+             key={
+               item.id
+             }
+             item={
+               item
+             }
              timingConfirmation={
                timingConfirmations[
                  item.id
@@ -756,21 +859,7 @@ function PouchSection({
  );
 }
 
-type PriceRowProps = {
- label: string;
-
- value:
-   string;
-
- emphasized?:
-   boolean;
-};
-
-function PriceRow({
- label,
- value,
- emphasized = false,
-}: PriceRowProps) {
+function ShippingRow() {
  return (
    <div
      className="
@@ -781,43 +870,22 @@ function PriceRow({
      ">
 
      <span
-       className={
-         emphasized
-           ? `
-               text-[13px]
-               font-semibold
-               text-[#2A211E]
-             `
-           : `
-               text-[12px]
-               text-[#6E6862]
-             `
-       }>
+       className="
+         text-[12px]
+         text-[#6E6862]
+       ">
 
-       {label}
+       Shipping
      </span>
 
      <span
-       className={
-         emphasized
-           ? `
-               shrink-0
-               text-[22px]
-               font-bold
-               tracking-[-0.02em]
-               tabular-nums
-               text-[#7D0E1C]
-             `
-           : `
-               shrink-0
-               text-[13px]
-               font-semibold
-               tabular-nums
-               text-[#2A211E]
-             `
-       }>
+       className="
+         text-[11px]
+         font-medium
+         text-[#6E6862]
+       ">
 
-       {value}
+       Calculated at checkout
      </span>
    </div>
  );
@@ -826,6 +894,9 @@ function PriceRow({
 export default function PouchSidebar({
  items,
  selectedPlan,
+ pooledPricing = null,
+ pooledPricingLoading = false,
+ pooledPricingError = null,
  onRemoveItem,
  onTimingChange,
 }: PouchSidebarProps) {
@@ -867,14 +938,19 @@ export default function PouchSidebar({
  );
 
  function showTimingConfirmation(
-   itemId: string,
-   message: string
+   itemId:
+     string,
+
+   message:
+     string
  ) {
    const existingTimer =
      confirmationTimers
        .current[itemId];
 
-   if (existingTimer) {
+   if (
+     existingTimer
+   ) {
      clearTimeout(
        existingTimer
      );
@@ -917,6 +993,7 @@ export default function PouchSidebar({
  function handleSelectTiming(
    item:
      SearchPouchItem,
+
    timingPreference:
      SearchPouchTimingPreference
  ) {
@@ -958,13 +1035,16 @@ export default function PouchSidebar({
  }
 
  function handleRemoveItem(
-   itemId: string
+   itemId:
+     string
  ) {
    const existingTimer =
      confirmationTimers
        .current[itemId];
 
-   if (existingTimer) {
+   if (
+     existingTimer
+   ) {
      clearTimeout(
        existingTimer
      );
@@ -1013,8 +1093,27 @@ export default function PouchSidebar({
        items.length /
        selectedPlan
          .supplementLimit
-     ) * 100
+     ) *
+       100
    );
+
+ /*
+  * Checkout remains unavailable while pooled pricing
+  * is refreshing, unavailable, disabled, or unable
+  * to calculate a reliable current total.
+  */
+ const checkoutDisabled =
+   items.length ===
+     0 ||
+   pooledPricingLoading ||
+   pooledPricingError !==
+     null ||
+   pooledPricing ===
+     null ||
+   pooledPricing.status ===
+     "disabled" ||
+   pooledPricing.status ===
+     "undetermined";
 
  return (
    <aside
@@ -1221,7 +1320,12 @@ export default function PouchSidebar({
        0 &&
        eveningItems.length >
          0 && (
-       <div className="border-t border-[#EAE1D7]" />
+       <div
+         className="
+           border-t
+           border-[#EAE1D7]
+         "
+       />
      )}
 
      <PouchSection
@@ -1243,53 +1347,30 @@ export default function PouchSidebar({
        }
      />
 
-     <div className="border-t border-[#EAE1D7]" />
+     <div
+       className="
+         border-t
+         border-[#EAE1D7]
+       "
+     />
 
-     <section className="px-[17px] py-[15px]">
-       <div className="space-y-[9px]">
-         <PriceRow
-           label="Plan Price"
-           value={
-             formatPrice(
-               selectedPlan
-                 .monthlyPrice
-             )
-           }
-         />
+     <section
+       className="
+         px-[17px]
+         py-[15px]
+       ">
 
-         <PriceRow
-           label="Premium Add-Ons"
-           value="$0.00"
-         />
-
-         <div
-           className="
-             flex
-             items-center
-             justify-between
-             gap-3
-           ">
-
-           <span
-             className="
-               text-[12px]
-               text-[#6E6862]
-             ">
-
-             Shipping
-           </span>
-
-           <span
-             className="
-               text-[11px]
-               font-medium
-               text-[#6E6862]
-             ">
-
-             Calculated at checkout
-           </span>
-         </div>
-       </div>
+       <PooledPricingSummary
+         pricing={
+           pooledPricing
+         }
+         loading={
+           pooledPricingLoading
+         }
+         error={
+           pooledPricingError
+         }
+       />
 
        <div
          className="
@@ -1299,19 +1380,18 @@ export default function PouchSidebar({
          "
        />
 
-       <PriceRow
-         label="Monthly Total"
-         value={
-           formatPrice(
-             selectedPlan
-               .monthlyPrice
-           )
-         }
-         emphasized
-       />
+       <ShippingRow />
 
        <button
          type="button"
+         disabled={
+           checkoutDisabled
+         }
+         title={
+           checkoutDisabled
+             ? "Your current monthly total must be available before checkout."
+             : undefined
+         }
          className="
            mt-[15px]
            flex
@@ -1331,10 +1411,48 @@ export default function PouchSidebar({
            focus-visible:ring-2
            focus-visible:ring-[#7D0E1C]
            focus-visible:ring-offset-2
+           disabled:cursor-not-allowed
+           disabled:bg-[#B7AAA6]
+           disabled:text-[#F7F3F1]
          ">
 
-         Review Pouches &amp; Checkout
+         {pooledPricingLoading
+           ? "Updating Monthly Total…"
+           : "Review Pouches & Checkout"}
        </button>
+
+       {checkoutDisabled && (
+         <div
+           className="
+             mt-[10px]
+             flex
+             items-start
+             gap-1.5
+             text-[#766F69]
+           ">
+
+           <span
+             className="
+               mt-[1px]
+               shrink-0
+             ">
+
+             <InfoIcon />
+           </span>
+
+           <p
+             className="
+               text-[9px]
+               leading-[1.45]
+             ">
+
+             {items.length ===
+             0
+               ? "Add at least one supplement to continue."
+               : "Checkout will become available after the complete pouch price is calculated."}
+           </p>
+         </div>
+       )}
 
        <div
          className="
@@ -1354,9 +1472,19 @@ export default function PouchSidebar({
        </div>
      </section>
 
-     <div className="border-t border-[#EAE1D7]" />
+     <div
+       className="
+         border-t
+         border-[#EAE1D7]
+       "
+     />
 
-     <section className="px-[17px] py-[14px]">
+     <section
+       className="
+         px-[17px]
+         py-[14px]
+       ">
+
        <div
          className="
            flex

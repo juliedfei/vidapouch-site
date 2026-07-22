@@ -1,867 +1,964 @@
 generator client {
- provider = "prisma-client"
- output   = "../lib/generated/prisma"
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
 }
 
 datasource db {
- provider = "postgresql"
+  provider = "postgresql"
 }
 
 enum DataConfidence {
- VERIFIED
- REPORTED
- INFERRED
- UNKNOWN
+  VERIFIED
+  REPORTED
+  INFERRED
+  UNKNOWN
 }
 
 enum PriceTier {
- BUDGET
- VALUE
- MIDRANGE
- PREMIUM
- PROFESSIONAL
+  BUDGET
+  VALUE
+  MIDRANGE
+  PREMIUM
+  PROFESSIONAL
 }
 
 enum AvailabilityLevel {
- LIMITED
- MODERATE
- WIDE
- NATIONAL
+  LIMITED
+  MODERATE
+  WIDE
+  NATIONAL
 }
 
 enum CertificationScope {
- BRAND_WIDE
- PRODUCT_SPECIFIC
- UNKNOWN
+  BRAND_WIDE
+  PRODUCT_SPECIFIC
+  UNKNOWN
 }
 
 enum ProductForm {
- CAPSULE
- TABLET
- SOFTGEL
- CAPLET
- OTHER
+  CAPSULE
+  TABLET
+  SOFTGEL
+  CAPLET
+  OTHER
 }
 
 enum AmountBasis {
- CAPSULE
- TABLET
- SOFTGEL
- CAPLET
- SERVING
- CONTAINER
+  CAPSULE
+  TABLET
+  SOFTGEL
+  CAPLET
+  SERVING
+  CONTAINER
 }
 
 enum RetailerType {
- MARKETPLACE
- MASS_RETAIL
- PHARMACY
- SPECIALTY
- CLUB
- DIRECT
- OTHER
+  MARKETPLACE
+  MASS_RETAIL
+  PHARMACY
+  SPECIALTY
+  CLUB
+  DIRECT
+  OTHER
 }
 
 enum RecommendationMode {
- BEST_OVERALL
- BEST_VALUE
- LOWEST_COST
- PREMIUM_QUALITY
- CLEAN_INGREDIENTS
- PRACTITIONER_FOCUS
+  BEST_OVERALL
+  BEST_VALUE
+  LOWEST_COST
+  PREMIUM_QUALITY
+  CLEAN_INGREDIENTS
+  PRACTITIONER_FOCUS
 }
 
 enum EvidenceSourceType {
- OFFICIAL_BRAND
- CERTIFICATION_DATABASE
- REGULATORY_SOURCE
- RETAILER_LISTING
- SCIENTIFIC_PAPER
- MANUAL_RESEARCH
- AI_DISCOVERY
- OTHER
+  OFFICIAL_BRAND
+  CERTIFICATION_DATABASE
+  REGULATORY_SOURCE
+  RETAILER_LISTING
+  SCIENTIFIC_PAPER
+  MANUAL_RESEARCH
+  AI_DISCOVERY
+  OTHER
 }
 
 enum DiscoveryStatus {
- RUNNING
- COMPLETED
- FAILED
- PARTIAL
+  RUNNING
+  COMPLETED
+  FAILED
+  PARTIAL
 }
 
 enum DiscoveryCandidateType {
- BRAND
- BRAND_ALIAS
- MANUFACTURER
- SUPPLEMENT
- SUPPLEMENT_ALIAS
- PRODUCT
- RETAIL_LISTING
- PRICE_CHANGE
- REVIEW_CHANGE
- CERTIFICATION
- AVAILABILITY_CHANGE
+  BRAND
+  BRAND_ALIAS
+  MANUFACTURER
+  SUPPLEMENT
+  SUPPLEMENT_ALIAS
+  PRODUCT
+  RETAIL_LISTING
+  PRICE_CHANGE
+  REVIEW_CHANGE
+  CERTIFICATION
+  AVAILABILITY_CHANGE
 }
 
 enum CandidateReviewStatus {
- PENDING
- AUTO_APPROVED
- APPROVED
- REJECTED
- NEEDS_REVIEW
+  PENDING
+  AUTO_APPROVED
+  APPROVED
+  REJECTED
+  NEEDS_REVIEW
 }
 
 enum RefreshJobType {
- DISCOVER_BRANDS
- DISCOVER_PRODUCTS
- REFRESH_LISTING
- REFRESH_PRICE
- REFRESH_REVIEWS
- VERIFY_CERTIFICATION
- VERIFY_BRAND
- VERIFY_PRODUCT
+  DISCOVER_BRANDS
+  DISCOVER_PRODUCTS
+  REFRESH_LISTING
+  REFRESH_PRICE
+  REFRESH_REVIEWS
+  VERIFY_CERTIFICATION
+  VERIFY_BRAND
+  VERIFY_PRODUCT
 }
 
 enum JobStatus {
- PENDING
- RUNNING
- COMPLETED
- FAILED
- CANCELLED
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
 }
 
 enum ProductResearchStatus {
-PENDING
-RUNNING
-COMPLETED
-FAILED
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
 }
 
-
 model Manufacturer {
- id            String   @id @default(cuid())
- canonicalName String   @unique
- website       String?
- country       String?
+  id            String  @id @default(cuid())
+  canonicalName String  @unique
+  website       String?
+  country       String?
 
- brands           Brand[]
- evidence         ManufacturerEvidence[]
- regulatoryEvents RegulatoryEvent[]
+  brands           Brand[]
+  evidence         ManufacturerEvidence[]
+  regulatoryEvents RegulatoryEvent[]
 
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Brand {
- id            String @id @default(cuid())
- canonicalName String @unique
- website       String?
+  id            String  @id @default(cuid())
+  canonicalName String  @unique
+  website       String?
 
- manufacturerId String?
- manufacturer   Manufacturer? @relation(fields: [manufacturerId], references: [id], onDelete: SetNull)
+  manufacturerId String?
+  manufacturer   Manufacturer? @relation(fields: [manufacturerId], references: [id], onDelete: SetNull)
 
- practitionerGrade       Boolean?
- thirdPartyTestingProgram Boolean?
- cgmpCertified           Boolean?
- veganOptions            Boolean?
- hypoallergenic          Boolean?
+  practitionerGrade        Boolean?
+  thirdPartyTestingProgram Boolean?
+  cgmpCertified            Boolean?
+  veganOptions             Boolean?
+  hypoallergenic           Boolean?
 
- priceTier         PriceTier?
- availability      AvailabilityLevel?
- profileConfidence DataConfidence @default(UNKNOWN)
+  priceTier         PriceTier?
+  availability      AvailabilityLevel?
+  profileConfidence DataConfidence     @default(UNKNOWN)
 
- aliases        BrandAlias[]
- certifications BrandCertification[]
- products       Product[]
- evidence       BrandEvidence[]
- scores         BrandScoreSnapshot[]
+  aliases        BrandAlias[]
+  certifications BrandCertification[]
+  products       Product[]
+  evidence       BrandEvidence[]
+  scores         BrandScoreSnapshot[]
 
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
- @@index([manufacturerId])
- @@index([canonicalName])
+  @@index([manufacturerId])
+  @@index([canonicalName])
 }
 
 model BrandAlias {
- id              String @id @default(cuid())
- alias           String
- normalizedAlias String @unique
- source          String?
- confidence      DataConfidence @default(UNKNOWN)
+  id              String         @id @default(cuid())
+  alias           String
+  normalizedAlias String         @unique
+  source          String?
+  confidence      DataConfidence @default(UNKNOWN)
 
- brandId String
- brand   Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
 
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
- @@index([brandId])
+  @@index([brandId])
 }
 
 model Supplement {
- id            String @id @default(cuid())
- canonicalName String @unique
- category      String?
- description   String?
- defaultUnit   String?
+  id            String  @id @default(cuid())
+  canonicalName String  @unique
+  category      String?
+  description   String?
+  defaultUnit   String?
 
- aliases            SupplementAlias[]
- productIngredients ProductIngredient[]
- evidence           SupplementEvidence[]
+  aliases            SupplementAlias[]
+  productIngredients ProductIngredient[]
+  evidence           SupplementEvidence[]
 
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
- @@index([canonicalName])
+  @@index([canonicalName])
 }
 
 model SupplementAlias {
- id              String @id @default(cuid())
- alias           String
- normalizedAlias String @unique
- source          String?
- confidence      DataConfidence @default(UNKNOWN)
+  id              String         @id @default(cuid())
+  alias           String
+  normalizedAlias String         @unique
+  source          String?
+  confidence      DataConfidence @default(UNKNOWN)
 
- supplementId String
- supplement   Supplement @relation(fields: [supplementId], references: [id], onDelete: Cascade)
+  supplementId String
+  supplement   Supplement @relation(fields: [supplementId], references: [id], onDelete: Cascade)
 
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
- @@index([supplementId])
+  @@index([supplementId])
 }
 
 model Product {
- id             String @id @default(cuid())
- canonicalTitle String
- manufacturerSku String?
- upc             String? @unique
+  id              String  @id @default(cuid())
+  canonicalTitle  String
+  manufacturerSku String?
+  upc             String? @unique
 
- brandId String
- brand   Brand @relation(fields: [brandId], references: [id], onDelete: Restrict)
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Restrict)
 
- form                 ProductForm?
- unitsPerContainer    Int?
- servingSize          Decimal? @db.Decimal(10, 2)
- servingsPerContainer Decimal? @db.Decimal(10, 2)
+  form                 ProductForm?
+  unitsPerContainer    Int?
+  servingSize          Decimal?     @db.Decimal(10, 2)
+  servingsPerContainer Decimal?     @db.Decimal(10, 2)
 
- productUrl    String?
- active        Boolean @default(true)
- firstSeenAt   DateTime @default(now())
- lastVerifiedAt DateTime?
+  productUrl     String?
+  active         Boolean   @default(true)
+  firstSeenAt    DateTime  @default(now())
+  lastVerifiedAt DateTime?
 
- ingredients    ProductIngredient[]
- listings       RetailListing[]
- certifications ProductCertification[]
- evidence       ProductEvidence[]
- scores         ProductScoreSnapshot[]
- reviewInsights ReviewInsight[]
+  ingredients    ProductIngredient[]
+  listings       RetailListing[]
+  certifications ProductCertification[]
+  evidence       ProductEvidence[]
+  scores         ProductScoreSnapshot[]
+  reviewInsights ReviewInsight[]
 
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
- @@unique([canonicalTitle, brandId])
- @@index([brandId])
- @@index([brandId, canonicalTitle])
- @@index([active])
- @@index([manufacturerSku])
+  @@unique([canonicalTitle, brandId])
+  @@index([brandId])
+  @@index([brandId, canonicalTitle])
+  @@index([active])
+  @@index([manufacturerSku])
 }
 
 model ProductIngredient {
- id String @id @default(cuid())
+  id String @id @default(cuid())
 
- productId String
- product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
- supplementId String
- supplement   Supplement @relation(fields: [supplementId], references: [id], onDelete: Restrict)
+  supplementId String
+  supplement   Supplement @relation(fields: [supplementId], references: [id], onDelete: Restrict)
 
- amount     Decimal? @db.Decimal(12, 4)
- unit       String?
- amountBasis AmountBasis?
- isPrimary  Boolean @default(false)
+  amount      Decimal?     @db.Decimal(12, 4)
+  unit        String?
+  amountBasis AmountBasis?
+  isPrimary   Boolean      @default(false)
 
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
- @@unique([productId, supplementId, amountBasis])
- @@index([productId])
- @@index([supplementId])
+  @@unique([productId, supplementId, amountBasis])
+  @@index([productId])
+  @@index([supplementId])
 }
 
 model Retailer {
- id            String @id @default(cuid())
- canonicalName String @unique
- website       String?
- active        Boolean @default(true)
- retailerType  RetailerType @default(OTHER)
- reliabilityScore Int?
+  id               String       @id @default(cuid())
+  canonicalName    String       @unique
+  website          String?
+  active           Boolean      @default(true)
+  retailerType     RetailerType @default(OTHER)
+  reliabilityScore Int?
 
- aliases  RetailerAlias[]
- listings RetailListing[]
+  aliases  RetailerAlias[]
+  listings RetailListing[]
 
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model RetailerAlias {
- id              String @id @default(cuid())
- alias           String
- normalizedAlias String @unique
+  id              String @id @default(cuid())
+  alias           String
+  normalizedAlias String @unique
 
- retailerId String
- retailer   Retailer @relation(fields: [retailerId], references: [id], onDelete: Cascade)
+  retailerId String
+  retailer   Retailer @relation(fields: [retailerId], references: [id], onDelete: Cascade)
 
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
- @@index([retailerId])
+  @@index([retailerId])
 }
 
 model RetailListing {
- id String @id @default(cuid())
+  id String @id @default(cuid())
 
- productId String
- product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
- retailerId String
- retailer   Retailer @relation(fields: [retailerId], references: [id], onDelete: Restrict)
+  retailerId String
+  retailer   Retailer @relation(fields: [retailerId], references: [id], onDelete: Restrict)
 
- externalListingId String?
- listingTitle      String
- url               String?
+  externalListingId String?
+  listingTitle      String
+  url               String?
 
- currentBottlePrice Decimal? @db.Decimal(10, 2)
- currentShipping    Decimal? @default(0) @db.Decimal(10, 2)
- currency           String @default("USD")
+  currentBottlePrice Decimal? @db.Decimal(10, 2)
+  currentShipping    Decimal? @default(0) @db.Decimal(10, 2)
+  currency           String   @default("USD")
 
- inStock          Boolean?
- availabilityText String?
- sellerName       String?
- sellerVerified   Boolean?
+  inStock          Boolean?
+  availabilityText String?
+  sellerName       String?
+  sellerVerified   Boolean?
 
- sourceProvider String?
- firstSeenAt    DateTime @default(now())
- lastSeenAt     DateTime @default(now())
- active         Boolean @default(true)
+  sourceProvider String?
+  firstSeenAt    DateTime @default(now())
+  lastSeenAt     DateTime @default(now())
+  active         Boolean  @default(true)
 
- priceSnapshots  PriceSnapshot[]
- reviewSnapshots ReviewSnapshot[]
- reviewInsights  ReviewInsight[]
- scores          ListingScoreSnapshot[]
+  priceSnapshots  PriceSnapshot[]
+  reviewSnapshots ReviewSnapshot[]
+  reviewInsights  ReviewInsight[]
+  scores          ListingScoreSnapshot[]
 
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
- @@index([productId])
- @@index([retailerId])
- @@index([productId, retailerId])
- @@index([externalListingId])
- @@index([active, lastSeenAt])
+  @@index([productId])
+  @@index([retailerId])
+  @@index([productId, retailerId])
+  @@index([externalListingId])
+  @@index([active, lastSeenAt])
 }
 
 model PriceSnapshot {
- id String @id @default(cuid())
+  id String @id @default(cuid())
 
- retailListingId String
- retailListing   RetailListing @relation(fields: [retailListingId], references: [id], onDelete: Cascade)
+  retailListingId String
+  retailListing   RetailListing @relation(fields: [retailListingId], references: [id], onDelete: Cascade)
 
- bottlePrice Decimal @db.Decimal(10, 2)
- shipping    Decimal @default(0) @db.Decimal(10, 2)
- landedPrice Decimal @db.Decimal(10, 2)
- currency    String @default("USD")
- inStock     Boolean?
+  bottlePrice Decimal  @db.Decimal(10, 2)
+  shipping    Decimal  @default(0) @db.Decimal(10, 2)
+  landedPrice Decimal  @db.Decimal(10, 2)
+  currency    String   @default("USD")
+  inStock     Boolean?
 
- capturedAt DateTime @default(now())
+  capturedAt DateTime @default(now())
 
- @@index([retailListingId])
- @@index([retailListingId, capturedAt])
- @@index([capturedAt])
+  @@index([retailListingId])
+  @@index([retailListingId, capturedAt])
+  @@index([capturedAt])
 }
 
 model ReviewSnapshot {
- id String @id @default(cuid())
+  id String @id @default(cuid())
 
- retailListingId String
- retailListing   RetailListing @relation(fields: [retailListingId], references: [id], onDelete: Cascade)
+  retailListingId String
+  retailListing   RetailListing @relation(fields: [retailListingId], references: [id], onDelete: Cascade)
 
- averageRating Decimal? @db.Decimal(4, 2)
- reviewCount   Int?
- ratingScale   Decimal @default(5) @db.Decimal(4, 2)
- sourceUrl     String?
+  averageRating Decimal? @db.Decimal(4, 2)
+  reviewCount   Int?
+  ratingScale   Decimal  @default(5) @db.Decimal(4, 2)
+  sourceUrl     String?
 
- capturedAt DateTime @default(now())
+  capturedAt DateTime @default(now())
 
- @@index([retailListingId])
- @@index([retailListingId, capturedAt])
- @@index([capturedAt])
+  @@index([retailListingId])
+  @@index([retailListingId, capturedAt])
+  @@index([capturedAt])
 }
 
 model ReviewInsight {
- id String @id @default(cuid())
+  id String @id @default(cuid())
 
- productId String
- product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
- retailListingId String?
- retailListing   RetailListing? @relation(fields: [retailListingId], references: [id], onDelete: Cascade)
+  retailListingId String?
+  retailListing   RetailListing? @relation(fields: [retailListingId], references: [id], onDelete: Cascade)
 
- positiveThemes   String[]
- negativeThemes   String[]
- commonComplaints String[]
- commonBenefits   String[]
+  positiveThemes   String[]
+  negativeThemes   String[]
+  commonComplaints String[]
+  commonBenefits   String[]
 
- sentimentScore Decimal? @db.Decimal(5, 2)
- reviewSampleSize Int?
- methodologyVersion String
- generatedAt DateTime @default(now())
+  sentimentScore     Decimal? @db.Decimal(5, 2)
+  reviewSampleSize   Int?
+  methodologyVersion String
+  generatedAt        DateTime @default(now())
 
- @@index([productId])
- @@index([retailListingId])
+  @@index([productId])
+  @@index([retailListingId])
 }
 
 model Certification {
- id          String @id @default(cuid())
- name        String
- issuer      String?
- website     String?
- description String?
+  id          String  @id @default(cuid())
+  name        String
+  issuer      String?
+  website     String?
+  description String?
 
- brandLinks   BrandCertification[]
- productLinks ProductCertification[]
+  brandLinks   BrandCertification[]
+  productLinks ProductCertification[]
 
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
- @@unique([name, issuer])
+  @@unique([name, issuer])
 }
 
 model BrandCertification {
- brandId         String
- certificationId String
+  brandId         String
+  certificationId String
 
- brand         Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
- certification Certification @relation(fields: [certificationId], references: [id], onDelete: Cascade)
+  brand         Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  certification Certification @relation(fields: [certificationId], references: [id], onDelete: Cascade)
 
- scope                CertificationScope @default(UNKNOWN)
- confidence           DataConfidence @default(UNKNOWN)
- appliesToAllProducts Boolean @default(false)
+  scope                CertificationScope @default(UNKNOWN)
+  confidence           DataConfidence     @default(UNKNOWN)
+  appliesToAllProducts Boolean            @default(false)
 
- sourceUrl  String?
- verifiedAt DateTime?
- expiresAt  DateTime?
- notes      String?
+  sourceUrl  String?
+  verifiedAt DateTime?
+  expiresAt  DateTime?
+  notes      String?
 
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
- @@id([brandId, certificationId])
- @@index([certificationId])
+  @@id([brandId, certificationId])
+  @@index([certificationId])
 }
 
 model ProductCertification {
- productId       String
- certificationId String
+  productId       String
+  certificationId String
 
- product       Product @relation(fields: [productId], references: [id], onDelete: Cascade)
- certification Certification @relation(fields: [certificationId], references: [id], onDelete: Cascade)
+  product       Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  certification Certification @relation(fields: [certificationId], references: [id], onDelete: Cascade)
 
- confidence DataConfidence @default(UNKNOWN)
- sourceUrl  String?
- verifiedAt DateTime?
- expiresAt  DateTime?
- notes      String?
+  confidence DataConfidence @default(UNKNOWN)
+  sourceUrl  String?
+  verifiedAt DateTime?
+  expiresAt  DateTime?
+  notes      String?
 
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
- @@id([productId, certificationId])
- @@index([certificationId])
+  @@id([productId, certificationId])
+  @@index([certificationId])
 }
 
 model EvidenceSource {
- id String @id @default(cuid())
+  id String @id @default(cuid())
 
- sourceType    EvidenceSourceType
- publisher     String?
- title         String?
- url           String?
- publishedAt   DateTime?
- retrievedAt   DateTime @default(now())
- authoritative Boolean @default(false)
+  sourceType    EvidenceSourceType
+  publisher     String?
+  title         String?
+  url           String?
+  publishedAt   DateTime?
+  retrievedAt   DateTime           @default(now())
+  authoritative Boolean            @default(false)
 
- brandEvidence        BrandEvidence[]
- productEvidence      ProductEvidence[]
- supplementEvidence   SupplementEvidence[]
- manufacturerEvidence ManufacturerEvidence[]
+  brandEvidence        BrandEvidence[]
+  productEvidence      ProductEvidence[]
+  supplementEvidence   SupplementEvidence[]
+  manufacturerEvidence ManufacturerEvidence[]
 
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
- @@index([sourceType])
- @@index([authoritative])
+  @@index([sourceType])
+  @@index([authoritative])
 }
 
 model BrandEvidence {
- id String @id @default(cuid())
+  id String @id @default(cuid())
 
- brandId String
- brand   Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
 
- evidenceSourceId String
- evidenceSource   EvidenceSource @relation(fields: [evidenceSourceId], references: [id], onDelete: Cascade)
+  evidenceSourceId String
+  evidenceSource   EvidenceSource @relation(fields: [evidenceSourceId], references: [id], onDelete: Cascade)
 
- claimType  String
- claimValue String?
- confidence DataConfidence @default(UNKNOWN)
- verifiedAt DateTime?
- expiresAt  DateTime?
- notes      String?
+  claimType  String
+  claimValue String?
+  confidence DataConfidence @default(UNKNOWN)
+  verifiedAt DateTime?
+  expiresAt  DateTime?
+  notes      String?
 
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
- @@index([brandId])
- @@index([evidenceSourceId])
+  @@index([brandId])
+  @@index([evidenceSourceId])
 }
 
 model ManufacturerEvidence {
- id String @id @default(cuid())
+  id String @id @default(cuid())
 
- manufacturerId String
- manufacturer   Manufacturer @relation(fields: [manufacturerId], references: [id], onDelete: Cascade)
+  manufacturerId String
+  manufacturer   Manufacturer @relation(fields: [manufacturerId], references: [id], onDelete: Cascade)
 
- evidenceSourceId String
- evidenceSource   EvidenceSource @relation(fields: [evidenceSourceId], references: [id], onDelete: Cascade)
+  evidenceSourceId String
+  evidenceSource   EvidenceSource @relation(fields: [evidenceSourceId], references: [id], onDelete: Cascade)
 
- claimType  String
- claimValue String?
- confidence DataConfidence @default(UNKNOWN)
- verifiedAt DateTime?
- expiresAt  DateTime?
- notes      String?
+  claimType  String
+  claimValue String?
+  confidence DataConfidence @default(UNKNOWN)
+  verifiedAt DateTime?
+  expiresAt  DateTime?
+  notes      String?
 
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
- @@index([manufacturerId])
- @@index([evidenceSourceId])
+  @@index([manufacturerId])
+  @@index([evidenceSourceId])
 }
 
 model SupplementEvidence {
- id String @id @default(cuid())
+  id String @id @default(cuid())
 
- supplementId String
- supplement   Supplement @relation(fields: [supplementId], references: [id], onDelete: Cascade)
+  supplementId String
+  supplement   Supplement @relation(fields: [supplementId], references: [id], onDelete: Cascade)
 
- evidenceSourceId String
- evidenceSource   EvidenceSource @relation(fields: [evidenceSourceId], references: [id], onDelete: Cascade)
+  evidenceSourceId String
+  evidenceSource   EvidenceSource @relation(fields: [evidenceSourceId], references: [id], onDelete: Cascade)
 
- claimType  String
- claimValue String?
- confidence DataConfidence @default(UNKNOWN)
- verifiedAt DateTime?
- expiresAt  DateTime?
- notes      String?
+  claimType  String
+  claimValue String?
+  confidence DataConfidence @default(UNKNOWN)
+  verifiedAt DateTime?
+  expiresAt  DateTime?
+  notes      String?
 
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
- @@index([supplementId])
- @@index([evidenceSourceId])
+  @@index([supplementId])
+  @@index([evidenceSourceId])
 }
 
 model ProductEvidence {
- id String @id @default(cuid())
+  id String @id @default(cuid())
 
- productId String
- product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
- evidenceSourceId String
- evidenceSource   EvidenceSource @relation(fields: [evidenceSourceId], references: [id], onDelete: Cascade)
+  evidenceSourceId String
+  evidenceSource   EvidenceSource @relation(fields: [evidenceSourceId], references: [id], onDelete: Cascade)
 
- claimType  String
- claimValue String?
- confidence DataConfidence @default(UNKNOWN)
- verifiedAt DateTime?
- expiresAt  DateTime?
- notes      String?
+  claimType  String
+  claimValue String?
+  confidence DataConfidence @default(UNKNOWN)
+  verifiedAt DateTime?
+  expiresAt  DateTime?
+  notes      String?
 
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
- @@index([productId])
- @@index([evidenceSourceId])
+  @@index([productId])
+  @@index([evidenceSourceId])
 }
 
 model RegulatoryEvent {
- id String @id @default(cuid())
+  id String @id @default(cuid())
 
- manufacturerId String
- manufacturer   Manufacturer @relation(fields: [manufacturerId], references: [id], onDelete: Cascade)
+  manufacturerId String
+  manufacturer   Manufacturer @relation(fields: [manufacturerId], references: [id], onDelete: Cascade)
 
- eventType  String
- title      String
- description String?
- sourceUrl  String?
- occurredAt DateTime?
- resolvedAt DateTime?
+  eventType   String
+  title       String
+  description String?
+  sourceUrl   String?
+  occurredAt  DateTime?
+  resolvedAt  DateTime?
 
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
- @@index([manufacturerId])
- @@index([eventType])
+  @@index([manufacturerId])
+  @@index([eventType])
 }
 
 model BrandScoreSnapshot {
- id String @id @default(cuid())
+  id String @id @default(cuid())
 
- brandId String
- brand   Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brandId String
+  brand   Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
 
- mode RecommendationMode
+  mode RecommendationMode
 
- qualityScore      Int
- testingScore      Int
- evidenceScore     Int
- reputationScore   Int
- availabilityScore Int
- dataCompletenessScore Int
- overallScore      Int
- confidenceScore   Int
+  qualityScore          Int
+  testingScore          Int
+  evidenceScore         Int
+  reputationScore       Int
+  availabilityScore     Int
+  dataCompletenessScore Int
+  overallScore          Int
+  confidenceScore       Int
 
- methodologyVersion String
- calculatedAt DateTime @default(now())
+  methodologyVersion String
+  calculatedAt       DateTime @default(now())
 
- @@index([brandId])
- @@index([brandId, mode])
- @@index([mode, overallScore])
+  @@index([brandId])
+  @@index([brandId, mode])
+  @@index([mode, overallScore])
 }
 
 model ProductScoreSnapshot {
- id String @id @default(cuid())
+  id String @id @default(cuid())
 
- productId String
- product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
- mode RecommendationMode
+  mode RecommendationMode
 
- qualityScore          Int
- testingScore          Int
- evidenceScore         Int
- reviewScore           Int
- reviewConfidenceScore Int
- dosageFitScore        Int
- valueScore            Int
- availabilityScore     Int
- dataCompletenessScore Int
- overallScore          Int
- confidenceScore       Int
+  qualityScore          Int
+  testingScore          Int
+  evidenceScore         Int
+  reviewScore           Int
+  reviewConfidenceScore Int
+  dosageFitScore        Int
+  valueScore            Int
+  availabilityScore     Int
+  dataCompletenessScore Int
+  overallScore          Int
+  confidenceScore       Int
 
- methodologyVersion String
- calculatedAt DateTime @default(now())
+  methodologyVersion String
+  calculatedAt       DateTime @default(now())
 
- @@index([productId])
- @@index([productId, mode])
- @@index([mode, overallScore])
+  @@index([productId])
+  @@index([productId, mode])
+  @@index([mode, overallScore])
 }
 
 model ListingScoreSnapshot {
- id String @id @default(cuid())
+  id String @id @default(cuid())
 
- retailListingId String
- retailListing   RetailListing @relation(fields: [retailListingId], references: [id], onDelete: Cascade)
+  retailListingId String
+  retailListing   RetailListing @relation(fields: [retailListingId], references: [id], onDelete: Cascade)
 
- priceScore            Int
- sellerConfidenceScore Int
- shippingScore         Int
- availabilityScore     Int
- freshnessScore        Int
- overallScore          Int
+  priceScore            Int
+  sellerConfidenceScore Int
+  shippingScore         Int
+  availabilityScore     Int
+  freshnessScore        Int
+  overallScore          Int
 
- methodologyVersion String
- calculatedAt DateTime @default(now())
+  methodologyVersion String
+  calculatedAt       DateTime @default(now())
 
- @@index([retailListingId])
- @@index([retailListingId, calculatedAt])
+  @@index([retailListingId])
+  @@index([retailListingId, calculatedAt])
 }
 
 model RecommendationWeightSet {
- id String @id @default(cuid())
+  id String @id @default(cuid())
 
- name               String
- mode               RecommendationMode
- methodologyVersion String
- active             Boolean @default(false)
+  name               String
+  mode               RecommendationMode
+  methodologyVersion String
+  active             Boolean            @default(false)
 
- qualityWeight          Int
- testingWeight          Int
- evidenceWeight         Int
- reviewWeight           Int
- valueWeight            Int
- availabilityWeight     Int
- dosageFitWeight        Int
- dataCompletenessWeight Int
+  qualityWeight          Int
+  testingWeight          Int
+  evidenceWeight         Int
+  reviewWeight           Int
+  valueWeight            Int
+  availabilityWeight     Int
+  dosageFitWeight        Int
+  dataCompletenessWeight Int
 
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
- @@unique([mode, methodologyVersion])
- @@index([mode, active])
+  @@unique([mode, methodologyVersion])
+  @@index([mode, active])
 }
 
 model DiscoveryRun {
- id String @id @default(cuid())
+  id String @id @default(cuid())
 
- status         DiscoveryStatus @default(RUNNING)
- sourceProvider String
- searchScope    String?
+  status         DiscoveryStatus @default(RUNNING)
+  sourceProvider String
+  searchScope    String?
 
- recordsDiscovered Int @default(0)
- recordsAccepted   Int @default(0)
- recordsRejected   Int @default(0)
+  recordsDiscovered Int @default(0)
+  recordsAccepted   Int @default(0)
+  recordsRejected   Int @default(0)
 
- errorMessage String?
- startedAt    DateTime @default(now())
- completedAt  DateTime?
+  errorMessage String?
+  startedAt    DateTime  @default(now())
+  completedAt  DateTime?
 
- candidates DiscoveryCandidate[]
+  candidates DiscoveryCandidate[]
 
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
- @@index([status])
- @@index([sourceProvider])
- @@index([startedAt])
+  @@index([status])
+  @@index([sourceProvider])
+  @@index([startedAt])
 }
 
 model DiscoveryCandidate {
- id String @id @default(cuid())
+  id String @id @default(cuid())
 
- discoveryRunId String
- discoveryRun   DiscoveryRun @relation(fields: [discoveryRunId], references: [id], onDelete: Cascade)
+  discoveryRunId String
+  discoveryRun   DiscoveryRun @relation(fields: [discoveryRunId], references: [id], onDelete: Cascade)
 
- candidateType DiscoveryCandidateType
- rawPayload        Json
- normalizedPayload Json?
+  candidateType     DiscoveryCandidateType
+  rawPayload        Json
+  normalizedPayload Json?
 
- confidenceScore Int?
- status CandidateReviewStatus @default(PENDING)
+  confidenceScore Int?
+  status          CandidateReviewStatus @default(PENDING)
 
- matchedEntityType String?
- matchedEntityId   String?
+  matchedEntityType String?
+  matchedEntityId   String?
 
- reviewedAt DateTime?
- reviewedBy String?
+  reviewedAt DateTime?
+  reviewedBy String?
 
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
- @@index([discoveryRunId])
- @@index([candidateType])
- @@index([status])
- @@index([matchedEntityType, matchedEntityId])
+  @@index([discoveryRunId])
+  @@index([candidateType])
+  @@index([status])
+  @@index([matchedEntityType, matchedEntityId])
 }
 
 model KnowledgeRefreshJob {
- id String @id @default(cuid())
+  id String @id @default(cuid())
 
- jobType   RefreshJobType
- entityType String?
- entityId   String?
+  jobType    RefreshJobType
+  entityType String?
+  entityId   String?
 
- status   JobStatus @default(PENDING)
- priority Int @default(100)
+  status   JobStatus @default(PENDING)
+  priority Int       @default(100)
 
- scheduledFor DateTime?
- startedAt    DateTime?
- completedAt  DateTime?
- lastError    String?
+  scheduledFor DateTime?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  lastError    String?
 
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
- @@index([status, priority])
- @@index([jobType])
- @@index([entityType, entityId])
- @@index([scheduledFor])
+  @@index([status, priority])
+  @@index([jobType])
+  @@index([entityType, entityId])
+  @@index([scheduledFor])
 }
-
 
 model PricingStrategy {
- id String @id @default(cuid())
+  id String @id @default(cuid())
 
- active Boolean @default(true)
+  active Boolean @default(true)
 
- morningConciergeFee Decimal @db.Decimal(10,2)
- eveningConciergeFee Decimal @db.Decimal(10,2)
- dualConciergeFee Decimal @db.Decimal(10,2)
+  morningConciergeFee Decimal @db.Decimal(10, 2)
+  eveningConciergeFee Decimal @db.Decimal(10, 2)
+  dualConciergeFee    Decimal @db.Decimal(10, 2)
 
- serviceAllocationMode String
+  serviceAllocationMode String
 
- fixedServiceAllocation Decimal @db.Decimal(10,2)
+  fixedServiceAllocation Decimal @db.Decimal(10, 2)
 
- serviceAllocationPercent Decimal @db.Decimal(5,4)
+  serviceAllocationPercent Decimal @db.Decimal(5, 4)
 
- inventoryBufferPercent Decimal @db.Decimal(5,4)
+  inventoryBufferPercent Decimal @db.Decimal(5, 4)
 
- supplementMarginPercent Decimal @db.Decimal(5,4)
+  supplementMarginPercent Decimal @db.Decimal(5, 4)
 
- createdAt DateTime @default(now())
- updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
-
-
 
 model ProductResearchCache {
-id String @id @default(cuid())
+  id String @id @default(cuid())
 
-// Normalized brand + supplement identity.
-// Example: "nowfoods|vitaminc"
-normalizedKey String @unique
+  // Normalized brand + supplement identity.
+  // Example: "nowfoods|vitaminc"
+  normalizedKey String @unique
 
-// Stable Google Shopping product identity.
-// This lets slightly different product titles
-// reuse the same cached product research.
-shoppingProductId String? @unique
+  // Stable Google Shopping product identity.
+  // This lets slightly different product titles
+  // reuse the same cached product research.
+  shoppingProductId String? @unique
 
+  // The name originally sent to the researcher.
+  requestedProductName String
 
-// The name originally sent to the researcher.
-requestedProductName String
+  // Identity returned by completed research.
+  canonicalProductName String?
+  brand                String?
+  supplement           String?
 
-// Identity returned by completed research.
-canonicalProductName String?
-brand                String?
-supplement           String?
+  // Complete ProductResearch object returned
+  // by the OpenAI research pipeline.
+  research Json?
 
-// Complete ProductResearch object returned
-// by the OpenAI research pipeline.
-research Json?
+  status ProductResearchStatus @default(PENDING)
 
-status ProductResearchStatus @default(PENDING)
+  aiConfidence Decimal? @db.Decimal(5, 4)
 
-aiConfidence Decimal? @db.Decimal(5, 4)
+  sourceProvider String  @default("openai")
+  modelName      String?
 
-sourceProvider String @default("openai")
-modelName      String?
+  methodologyVersion String @default("product-research-v1")
 
-methodologyVersion String @default("product-research-v1")
+  researchedAt DateTime?
+  expiresAt    DateTime?
 
-researchedAt DateTime?
-expiresAt    DateTime?
+  lastError String?
 
-lastError String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-createdAt DateTime @default(now())
-updatedAt DateTime @updatedAt
-
-@@index([status])
-@@index([expiresAt])
-@@index([brand, supplement])
-@@index([updatedAt])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([brand, supplement])
+  @@index([updatedAt])
 }
 
+enum VidaPouchPricingVersionStatus {
+  DRAFT
+  ACTIVE
+  RETIRED
+}
 
+enum VidaPouchFulfillmentScenario {
+  SINGLE_BOX
+  DUAL_BOX
+  CUSTOM
+}
 
+enum VidaPouchSettingValueType {
+  NUMERIC
+  TEXT
+  BOOLEAN
+}
+
+model VidaPouchPricingVersion {
+  id String @id @default(cuid())
+
+  versionName String @unique
+
+  status VidaPouchPricingVersionStatus @default(DRAFT)
+
+  effectiveFrom  DateTime?
+  effectiveUntil DateTime?
+
+  notes String?
+
+  plans    VidaPouchPlan[]
+  settings VidaPouchPricingSetting[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([effectiveFrom])
+}
+
+model VidaPouchPlan {
+  id String @id @default(cuid())
+
+  planKey String
+
+  pricingVersionId String
+  pricingVersion   VidaPouchPricingVersion @relation(fields: [pricingVersionId], references: [id], onDelete: Cascade)
+
+  name String
+
+  monthlyPrice Decimal @db.Decimal(10, 2)
+
+  supplementLimit Int
+
+  /**
+   * Confidential pooled monthly supplement-cost
+   * allowance for the entire plan.
+   * Keep this NULL until the break-even model has
+   * been fully separated and validated.
+   */
+  pooledCostAllowance Decimal? @db.Decimal(10, 2)
+
+  fulfillmentScenario VidaPouchFulfillmentScenario
+
+  displayOrder Int
+
+  active Boolean @default(true)
+
+  customerDescription          String?
+  customerSelectionDescription String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([planKey, pricingVersionId])
+  @@index([pricingVersionId])
+  @@index([pricingVersionId, active, displayOrder])
+}
+
+model VidaPouchPricingSetting {
+  id String @id @default(cuid())
+
+  pricingVersionId String
+  pricingVersion   VidaPouchPricingVersion @relation(fields: [pricingVersionId], references: [id], onDelete: Cascade)
+
+  settingKey String
+
+  valueType VidaPouchSettingValueType
+
+  numericValue Decimal?
+  textValue    String?
+  booleanValue Boolean?
+
+  description String?
+
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([pricingVersionId, settingKey])
+  @@index([pricingVersionId])
+  @@index([pricingVersionId, active])
+}

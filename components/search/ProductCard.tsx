@@ -13,8 +13,17 @@ import type {
  SearchProductUnitLabel,
 } from "@/lib/search/searchProductOption";
 
+import {
+ calculateVitaPouchAddOn,
+} from "@/lib/search/calculateVidaPouchAddOn";
+
+import {
+ getSearchPouchTiming,
+} from "@/lib/search/getSearchPouchTiming";
+
 import type {
  SearchPouchItem,
+ SearchPouchPricing,
 } from "./types/searchPouch";
 
 import {
@@ -24,10 +33,6 @@ import {
 import type {
  SearchPlan,
 } from "./types/searchPlan";
-
-import {
- getSearchPouchTiming,
-} from "@/lib/search/getSearchPouchTiming";
 
 type ProductCardProps = {
  product:
@@ -49,17 +54,23 @@ type ProductCardProps = {
 };
 
 type VendorLinkResponse = {
- url?: string;
+ url?:
+   string;
 
- error?: string;
+ error?:
+   string;
 
- matchType?: string;
+ matchType?:
+   string;
 
- retailer?: string;
+ retailer?:
+   string;
 
- productTitle?: string;
+ productTitle?:
+   string;
 
- merchantProductTitle?: string;
+ merchantProductTitle?:
+   string;
 
  originalBottlePrice?:
    number | null;
@@ -78,13 +89,17 @@ type VendorLinkResponse = {
 };
 
 function formatCurrency(
- value: number
+ value:
+   number
 ) {
- return `$${value.toFixed(2)}`;
+ return `$${value.toFixed(
+   2
+ )}`;
 }
 
 function clampScore(
- value: number
+ value:
+   number
 ) {
  return Math.max(
    0,
@@ -98,7 +113,8 @@ function clampScore(
 }
 
 function formatReviewCount(
- value: number
+ value:
+   number
 ) {
  return new Intl.NumberFormat(
    "en-US"
@@ -111,13 +127,19 @@ function getPluralUnitLabel(
  unitLabel:
    SearchProductUnitLabel,
 
- count: number
+ count:
+   number
 ) {
- if (count === 1) {
+ if (
+   count ===
+   1
+ ) {
    return unitLabel;
  }
 
- switch (unitLabel) {
+ switch (
+   unitLabel
+ ) {
    case "capsule":
      return "capsules";
 
@@ -414,6 +436,230 @@ function PlanDetailRow({
  );
 }
 
+function PricingStatus({
+ pricing,
+ planName,
+}: {
+ pricing:
+   SearchPouchPricing;
+
+ planName:
+   string;
+}) {
+ if (
+   pricing.status ===
+   "included"
+ ) {
+   return (
+     <div
+       className="
+         mt-4
+         rounded-[8px]
+         border
+         border-[#C8D8C3]
+         bg-[#F1F7EE]
+         px-3
+         py-3
+       ">
+
+       <div
+         className="
+           flex
+           items-center
+           gap-2
+           text-[#35613D]
+         ">
+
+         <CheckCircleIcon />
+
+         <p
+           className="
+             text-[11px]
+             font-semibold
+           ">
+
+           Included in your {planName} Plan
+         </p>
+       </div>
+
+       <p
+         className="
+           mt-1.5
+           text-[10px]
+           leading-[1.5]
+           text-[#58705C]
+         ">
+
+         No additional monthly product charge
+         applies at this quantity.
+       </p>
+     </div>
+   );
+ }
+
+ if (
+   pricing.status ===
+   "add-on"
+ ) {
+   return (
+     <div
+       className="
+         mt-4
+         rounded-[8px]
+         border
+         border-[#DFC9A8]
+         bg-[#FCF5E9]
+         px-3
+         py-3
+       ">
+
+       <div
+         className="
+           flex
+           flex-wrap
+           items-center
+           justify-between
+           gap-2
+         ">
+
+         <p
+           className="
+             text-[11px]
+             font-semibold
+             text-[#725126]
+           ">
+
+           Monthly product add-on
+         </p>
+
+         <p
+           className="
+             text-[14px]
+             font-bold
+             text-[#6B451C]
+           ">
+
+           +
+           {formatCurrency(
+             pricing
+               .totalMonthlyAddOn
+           )}
+           /mo
+         </p>
+       </div>
+
+       {pricing.addOnLines.length >
+         0 && (
+         <div
+           className="
+             mt-2.5
+             space-y-2
+             border-t
+             border-[#EADAC1]
+             pt-2.5
+           ">
+
+           {pricing.addOnLines.map(
+             (
+               line,
+               index
+             ) => (
+               <div
+                 key={`${line.reason}-${index}`}
+                 className="
+                   flex
+                   items-start
+                   justify-between
+                   gap-3
+                   text-[10px]
+                   leading-[1.45]
+                   text-[#705A3C]
+                 ">
+
+                 <span>
+                   {line.label}
+                 </span>
+
+                 <span
+                   className="
+                     shrink-0
+                     font-semibold
+                   ">
+
+                   +
+                   {formatCurrency(
+                     line.monthlyAmount
+                   )}
+                 </span>
+               </div>
+             )
+           )}
+         </div>
+       )}
+
+       <p
+         className="
+           mt-2.5
+           text-[9.5px]
+           leading-[1.45]
+           text-[#806A4D]
+         ">
+
+         This amount is added to the monthly
+         plan price.
+       </p>
+     </div>
+   );
+ }
+
+ return (
+   <div
+     className="
+       mt-4
+       rounded-[8px]
+       border
+       border-[#DED6CF]
+       bg-[#F8F6F3]
+       px-3
+       py-3
+     ">
+
+     <div
+       className="
+         flex
+         items-center
+         gap-2
+         text-[#68615B]
+       ">
+
+       <InfoIcon />
+
+       <p
+         className="
+           text-[11px]
+           font-semibold
+         ">
+
+         Pricing being confirmed
+       </p>
+     </div>
+
+     <p
+       className="
+         mt-1.5
+         text-[10px]
+         leading-[1.5]
+         text-[#77706A]
+       ">
+
+       This exact product can be added now.
+       Any applicable premium or quantity
+       charge will be confirmed before checkout.
+     </p>
+   </div>
+ );
+}
+
 export default function ProductCard({
  product,
  isInPouch,
@@ -461,7 +707,8 @@ export default function ProductCard({
      .bottlePrice;
 
  const bottlePricePerUnit =
-   bottleUnitCount > 0
+   bottleUnitCount >
+   0
      ? displayedBottlePrice /
        bottleUnitCount
      : null;
@@ -508,7 +755,8 @@ export default function ProductCard({
  const hasRetailerRating =
    typeof retailerRating ===
      "number" &&
-   retailerRating > 0;
+   retailerRating >
+     0;
 
  const productClaims =
    Array.from(
@@ -625,6 +873,28 @@ export default function ProductCard({
    nextPlan ===
      null;
 
+ /*
+  * When adding this item will automatically
+  * upgrade the plan, calculate pricing against
+  * the destination plan rather than the old
+  * plan.
+  */
+ const effectivePlan =
+   willAutomaticallyUpgrade &&
+   nextPlan
+     ? nextPlan
+     : selectedPlan;
+
+ const vitaPouchPricing =
+   effectivePlan
+     ? calculateVitaPouchAddOn({
+         product,
+
+         selectedPlan:
+           effectivePlan,
+       })
+     : null;
+
  const addButtonDisabled =
    isInPouch ||
    !hasSelectedPlan ||
@@ -670,14 +940,24 @@ export default function ProductCard({
      monthlyUnitCount:
        pouchUnitCount,
 
-     /*
-      * This underlying monthly product cost
-      * is retained for the premium-brand and
-      * higher-quantity add-on engine.
-      */
      monthlyPrice:
        product
          .displayedMonthlyCost,
+
+     baselineUnitsPerDay:
+       product
+         .baselineUnitsPerDay ??
+       pouchUnitsPerDay,
+
+     baselineMonthlyPrice:
+       product
+         .baselineMonthlyCost ??
+       product
+         .displayedMonthlyCost,
+
+     pricing:
+       vitaPouchPricing ??
+       undefined,
 
      bottlePrice:
        representative
@@ -757,7 +1037,9 @@ export default function ProductCard({
        "_blank"
      );
 
-   if (vendorWindow) {
+   if (
+     vendorWindow
+   ) {
      vendorWindow.document.title =
        `Opening ${representative.retailer}…`;
 
@@ -868,7 +1150,9 @@ export default function ProductCard({
        );
      }
 
-     if (vendorWindow) {
+     if (
+       vendorWindow
+     ) {
        vendorWindow.opener =
          null;
 
@@ -1649,7 +1933,8 @@ export default function ProductCard({
                  ">
 
                  Eligible for{" "}
-                 {selectedPlan.name}
+                 {effectivePlan?.name ??
+                   selectedPlan.name}
                </div>
 
                <div className="mt-4 space-y-3">
@@ -1659,7 +1944,10 @@ export default function ProductCard({
                    }>
 
                    Uses 1 of{" "}
-                   {selectedPlan.supplementLimit} supplement slots
+                   {effectivePlan
+                     ?.supplementLimit ??
+                     selectedPlan
+                       .supplementLimit} supplement slots
                  </PlanDetailRow>
 
                  <PlanDetailRow
@@ -1677,16 +1965,19 @@ export default function ProductCard({
 
                    Ships in your personalized pouch
                  </PlanDetailRow>
-
-                 <PlanDetailRow
-                   icon={
-                     <InfoIcon />
-                   }>
-
-                   Final add-on pricing will be
-                   shown before checkout
-                 </PlanDetailRow>
                </div>
+
+               {vitaPouchPricing && (
+                 <PricingStatus
+                   pricing={
+                     vitaPouchPricing
+                   }
+                   planName={
+                     effectivePlan?.name ??
+                     selectedPlan.name
+                   }
+                 />
+               )}
 
                {willAutomaticallyUpgrade &&
                  nextPlan && (
@@ -1834,7 +2125,13 @@ export default function ProductCard({
                      : willAutomaticallyUpgrade &&
                          nextPlan
                        ? `Add & Upgrade to ${nextPlan.name}`
-                       : `Add to ${selectedPlan.name} Plan`}
+                       : vitaPouchPricing?.status ===
+                           "add-on"
+                         ? `Add for +${formatCurrency(
+                             vitaPouchPricing
+                               .totalMonthlyAddOn
+                           )}/mo`
+                         : `Add to ${selectedPlan.name} Plan`}
                </span>
              </button>
            </>

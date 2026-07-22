@@ -97,19 +97,23 @@ import type {
  * included without a premium-product
  * surcharge at its baseline daily quantity.
  *
- * "premium" means the underlying monthly
- * product cost exceeds the standard
- * allowance.
+ * "premium" means the buffered underlying
+ * monthly product cost exceeds the standard
+ * VidaPouch allowance.
  *
  * "undetermined" means the product has not
  * yet been classified confidently.
  */
- export type SearchVitaPouchPricingTier =
+ export type SearchVidaPouchPricingTier =
   | "standard"
   | "premium"
   | "undetermined";
  
- export type SearchVitaPouchPricingSource =
+ /*
+ * Identifies where the underlying product
+ * cost came from.
+ */
+ export type SearchVidaPouchPricingSource =
   | "retail-estimate"
   | "wholesale"
   | "catalog"
@@ -117,72 +121,163 @@ import type {
   | "undetermined";
  
  /*
+ * Method used to turn vendor listings into
+ * the internal monthly product-cost basis.
+ */
+ export type SearchVidaPouchCostBasisMethod =
+  | "median-exact-listings"
+  | "trimmed-average-exact-listings"
+  | "average-exact-listings"
+  | "lowest-qualified-listing"
+  | "wholesale-cost"
+  | "catalog-cost"
+  | "manual"
+  | "undetermined";
+ 
+ /*
  * Optional pricing inputs used by the shared
  * VidaPouch add-on calculator.
  *
- * These are inputs rather than final customer
- * prices. The calculator will determine:
+ * These are internal pricing inputs rather
+ * than the customer's complete subscription
+ * price.
  *
+ * The calculator determines:
+ *
+ * - whether the product is included;
  * - premium-product add-on;
- * - additional daily-quantity add-on;
- * - combined monthly add-on;
- * - whether the product is fully included.
- *
- * Keeping this optional allows current search
- * results to continue building while products
- * are gradually assigned more precise pricing.
+ * - higher daily-quantity add-on;
+ * - combined monthly add-on.
  */
- export type SearchVitaPouchPricingInput = {
+ export type SearchVidaPouchPricingInput = {
   /*
-   * Product classification before accounting
-   * for an increased customer-selected dose.
+   * Product classification at its normal
+   * included daily quantity.
    */
   tier:
-    SearchVitaPouchPricingTier;
+    SearchVidaPouchPricingTier;
  
   /*
-   * Monthly quantity included for this product
-   * before an extra-quantity charge applies.
+   * Monthly quantity considered the product's
+   * normal included quantity.
    *
-   * Example:
-   * 30 capsules means one capsule per day.
+   * Examples:
+   *
+   * 30 capsules:
+   * one capsule per day.
+   *
+   * 60 capsules:
+   * two capsules per day.
    */
   includedMonthlyUnitCount:
     number;
  
   /*
-   * Underlying monthly product cost at the
-   * included quantity.
+   * Final buffered internal monthly product
+   * cost at the normal included quantity.
+   *
+   * This is the value compared with the
+   * standard monthly cost allowance.
    */
   includedMonthlyProductCost:
     number;
  
   /*
-   * Maximum underlying monthly product cost
-   * that the selected plan may absorb before
-   * a premium-product add-on applies.
+   * Maximum buffered monthly product cost
+   * absorbed by the VidaPouch plan before a
+   * premium-product add-on applies.
    *
-   * The final allowance may later vary by plan.
+   * Recommended initial configuration:
+   * $8.00 per selected supplement.
    */
   standardMonthlyCostAllowance:
     number;
  
   /*
-   * Identifies where the pricing input came
-   * from for auditing and future manager
-   * controls.
+   * Cost source used for auditability and
+   * future manager controls.
    */
   source:
-    SearchVitaPouchPricingSource;
+    SearchVidaPouchPricingSource;
  
   /*
-   * Optional explanation for why the product
-   * was classified as premium or could not be
-   * classified.
+   * Method used to calculate the product's
+   * internal baseline cost.
+   *
+   * Recommended default:
+   * median-exact-listings.
+   */
+  costBasisMethod?:
+    SearchVidaPouchCostBasisMethod;
+ 
+  /*
+   * Monthly product cost before applying the
+   * sourcing buffer.
+   *
+   * Example:
+   *
+   * Median exact-listing cost:
+   * $8.25
+   */
+  unbufferedMonthlyProductCost?:
+    number;
+ 
+  /*
+   * Percentage sourcing buffer applied to the
+   * raw listing-derived product cost.
+   *
+   * Store as a decimal.
+   *
+   * Example:
+   * 0.10 means 10%.
+   */
+  sourcingBufferRate?:
+    number;
+ 
+  /*
+   * Dollar amount added by the sourcing
+   * buffer.
+   *
+   * Example:
+   *
+   * $8.25 × 10% = $0.83
+   */
+  sourcingBufferAmount?:
+    number;
+ 
+  /*
+   * Number of qualified exact listings used
+   * to establish the baseline monthly cost.
+   */
+  qualifiedListingCount?:
+    number;
+ 
+  /*
+   * Optional explanation for the product's
+   * pricing classification.
    */
   reason?:
     string;
  };
+ 
+ /*
+ * Backward-compatible aliases.
+ *
+ * Existing files currently import these
+ * earlier type names. New code should use
+ * the canonical SearchVidaPouch names above.
+ *
+ * These aliases allow the spelling correction
+ * without breaking the current implementation.
+ */
+ export type SearchVitaPouchPricingTier =
+  SearchVidaPouchPricingTier;
+ 
+ export type SearchVitaPouchPricingSource =
+  SearchVidaPouchPricingSource;
+ 
+ export type SearchVitaPouchPricingInput =
+  SearchVidaPouchPricingInput;
  
  export type SearchProductOption = {
   productName:
@@ -234,8 +329,9 @@ import type {
    * True means the dosage is explicitly
    * stated for the full serving.
    *
-   * False means it is explicitly stated
-   * for one capsule, tablet, softgel, etc.
+   * False means it is explicitly stated for
+   * one capsule, tablet, softgel, or other
+   * physical unit.
    *
    * Null means the listing is unclear.
    */
@@ -257,8 +353,8 @@ import type {
    * Indicates whether the physical form is
    * potentially compatible with VidaPouch.
    *
-   * This does not mean VidaPouch currently
-   * carries the exact product.
+   * This does not guarantee that VidaPouch
+   * currently carries the exact product.
    */
   vitaPouchFormEligible:
     boolean;
@@ -279,8 +375,8 @@ import type {
    * Current monthly cost after applying the
    * active daily-dose selection.
    *
-   * This remains the underlying product-cost
-   * estimate and is not the customer's full
+   * This remains the underlying estimated
+   * product cost. It is not the complete
    * VidaPouch subscription price.
    */
   displayedMonthlyCost:
@@ -288,11 +384,11 @@ import type {
  
   /*
    * Number of physical capsules, tablets,
-   * gummies, or other units required each day
-   * for the active Daily Dose filter.
+   * gummies, or other units required each
+   * day for the active Daily Dose filter.
    *
-   * Defaults to one when no adjusted daily
-   * dose has been applied.
+   * Defaults to one when an adjusted daily
+   * dose has not been applied.
    */
   unitsPerDay?:
     number;
@@ -301,21 +397,17 @@ import type {
    * Original daily quantity before the active
    * Daily Dose filter changes the product.
    *
-   * The add-on engine can compare this with
-   * unitsPerDay to identify increased-quantity
-   * costs.
-   *
-   * Optional during the migration.
+   * The add-on engine compares this with
+   * unitsPerDay to identify increased-
+   * quantity costs.
    */
   baselineUnitsPerDay?:
     number;
  
   /*
-   * Original monthly product cost before the
-   * active Daily Dose filter changes the
-   * quantity.
-   *
-   * Optional during the migration.
+   * Original buffered monthly product cost
+   * before the active Daily Dose filter
+   * changes the quantity.
    */
   baselineMonthlyCost?:
     number;
@@ -324,11 +416,11 @@ import type {
    * Product-level inputs used by the shared
    * VidaPouch add-on pricing engine.
    *
-   * Optional until the product has been
-   * classified.
+   * This remains optional until the search
+   * result mapper assigns pricing inputs.
    */
   vitaPouchPricing?:
-    SearchVitaPouchPricingInput;
+    SearchVidaPouchPricingInput;
  
   score:
     SearchProductScore;
@@ -351,15 +443,15 @@ import type {
     string | null;
  
   /*
-   * Kept separate from testing and
-   * certification information.
+   * Dietary characteristics are kept
+   * separate from quality testing and formal
+   * certifications.
    */
   dietaryPreferences:
     SearchDietaryPreferences;
  
   /*
-   * Product-specific testing and
-   * certification information.
+   * Product-specific testing information.
    */
   thirdPartyTesting:
     SearchThirdPartyTesting;
@@ -392,8 +484,7 @@ import type {
  
   /*
    * Temporary compatibility field for the
-   * existing ProductCard while the display
-   * is migrated to separate sections.
+   * current ProductCard implementation.
    */
   verifiedClaims:
     SearchProductClaims;
