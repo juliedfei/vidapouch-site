@@ -13,20 +13,21 @@ import {
     SearchIntentType,
    } from "@/lib/generated/prisma/client";
    
-   const SEARCH_INTENT_MODEL =
-    "gpt-5.6";
+   import {
+    DEFAULT_SEARCH_INTENT_MODEL,
+    MAX_DIRECT_SEARCH_QUERIES,
+    MAX_RELATED_SEARCH_QUERIES,
+    MAX_SEARCH_INTENT_ALIASES,
+    MAX_SEARCH_INTENT_OUTPUT_TOKENS,
+    SEARCH_INTENT_INSTRUCTIONS,
+    SEARCH_INTENT_SCHEMA,
+    SEARCH_INTENT_VERSION,
+   } from "./searchIntentOpenAiConfig";
    
-   const SEARCH_INTENT_VERSION =
-    "search-intent-v1";
-   
-   const MAX_ALIASES =
-    12;
-   
-   const MAX_DIRECT_QUERIES =
-    6;
-   
-   const MAX_RELATED_QUERIES =
-    12;
+   import type {
+    OpenAiSearchIntentExpansion,
+    OpenAiSearchIntentResult,
+   } from "./searchIntentOpenAiConfig";
    
    export type ResolvedSearchExpansion = {
     id:
@@ -88,213 +89,6 @@ import {
     cacheStatus:
       "hit" | "created";
    };
-   
-   type OpenAiSearchIntentExpansion = {
-    kind:
-      "DIRECT_QUERY" |
-      "RELATED_SUPPLEMENT" |
-      "BRAND_QUERY" |
-      "DOCTOR_QUERY";
-   
-    searchTerm:
-      string;
-   
-    displayName:
-      string | null;
-   
-    reason:
-      string | null;
-   
-    priority:
-      number;
-   
-    confidence:
-      number;
-   };
-   
-   type OpenAiSearchIntentResult = {
-    normalizedKey:
-      string;
-   
-    displayName:
-      string;
-   
-    intentType:
-      "SUPPLEMENT" |
-      "HEALTH_GOAL" |
-      "BRAND" |
-      "DOCTOR_TYPE" |
-      "INVALID";
-   
-    includeOriginalMarketplaceQuery:
-      boolean;
-   
-    aliases:
-      string[];
-   
-    expansions:
-      OpenAiSearchIntentExpansion[];
-   
-    confidence:
-      number;
-   
-    notes:
-      string | null;
-   };
-   
-   const SEARCH_INTENT_SCHEMA = {
-    type:
-      "object",
-   
-    additionalProperties:
-      false,
-   
-    properties: {
-      normalizedKey: {
-        type:
-          "string",
-      },
-   
-      displayName: {
-        type:
-          "string",
-      },
-   
-      intentType: {
-        type:
-          "string",
-   
-        enum: [
-          "SUPPLEMENT",
-          "HEALTH_GOAL",
-          "BRAND",
-          "DOCTOR_TYPE",
-          "INVALID",
-        ],
-      },
-   
-      includeOriginalMarketplaceQuery: {
-        type:
-          "boolean",
-      },
-   
-      aliases: {
-        type:
-          "array",
-   
-        items: {
-          type:
-            "string",
-        },
-      },
-   
-      expansions: {
-        type:
-          "array",
-   
-        items: {
-          type:
-            "object",
-   
-          additionalProperties:
-            false,
-   
-          properties: {
-            kind: {
-              type:
-                "string",
-   
-              enum: [
-                "DIRECT_QUERY",
-                "RELATED_SUPPLEMENT",
-                "BRAND_QUERY",
-                "DOCTOR_QUERY",
-              ],
-            },
-   
-            searchTerm: {
-              type:
-                "string",
-            },
-   
-            displayName: {
-              type: [
-                "string",
-                "null",
-              ],
-            },
-   
-            reason: {
-              type: [
-                "string",
-                "null",
-              ],
-            },
-   
-            priority: {
-              type:
-                "integer",
-   
-              minimum:
-                1,
-   
-              maximum:
-                1000,
-            },
-   
-            confidence: {
-              type:
-                "number",
-   
-              minimum:
-                0,
-   
-              maximum:
-                1,
-            },
-          },
-   
-          required: [
-            "kind",
-            "searchTerm",
-            "displayName",
-            "reason",
-            "priority",
-            "confidence",
-          ],
-        },
-      },
-   
-      confidence: {
-        type:
-          "number",
-   
-        minimum:
-          0,
-   
-        maximum:
-          1,
-      },
-   
-      notes: {
-        type: [
-          "string",
-          "null",
-        ],
-      },
-    },
-   
-    required: [
-      "normalizedKey",
-      "displayName",
-      "intentType",
-      "includeOriginalMarketplaceQuery",
-      "aliases",
-      "expansions",
-      "confidence",
-      "notes",
-    ],
-   } as const;
    
    function clamp(
     value:
@@ -409,13 +203,157 @@ import {
    
       if (
         cleaned.length >=
-        maximum
+          maximum
       ) {
         break;
       }
     }
    
     return cleaned;
+   }
+   
+   function getSearchIntentModel() {
+    return (
+      process.env
+        .OPENAI_SEARCH_INTENT_MODEL
+        ?.trim() ||
+      DEFAULT_SEARCH_INTENT_MODEL
+    );
+   }
+   
+   function isOpenAiSearchIntentEnabled() {
+    const configuredValue =
+      process.env
+        .ENABLE_OPENAI_SEARCH_INTENT
+        ?.trim()
+        .toLowerCase();
+   
+    if (
+      configuredValue ===
+        undefined ||
+      configuredValue ===
+        ""
+    ) {
+      return true;
+    }
+   
+    return [
+      "1",
+      "true",
+      "yes",
+      "on",
+    ].includes(
+      configuredValue
+    );
+   }
+   
+   /*
+   * These lookup keys allow common commercial wording
+   * to reuse one shared database intent.
+   *
+   * Examples:
+   *
+   * mood
+   * mood supplement
+   * mood supplements
+   * supplements for mood
+   *
+   * All can locate the same centrally cached record.
+   */
+   function buildSearchIntentLookupKeys(
+    value:
+      string
+   ) {
+    const normalized =
+      normalizeSearchIntentText(
+        value
+      );
+   
+    if (
+      !normalized
+    ) {
+      return [];
+    }
+   
+    const candidates =
+      new Set<string>([
+        normalized,
+      ]);
+   
+    const withoutLeadingShoppingPhrase =
+      normalized
+        .replace(
+          /^(?:shop|buy|find)\s+/,
+          ""
+        )
+        .replace(
+          /^(?:supplement|supplements|vitamin|vitamins)\s+for\s+/,
+          ""
+        )
+        .trim();
+   
+    if (
+      withoutLeadingShoppingPhrase
+    ) {
+      candidates.add(
+        withoutLeadingShoppingPhrase
+      );
+    }
+   
+    const withoutTrailingCommercialWord =
+      withoutLeadingShoppingPhrase
+        .replace(
+          /\s+(?:supplement|supplements)$/i,
+          ""
+        )
+        .trim();
+   
+    if (
+      withoutTrailingCommercialWord
+    ) {
+      candidates.add(
+        withoutTrailingCommercialWord
+      );
+    }
+   
+    const withoutTrailingShoppingPhrase =
+      withoutTrailingCommercialWord
+        .replace(
+          /\s+(?:for sale|to buy|online)$/i,
+          ""
+        )
+        .trim();
+   
+    if (
+      withoutTrailingShoppingPhrase
+    ) {
+      candidates.add(
+        withoutTrailingShoppingPhrase
+      );
+    }
+   
+    return Array.from(
+      candidates
+    );
+   }
+   
+   function getInFlightLookupKey(
+    originalQuery:
+      string
+   ) {
+    const lookupKeys =
+      buildSearchIntentLookupKeys(
+        originalQuery
+      );
+   
+    return (
+      lookupKeys[
+        lookupKeys.length - 1
+      ] ||
+      normalizeSearchIntentText(
+        originalQuery
+      )
+    );
    }
    
    function mapIntentType(
@@ -484,13 +422,13 @@ import {
    ) {
     if (
       kind ===
-      SearchExpansionKind
-        .DIRECT_QUERY
+        SearchExpansionKind
+          .DIRECT_QUERY
     ) {
-      return MAX_DIRECT_QUERIES;
+      return MAX_DIRECT_SEARCH_QUERIES;
     }
    
-    return MAX_RELATED_QUERIES;
+    return MAX_RELATED_SEARCH_QUERIES;
    }
    
    function cleanOpenAiExpansions(
@@ -586,9 +524,9 @@ import {
    
       if (
         currentCount >=
-        getMaximumForKind(
-          kind
-        )
+          getMaximumForKind(
+            kind
+          )
       ) {
         continue;
       }
@@ -656,15 +594,6 @@ import {
     );
    }
    
-
-
-
-   
-   /*
-   * JavaScript does not support the free-spacing /x
-   * regular-expression flag, so this performs the
-   * same commercial-term check without relying on it.
-   */
    function containsCommercialSupplementWord(
     value:
       string
@@ -729,16 +658,16 @@ import {
    
     if (
       intentType ===
-      SearchIntentType
-        .HEALTH_GOAL
+        SearchIntentType
+          .HEALTH_GOAL
     ) {
       return `${cleaned} supplements`;
     }
    
     if (
       intentType ===
-      SearchIntentType
-        .SUPPLEMENT
+        SearchIntentType
+          .SUPPLEMENT
     ) {
       return `${cleaned} supplement`;
     }
@@ -838,7 +767,7 @@ import {
     ];
    }
    
-   async function loadCachedIntent(
+   async function loadIntentByNormalizedKey(
     normalizedQuery:
       string
    ) {
@@ -924,18 +853,65 @@ import {
     return aliasMatch.intent;
    }
    
+   async function loadCachedIntent(
+    originalQuery:
+      string
+   ) {
+    const lookupKeys =
+      buildSearchIntentLookupKeys(
+        originalQuery
+      );
+   
+    for (
+      const lookupKey of
+      lookupKeys
+    ) {
+      const match =
+        await loadIntentByNormalizedKey(
+          lookupKey
+        );
+   
+      if (
+        match
+      ) {
+        return {
+          intent:
+            match,
+   
+          matchedLookupKey:
+            lookupKey,
+   
+          lookupKeys,
+        };
+      }
+    }
+   
+    return {
+      intent:
+        null,
+   
+      matchedLookupKey:
+        null,
+   
+      lookupKeys,
+    };
+   }
+   
+   type CachedIntent =
+    NonNullable<
+      Awaited<
+        ReturnType<
+          typeof loadIntentByNormalizedKey
+   >
+   >
+   >;
+   
    function mapCachedIntent({
     cachedIntent,
     originalQuery,
    }: {
     cachedIntent:
-      NonNullable<
-        Awaited<
-          ReturnType<
-            typeof loadCachedIntent
-   >
-   >
-   >;
+      CachedIntent;
    
     originalQuery:
       string;
@@ -1060,7 +1036,8 @@ import {
           intentId,
    
           error:
-            error instanceof Error
+            error instanceof
+              Error
               ? error.message
               : error,
         }
@@ -1071,7 +1048,25 @@ import {
    async function resolveWithOpenAi(
     originalQuery:
       string
-   ): Promise<OpenAiSearchIntentResult> {
+   ): Promise<
+    OpenAiSearchIntentResult
+   >{
+    if (
+      !isOpenAiSearchIntentEnabled()
+    ) {
+      console.warn(
+        "VidaSearch OpenAI intent resolution is disabled:",
+        {
+          query:
+            originalQuery,
+        }
+      );
+   
+      throw new Error(
+        "This search has not been recognized yet, and new AI-assisted search interpretation is temporarily disabled."
+      );
+    }
+   
     if (
       !process.env
         .OPENAI_API_KEY
@@ -1081,79 +1076,41 @@ import {
       );
     }
    
+    const model =
+      getSearchIntentModel();
+   
+    console.log(
+      "VidaSearch OpenAI search-intent request started:",
+      {
+        query:
+          originalQuery,
+   
+        model,
+      }
+    );
+   
     const response =
       await openai.responses.create({
-        model:
-          SEARCH_INTENT_MODEL,
+        model,
    
-        instructions: `
-   You are the search-intent resolver for VidaSearch, a supplement shopping and comparison service.
+        reasoning: {
+          effort:
+            "low",
+        },
    
-   Your job is to interpret a customer search and produce marketplace search queries that return real purchasable products.
+        max_output_tokens:
+          MAX_SEARCH_INTENT_OUTPUT_TOKENS,
    
-   VidaSearch product results must remain purchase-oriented. They must lead to actual products, brands, prices, retailer listings, ratings, and vendor purchase links.
+        instructions:
+          SEARCH_INTENT_INSTRUCTIONS,
    
-   INTENT TYPES
-   
-   SUPPLEMENT:
-   The customer is searching for a specific supplement, vitamin, mineral, botanical, amino acid, protein, probiotic, or related supplement ingredient.
-   
-   HEALTH_GOAL:
-   The customer is searching for a wellness goal, such as sleep, mood support, energy, digestion, focus, stress, immunity, joint support, or skin health.
-   
-   BRAND:
-   The customer is searching for a supplement brand.
-   
-   DOCTOR_TYPE:
-   The customer is searching for a practitioner category. This intent is reserved for a future practitioner search experience.
-   
-   INVALID:
-   The query is unrelated to supplements, wellness goals, supplement brands, or practitioner categories.
-   
-   MARKETPLACE SEARCH RULES
-   
-   - Preserve direct marketplace discovery.
-   - For a health goal, include direct commercial queries that can find products explicitly marketed for that goal.
-   - Example: a search for "mood" should include queries such as "mood supplements" and "mood support supplement."
-   - Do not replace direct goal-product searches with only ingredient searches.
-   - Related supplement expansions must still be shopping queries, not informational topics.
-   - Search terms should be concise and commercially useful for Google Shopping or another product-search provider.
-   - Avoid overly narrow wording that would unnecessarily exclude relevant products.
-   - Generate multiple useful related supplement categories when appropriate.
-   - Do not impose an artificial product-count limit. These are query expansions, not final products.
-   - Do not generate duplicate or nearly identical queries.
-   - Do not generate queries for prescription medications, controlled drugs, or disease treatments.
-   - "Mood stabilizer" is commonly a prescription-treatment term. For supplement shopping, use terms such as "mood support supplement," "mood balance supplement," or "emotional wellness supplement" instead.
-   - Do not imply that supplements diagnose, prevent, cure, or treat diseases.
-   - Keep reasons neutral and brief.
-   - For INVALID intent, return no expansions.
-   - For DOCTOR_TYPE intent, do not create supplement-product expansions.
-   
-   DATABASE RULES
-   
-   - normalizedKey should be a short canonical form suitable for database lookup.
-   - aliases should include realistic alternate phrasings, not speculative phrases.
-   - confidence must reflect certainty about the classification.
-   - includeOriginalMarketplaceQuery should normally be true for SUPPLEMENT, HEALTH_GOAL, and BRAND intents.
-   - The application will automatically ensure that the original commercial marketplace phrase is included, so expansions should add useful coverage rather than repeat the same phrase many times.
-   
-   OUTPUT RULES
-   
-   Return data only through the required JSON schema.
-   Do not return prose outside the schema.
-        `,
-   
-        input: `
-   Resolve this VidaSearch customer query:
-   
-   ${originalQuery}
-   
-   Create search expansions that will ultimately return actual purchasable product listings with vendor offers.
-   
-   For a broad health goal, preserve products explicitly marketed for the goal and also include related supplement categories.
-        `,
+        input:
+          `Resolve this VidaSearch customer query: "${originalQuery}". Produce shopping-oriented search expansions for real purchasable products.`,
    
         text: {
+          verbosity:
+            "low",
+   
           format: {
             type:
               "json_schema",
@@ -1169,6 +1126,33 @@ import {
           },
         },
       });
+   
+    console.log(
+      "VidaSearch OpenAI search-intent request completed:",
+      {
+        query:
+          originalQuery,
+   
+        model:
+          response.model ??
+          model,
+   
+        inputTokens:
+          response.usage
+            ?.input_tokens ??
+          null,
+   
+        outputTokens:
+          response.usage
+            ?.output_tokens ??
+          null,
+   
+        totalTokens:
+          response.usage
+            ?.total_tokens ??
+          null,
+      }
+    );
    
     const outputText =
       response.output_text
@@ -1197,7 +1181,8 @@ import {
           outputText,
    
           error:
-            error instanceof Error
+            error instanceof
+              Error
               ? error.message
               : error,
         }
@@ -1256,13 +1241,19 @@ import {
         : aiResult
             .includeOriginalMarketplaceQuery;
    
+    const deterministicAliases =
+      buildSearchIntentLookupKeys(
+        originalQuery
+      );
+   
     const cleanedAliases =
       cleanStringList(
         [
           originalQuery,
+          ...deterministicAliases,
           ...aiResult.aliases,
         ],
-        MAX_ALIASES
+        MAX_SEARCH_INTENT_ALIASES
       ).filter(
         (alias) =>
           normalizeSearchIntentText(
@@ -1293,276 +1284,358 @@ import {
         : SearchIntentReviewStatus
             .NEEDS_REVIEW;
    
-    const saved =
-      await prisma.$transaction(
-        async (
-          transaction
-        ) => {
-          const intent =
-            await transaction
-              .searchIntent
-              .upsert({
-                where: {
-                  normalizedKey,
-                },
+    const model =
+      getSearchIntentModel();
    
-                create: {
-                  normalizedKey,
+    return prisma.$transaction(
+      async (
+        transaction
+      ) => {
+        const intent =
+          await transaction
+            .searchIntent
+            .upsert({
+              where: {
+                normalizedKey,
+              },
    
-                  displayName,
+              create: {
+                normalizedKey,
    
-                  intentType,
+                displayName,
    
-                  source:
-                    SearchIntentSource
-                      .OPENAI,
+                intentType,
    
-                  reviewStatus,
+                source:
+                  SearchIntentSource
+                    .OPENAI,
    
-                  confidence,
+                reviewStatus,
    
-                  sourceModel:
-                    SEARCH_INTENT_MODEL,
+                confidence,
    
-                  methodologyVersion:
-                    SEARCH_INTENT_VERSION,
+                sourceModel:
+                  model,
    
-                  includeOriginalMarketplaceQuery,
+                methodologyVersion:
+                  SEARCH_INTENT_VERSION,
    
-                  notes:
-                    cleanText(
-                      aiResult.notes
-                    ),
+                includeOriginalMarketplaceQuery,
    
-                  resolvedAt:
-                    new Date(),
+                notes:
+                  cleanText(
+                    aiResult.notes
+                  ),
    
-                  lastUsedAt:
-                    new Date(),
+                resolvedAt:
+                  new Date(),
    
-                  usageCount:
+                lastUsedAt:
+                  new Date(),
+   
+                usageCount:
+                  1,
+              },
+   
+              update: {
+                displayName,
+   
+                intentType,
+   
+                source:
+                  SearchIntentSource
+                    .OPENAI,
+   
+                reviewStatus,
+   
+                confidence,
+   
+                sourceModel:
+                  model,
+   
+                methodologyVersion:
+                  SEARCH_INTENT_VERSION,
+   
+                includeOriginalMarketplaceQuery,
+   
+                notes:
+                  cleanText(
+                    aiResult.notes
+                  ),
+   
+                resolvedAt:
+                  new Date(),
+   
+                lastUsedAt:
+                  new Date(),
+   
+                usageCount: {
+                  increment:
                     1,
                 },
+              },
+            });
    
-                update: {
-                  displayName,
+        await transaction
+          .searchIntentExpansion
+          .deleteMany({
+            where: {
+              intentId:
+                intent.id,
    
-                  intentType,
+              source:
+                SearchIntentSource
+                  .OPENAI,
+            },
+          });
    
-                  source:
-                    SearchIntentSource
-                      .OPENAI,
+        if (
+          cleanedExpansions.length >
+            0
+        ) {
+          await transaction
+            .searchIntentExpansion
+            .createMany({
+              data:
+                cleanedExpansions.map(
+                  (
+                    expansion
+                  ) => ({
+                    intentId:
+                      intent.id,
    
-                  reviewStatus,
+                    expansionKind:
+                      expansion
+                        .expansionKind,
    
-                  confidence,
+                    searchTerm:
+                      expansion
+                        .searchTerm,
    
-                  sourceModel:
-                    SEARCH_INTENT_MODEL,
+                    normalizedSearchTerm:
+                      expansion
+                        .normalizedSearchTerm,
    
-                  methodologyVersion:
-                    SEARCH_INTENT_VERSION,
+                    displayName:
+                      expansion
+                        .displayName,
    
-                  includeOriginalMarketplaceQuery,
+                    reason:
+                      expansion.reason,
    
-                  notes:
-                    cleanText(
-                      aiResult.notes
-                    ),
+                    priority:
+                      expansion.priority,
    
-                  resolvedAt:
-                    new Date(),
+                    active:
+                      true,
    
-                  lastUsedAt:
-                    new Date(),
+                    source:
+                      SearchIntentSource
+                        .OPENAI,
    
-                  usageCount: {
-                    increment:
-                      1,
-                  },
+                    confidence:
+                      expansion
+                        .confidence,
+                  })
+                ),
+   
+              skipDuplicates:
+                true,
+            });
+        }
+   
+        for (
+          const alias of
+          cleanedAliases
+        ) {
+          const normalizedAlias =
+            normalizeSearchIntentText(
+              alias
+            );
+   
+          if (
+            !normalizedAlias
+          ) {
+            continue;
+          }
+   
+          const existingAlias =
+            await transaction
+              .searchIntentAlias
+              .findUnique({
+                where: {
+                  normalizedAlias,
                 },
               });
    
+          if (
+            existingAlias &&
+            existingAlias
+              .intentId !==
+              intent.id
+          ) {
+            continue;
+          }
+   
           await transaction
-            .searchIntentExpansion
-            .deleteMany({
+            .searchIntentAlias
+            .upsert({
               where: {
+                normalizedAlias,
+              },
+   
+              create: {
+                alias,
+   
+                normalizedAlias,
+   
                 intentId:
                   intent.id,
    
                 source:
                   SearchIntentSource
                     .OPENAI,
-              },
-            });
    
-          if (
-            cleanedExpansions.length >
-            0
-          ) {
-            await transaction
-              .searchIntentExpansion
-              .createMany({
-                data:
-                  cleanedExpansions.map(
-                    (
-                      expansion
-                    ) => ({
-                      intentId:
-                        intent.id,
+                confidence,
    
-                      expansionKind:
-                        expansion
-                          .expansionKind,
-   
-                      searchTerm:
-                        expansion
-                          .searchTerm,
-   
-                      normalizedSearchTerm:
-                        expansion
-                          .normalizedSearchTerm,
-   
-                      displayName:
-                        expansion
-                          .displayName,
-   
-                      reason:
-                        expansion.reason,
-   
-                      priority:
-                        expansion.priority,
-   
-                      active:
-                        true,
-   
-                      source:
-                        SearchIntentSource
-                          .OPENAI,
-   
-                      confidence:
-                        expansion
-                          .confidence,
-                    })
-                  ),
-   
-                skipDuplicates:
+                active:
                   true,
-              });
-          }
-   
-          for (
-            const alias of
-            cleanedAliases
-          ) {
-            const normalizedAlias =
-              normalizeSearchIntentText(
-                alias
-              );
-   
-            if (
-              !normalizedAlias
-            ) {
-              continue;
-            }
-   
-            const existingAlias =
-              await transaction
-                .searchIntentAlias
-                .findUnique({
-                  where: {
-                    normalizedAlias,
-                  },
-                });
-   
-            if (
-              existingAlias &&
-              existingAlias
-                .intentId !==
-                intent.id
-            ) {
-              continue;
-            }
-   
-            await transaction
-              .searchIntentAlias
-              .upsert({
-                where: {
-                  normalizedAlias,
-                },
-   
-                create: {
-                  alias,
-   
-                  normalizedAlias,
-   
-                  intentId:
-                    intent.id,
-   
-                  source:
-                    SearchIntentSource
-                      .OPENAI,
-   
-                  confidence,
-   
-                  active:
-                    true,
-                },
-   
-                update: {
-                  alias,
-   
-                  source:
-                    SearchIntentSource
-                      .OPENAI,
-   
-                  confidence,
-   
-                  active:
-                    true,
-                },
-              });
-          }
-   
-          return transaction
-            .searchIntent
-            .findUniqueOrThrow({
-              where: {
-                id:
-                  intent.id,
               },
    
-              include: {
-                expansions: {
-                  where: {
-                    active:
-                      true,
-                  },
+              update: {
+                alias,
    
-                  orderBy: [
-                    {
-                      priority:
-                        "asc",
-                    },
+                source:
+                  SearchIntentSource
+                    .OPENAI,
    
-                    {
-                      createdAt:
-                        "asc",
-                    },
-                  ],
-                },
+                confidence,
+   
+                active:
+                  true,
               },
             });
         }
+   
+        return transaction
+          .searchIntent
+          .findUniqueOrThrow({
+            where: {
+              id:
+                intent.id,
+            },
+   
+            include: {
+              expansions: {
+                where: {
+                  active:
+                    true,
+                },
+   
+                orderBy: [
+                  {
+                    priority:
+                      "asc",
+                  },
+   
+                  {
+                    createdAt:
+                      "asc",
+                  },
+                ],
+              },
+            },
+          });
+      }
+    );
+   }
+   
+   /*
+   * Prevent two simultaneous requests handled by the
+   * same running server instance from purchasing the
+   * same OpenAI classification twice.
+   *
+   * The database's unique keys still protect the saved
+   * records. A future distributed lock can extend this
+   * protection across separate serverless instances.
+   */
+   const inFlightIntentResolutions =
+    new Map<
+      string,
+      Promise<CachedIntent>
+   >();
+   
+   async function createAndSaveIntent(
+    originalQuery:
+      string
+   ) {
+    const aiResult =
+      await resolveWithOpenAi(
+        originalQuery
       );
    
-    return saved;
+    return saveResolvedIntent({
+      originalQuery,
+   
+      aiResult,
+    });
+   }
+   
+   async function getOrCreateInFlightIntent(
+    originalQuery:
+      string
+   ) {
+    const inFlightKey =
+      getInFlightLookupKey(
+        originalQuery
+      );
+   
+    const existingPromise =
+      inFlightIntentResolutions.get(
+        inFlightKey
+      );
+   
+    if (
+      existingPromise
+    ) {
+      console.log(
+        "VidaSearch joined an in-flight search-intent resolution:",
+        {
+          query:
+            originalQuery,
+   
+          inFlightKey,
+        }
+      );
+   
+      return existingPromise;
+    }
+   
+    const resolutionPromise =
+      createAndSaveIntent(
+        originalQuery
+      );
+   
+    inFlightIntentResolutions.set(
+      inFlightKey,
+      resolutionPromise
+    );
+   
+    try {
+      return await resolutionPromise;
+    } finally {
+      inFlightIntentResolutions.delete(
+        inFlightKey
+      );
+    }
    }
    
    export async function resolveSearchIntent(
     rawQuery:
       string
-   ): Promise<ResolvedSearchIntent> {
+   ): Promise<
+    ResolvedSearchIntent>
+   {
     const originalQuery =
       rawQuery.trim();
    
@@ -1581,7 +1654,7 @@ import {
    
     if (
       normalizedQuery.length <
-      2
+        2
     ) {
       return {
         id:
@@ -1621,70 +1694,83 @@ import {
       };
     }
    
-    const cachedIntent =
+    const cachedResult =
       await loadCachedIntent(
-        normalizedQuery
+        originalQuery
       );
    
     if (
-      cachedIntent
+      cachedResult.intent
     ) {
       void incrementIntentUsage(
-        cachedIntent.id
+        cachedResult.intent.id
       );
    
       console.log(
-        "VidaSearch search-intent cache hit:",
+        "VidaSearch search-intent database hit:",
         {
           query:
             originalQuery,
    
-          normalizedKey:
-            cachedIntent
+          requestedNormalizedKey:
+            normalizedQuery,
+   
+          matchedLookupKey:
+            cachedResult
+              .matchedLookupKey,
+   
+          savedNormalizedKey:
+            cachedResult
+              .intent
               .normalizedKey,
    
           intentType:
-            cachedIntent
+            cachedResult
+              .intent
               .intentType,
    
           expansionCount:
-            cachedIntent
+            cachedResult
+              .intent
               .expansions
               .length,
         }
       );
    
       return mapCachedIntent({
-        cachedIntent,
+        cachedIntent:
+          cachedResult.intent,
    
         originalQuery,
       });
     }
    
     console.log(
-      "VidaSearch search-intent cache miss:",
+      "VidaSearch search-intent database miss:",
       {
         query:
           originalQuery,
    
         normalizedQuery,
+   
+        attemptedLookupKeys:
+          cachedResult.lookupKeys,
+   
+        openAiEnabled:
+          isOpenAiSearchIntentEnabled(),
+   
+        model:
+          getSearchIntentModel(),
       }
     );
    
-    const aiResult =
-      await resolveWithOpenAi(
+    const savedIntent =
+      await getOrCreateInFlightIntent(
         originalQuery
       );
    
-    const savedIntent =
-      await saveResolvedIntent({
-        originalQuery,
-   
-        aiResult,
-      });
-   
     console.log(
-      "VidaSearch search intent created:",
+      "VidaSearch shared search intent created:",
       {
         query:
           originalQuery,
@@ -1711,6 +1797,10 @@ import {
           savedIntent
             .expansions
             .length,
+   
+        model:
+          savedIntent
+            .sourceModel,
       }
     );
    
