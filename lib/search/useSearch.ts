@@ -21,36 +21,70 @@ const SEARCH_DELAY_MS =
  700;
 
 /*
-* Controlled merchant-page test.
+* Controlled merchant-page enrichment.
 *
-* Only one uncached product is enriched
-* during each search.
+* Products appear immediately after the main
+* search. Enrichment then updates supported
+* attributes without blocking the result page.
 */
-
-
-
 const ENABLE_LIVE_ENRICHMENT =
  true;
 
-/*
-* Enrich every uncached product returned
-* in the current 20-card search result.
-*/
 const MAX_LIVE_ENRICHMENT_PRODUCTS =
  20;
 
-/*
-* Process four products concurrently.
-*
-* All 20 are queued, but we avoid sending
-* 20 simultaneous requests to SerpApi and
-* merchant websites.
-*/
 const ENRICHMENT_CONCURRENCY =
  4;
 
+type SearchErrorCode =
+ | "UNSUPPORTED_SEARCH"
+ | "MISSING_SEARCH_QUERY"
+ | "SEARCH_FAILED"
+ | null;
 
+type SearchErrorDetails = {
+ code:
+   SearchErrorCode;
 
+ message:
+   string | null;
+
+ suggestion:
+   string | null;
+};
+
+/*
+* Supports ordinary Error objects as well as richer
+* errors that searchProducts may expose from the API.
+*/
+type SearchRequestError = Error & {
+ code?:
+   string;
+
+ status?:
+   number;
+
+ suggestion?:
+   string;
+
+ response?:
+   {
+     status?:
+       number;
+
+     data?:
+       {
+         error?:
+           string;
+
+         code?:
+           string;
+
+         suggestion?:
+           string;
+       };
+   };
+};
 
 function mergeEnrichment({
  product,
@@ -123,9 +157,6 @@ function mergeEnrichment({
 
    dietaryPreferences,
 
-
-
-
    thirdPartyTesting,
 
    certifications:
@@ -137,10 +168,6 @@ function mergeEnrichment({
      product.qualityClaims,
 
    verifiedClaims: {
-
-
-
-
      nsfCertified:
        thirdPartyTesting
          .nsfCertified,
@@ -168,6 +195,140 @@ function mergeEnrichment({
  };
 }
 
+function normalizeErrorText(
+ value:
+   string
+) {
+ return value
+   .toLowerCase()
+   .replace(
+     /[’']/g,
+     ""
+   )
+   .trim();
+}
+
+function getSearchErrorDetails(
+ error:
+   unknown
+): SearchErrorDetails {
+ if (
+   !(error instanceof Error)
+ ) {
+   return {
+     code:
+       "SEARCH_FAILED",
+
+     message:
+       "Unable to search products.",
+
+     suggestion:
+       "Please try the search again.",
+   };
+ }
+
+ const requestError =
+   error as
+     SearchRequestError;
+
+ const responseData =
+   requestError
+     .response
+     ?.data;
+
+ const rawCode =
+   responseData?.code ??
+   requestError.code ??
+   "";
+
+ const status =
+   requestError.status ??
+   requestError
+     .response
+     ?.status ??
+   null;
+
+ const rawMessage =
+   responseData?.error ??
+   requestError.message ??
+   "";
+
+ const normalizedMessage =
+   normalizeErrorText(
+     rawMessage
+   );
+
+ const unsupportedByCode =
+   rawCode ===
+   "UNSUPPORTED_SEARCH";
+
+ const unsupportedByStatus =
+   status ===
+   422;
+
+ const unsupportedByMessage =
+   normalizedMessage.includes(
+     "couldnt identify this as a supplement or health goal"
+   ) ||
+   normalizedMessage.includes(
+     "could not identify this as a supplement or health goal"
+   ) ||
+   normalizedMessage.includes(
+     "not recognized as a supplement or health goal"
+   ) ||
+   normalizedMessage.includes(
+     "unsupported search"
+   );
+
+ if (
+   unsupportedByCode ||
+   unsupportedByStatus ||
+   unsupportedByMessage
+ ) {
+   return {
+     code:
+       "UNSUPPORTED_SEARCH",
+
+     message:
+       "We couldn’t identify this as a supplement or health goal.",
+
+     suggestion:
+       responseData
+         ?.suggestion ??
+       requestError
+         .suggestion ??
+       "Try searching for Magnesium, Mood Support, Sleep, or Vitamin D.",
+   };
+ }
+
+ if (
+   rawCode ===
+     "MISSING_SEARCH_QUERY"
+ ) {
+   return {
+     code:
+       "MISSING_SEARCH_QUERY",
+
+     message:
+       "Enter a supplement or health goal to search.",
+
+     suggestion:
+       "Try Magnesium, Sleep, Energy, or Vitamin D.",
+   };
+ }
+
+ return {
+   code:
+     "SEARCH_FAILED",
+
+   message:
+     "Unable to search products.",
+
+   suggestion:
+     "Please try the search again.",
+ };
+}
+
 async function enrichProducts({
  products,
  signal,
@@ -180,7 +341,8 @@ async function enrichProducts({
    AbortSignal;
 
  onProductEnriched: (
-   productName: string,
+   productName:
+     string,
 
    enrichment:
      Awaited<
@@ -205,7 +367,8 @@ async function enrichProducts({
  );
 
  async function worker(
-   workerNumber: number
+   workerNumber:
+     number
  ) {
    while (
      nextIndex <
@@ -440,15 +603,18 @@ async function enrichProducts({
 }
 
 export function useSearch(
- query: string
+ query:
+   string
 ) {
  const [
    results,
    setResults,
  ] =
    useState<
-     SearchProductOption[]>
-([]);
+     SearchProductOption[]
+>(
+     []
+   );
 
  const [
    loading,
@@ -464,19 +630,51 @@ export function useSearch(
  ] =
    useState<
      string | null>
-(null);
+(
+     null
+   );
+
+ const [
+   errorCode,
+   setErrorCode,
+ ] =
+   useState<
+     SearchErrorCode>
+(
+     null
+   );
+
+ const [
+   errorSuggestion,
+   setErrorSuggestion,
+ ] =
+   useState<
+     string | null>
+(
+     null
+   );
 
  useEffect(
    () => {
      const trimmed =
        query.trim();
 
-     if (!trimmed) {
+     if (
+       !trimmed
+     ) {
        setResults(
          []
        );
 
        setError(
+         null
+       );
+
+       setErrorCode(
+         null
+       );
+
+       setErrorSuggestion(
          null
        );
 
@@ -501,7 +699,19 @@ export function useSearch(
                true
              );
 
+             setResults(
+               []
+             );
+
              setError(
+               null
+             );
+
+             setErrorCode(
+               null
+             );
+
+             setErrorSuggestion(
                null
              );
 
@@ -555,8 +765,8 @@ export function useSearch(
              /*
               * Display all products immediately.
               *
-              * The enrichment queue below does
-              * not filter the visible results.
+              * The enrichment queue below does not
+              * filter the visible results.
               */
              setResults(
                products
@@ -656,39 +866,87 @@ export function useSearch(
                );
              }
            } catch (
-             err
+             caughtError
            ) {
              if (
-               err instanceof
+               caughtError instanceof
                  DOMException &&
-               err.name ===
+               caughtError.name ===
                  "AbortError"
              ) {
                return;
              }
 
-             console.error(
-               "VidaSearch product search failed:",
-               {
-                 query:
-                   trimmed,
+             const details =
+               getSearchErrorDetails(
+                 caughtError
+               );
 
-                 error:
-                   err instanceof
-                     Error
-                     ? {
-                         name:
-                           err.name,
 
-                         message:
-                           err.message,
-                       }
-                     : err,
+
+
+
+               if (
+                details.code ===
+                "UNSUPPORTED_SEARCH"
+               ) {
+                console.log(
+                  "VidaSearch unsupported search handled:",
+                  {
+                    query:
+                      trimmed,
+               
+                    code:
+                      details.code,
+                  }
+                );
+               } else {
+                console.error(
+                  "VidaSearch product search failed:",
+                  {
+                    query:
+                      trimmed,
+               
+                    code:
+                      details.code,
+               
+                    message:
+                      details.message,
+               
+                    error:
+                      caughtError instanceof
+                        Error
+                        ? {
+                            name:
+                              caughtError.name,
+               
+                            message:
+                              caughtError.message,
+                          }
+                        : caughtError,
+                  }
+                );
                }
+               
+
+
+
+
+
+             setResults(
+               []
              );
 
              setError(
-               "Unable to search products."
+               details.message
+             );
+
+             setErrorCode(
+               details.code
+             );
+
+             setErrorSuggestion(
+               details.suggestion
              );
            } finally {
              if (
@@ -734,5 +992,11 @@ export function useSearch(
    results,
    loading,
    error,
+   errorCode,
+   errorSuggestion,
+
+   isUnsupportedSearch:
+     errorCode ===
+     "UNSUPPORTED_SEARCH",
  };
 }

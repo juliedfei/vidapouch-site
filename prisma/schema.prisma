@@ -137,6 +137,35 @@ enum ProductResearchStatus {
   FAILED
 }
 
+enum SearchIntentType {
+  SUPPLEMENT
+  HEALTH_GOAL
+  BRAND
+  DOCTOR_TYPE
+  INVALID
+}
+
+enum SearchIntentSource {
+  MANUAL
+  OPENAI
+  IMPORTED
+  SYSTEM
+}
+
+enum SearchIntentReviewStatus {
+  ACTIVE
+  NEEDS_REVIEW
+  REJECTED
+  RETIRED
+}
+
+enum SearchExpansionKind {
+  DIRECT_QUERY
+  RELATED_SUPPLEMENT
+  BRAND_QUERY
+  DOCTOR_QUERY
+}
+
 model Manufacturer {
   id            String  @id @default(cuid())
   canonicalName String  @unique
@@ -175,6 +204,8 @@ model Brand {
   evidence       BrandEvidence[]
   scores         BrandScoreSnapshot[]
 
+  searchIntentExpansions SearchIntentExpansion[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -208,6 +239,8 @@ model Supplement {
   aliases            SupplementAlias[]
   productIngredients ProductIngredient[]
   evidence           SupplementEvidence[]
+
+  searchIntentExpansions SearchIntentExpansion[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -961,4 +994,112 @@ model VidaPouchPricingSetting {
   @@unique([pricingVersionId, settingKey])
   @@index([pricingVersionId])
   @@index([pricingVersionId, active])
+}
+
+model SearchIntent {
+  id String @id @default(cuid())
+
+  normalizedKey String @unique
+  displayName   String
+
+  intentType SearchIntentType
+
+  source SearchIntentSource @default(MANUAL)
+
+  reviewStatus SearchIntentReviewStatus @default(ACTIVE)
+
+  confidence Decimal? @db.Decimal(5, 4)
+
+  sourceModel String?
+
+  methodologyVersion String @default("search-intent-v1")
+
+  includeOriginalMarketplaceQuery Boolean @default(true)
+
+  notes String?
+
+  resolvedAt DateTime?
+
+  reviewedAt DateTime?
+  reviewedBy String?
+
+  expiresAt DateTime?
+
+  lastUsedAt DateTime?
+  usageCount Int       @default(0)
+
+  aliases    SearchIntentAlias[]
+  expansions SearchIntentExpansion[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([intentType])
+  @@index([reviewStatus])
+  @@index([source])
+  @@index([expiresAt])
+  @@index([lastUsedAt])
+}
+
+model SearchIntentAlias {
+  id String @id @default(cuid())
+
+  alias           String
+  normalizedAlias String @unique
+
+  intentId String
+  intent   SearchIntent @relation(fields: [intentId], references: [id], onDelete: Cascade)
+
+  source SearchIntentSource @default(MANUAL)
+
+  confidence Decimal? @db.Decimal(5, 4)
+
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([intentId])
+  @@index([active])
+}
+
+model SearchIntentExpansion {
+  id String @id @default(cuid())
+
+  intentId String
+  intent   SearchIntent @relation(fields: [intentId], references: [id], onDelete: Cascade)
+
+  expansionKind SearchExpansionKind
+
+  searchTerm           String
+  normalizedSearchTerm String
+
+  displayName String?
+  reason      String?
+
+  priority Int @default(100)
+
+  active Boolean @default(true)
+
+  source SearchIntentSource @default(MANUAL)
+
+  confidence Decimal? @db.Decimal(5, 4)
+
+  supplementId String?
+  supplement   Supplement? @relation(fields: [supplementId], references: [id], onDelete: SetNull)
+
+  brandId String?
+  brand   Brand?  @relation(fields: [brandId], references: [id], onDelete: SetNull)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([intentId, expansionKind, normalizedSearchTerm])
+  @@index([intentId])
+  @@index([intentId, active, priority])
+  @@index([expansionKind])
+  @@index([supplementId])
+  @@index([brandId])
 }

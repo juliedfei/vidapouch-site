@@ -2,8 +2,7 @@ import {
   getCachedProductResearch,
  } from "@/lib/intelligence/productResearch/getCachedProductResearch";
  
-
-import type {
+ import type {
   SearchRetailProduct,
  } from "./searchRetailProduct";
  
@@ -44,25 +43,35 @@ import type {
   scoreProduct,
  } from "@/lib/recommendations/scoreProduct";
  
- const MAX_PRODUCT_CARDS = 20;
- 
  type ProductGroup = {
-  productName: string;
+  productName:
+    string;
  
-  brand: string;
+  brand:
+    string;
  
-  supplement: string;
+  supplement:
+    string;
  
   listings:
     SearchRetailProduct[];
+ 
+  shoppingProductIds:
+    Set<string>;
+ 
+  identityTokens:
+    Set<string>;
  };
  
  type PreparedSearchProduct = {
-  productName: string;
+  productName:
+    string;
  
-  brand: string;
+  brand:
+    string;
  
-  supplement: string;
+  supplement:
+    string;
  
   representativeProduct:
     SearchRetailProduct;
@@ -70,201 +79,672 @@ import type {
   listings:
     SearchRetailProduct[];
  
-  listingsCompared: number;
+  listingsCompared:
+    number;
  
-  vendorsCompared: number;
+  vendorsCompared:
+    number;
  
-  lowestMonthlyCost: number;
+  lowestMonthlyCost:
+    number;
  
-  highestMonthlyCost: number;
+  highestMonthlyCost:
+    number;
  
-  averageMonthlyCost: number;
+  averageMonthlyCost:
+    number;
  
-  medianMonthlyCost: number;
+  medianMonthlyCost:
+    number;
  
-  displayedMonthlyCost: number;
+  displayedMonthlyCost:
+    number;
  
-  displayedPerCapsuleCost: number;
+  displayedPerCapsuleCost:
+    number;
  
   research:
     ProductResearch | null;
  };
  
  function roundCurrency(
-  value: number
+  value:
+    number
  ) {
   return (
-    Math.round(value * 100) /
-    100
+    Math.round(
+      value * 100
+    ) / 100
   );
  }
  
  function clampScore(
-  value: number
+  value:
+    number
  ) {
   return Math.max(
     0,
     Math.min(
       100,
-      Math.round(value)
+      Math.round(
+        value
+      )
     )
   );
  }
  
  function normalizeIdentity(
-  value: string
+  value:
+    string
  ) {
   return value
     .toLowerCase()
-    .replace(/['’]/g, "")
+    .replace(
+      /[®™©]/g,
+      " "
+    )
+    .replace(
+      /['’]/g,
+      ""
+    )
     .replace(
       /[^a-z0-9]+/g,
+      " "
+    )
+    .replace(
+      /\s+/g,
       " "
     )
     .trim();
  }
  
  function normalizeCompact(
-  value: string
+  value:
+    string
  ) {
   return normalizeIdentity(
     value
-  ).replace(/\s+/g, "");
+  ).replace(
+    /\s+/g,
+    ""
+  );
+ }
+ 
+ function escapeRegExp(
+  value:
+    string
+ ) {
+  return value.replace(
+    /[.*+?^${}()|[\]\\]/g,
+    "\\$&"
+  );
+ }
+ 
+ function normalizeRetailerIdentity(
+  retailer:
+    string
+ ) {
+  return normalizeIdentity(
+    retailer
+  )
+    .replace(
+      /\b(?:com|inc|llc|online|marketplace|store|stores|shop)\b/g,
+      " "
+    )
+    .replace(
+      /\s+/g,
+      " "
+    )
+    .trim();
+ }
+ 
+ function getStableShoppingProductId(
+  listing:
+    SearchRetailProduct
+ ) {
+  return listing
+    .shoppingProductId
+    ?.trim() ||
+    null;
  }
  
  /*
- * Creates the part of the product title
- * that distinguishes one product variant
- * from another.
+ * Produces a title identity that is stable across
+ * minor Google Shopping title variations.
  *
- * Retailer is deliberately not included,
- * allowing one exact product to contain
- * offers from multiple sellers.
+ * Retailer wording, pricing language, dosage form,
+ * package count, and general marketing language
+ * should not create a second product row.
+ *
+ * Dosage, form, and container count remain separate
+ * parts of the final comparison key.
  */
- function buildProductVariantIdentity(
-  listing: SearchRetailProduct
+ function buildCanonicalTitleIdentity(
+  listing:
+    SearchRetailProduct
  ) {
   let title =
     normalizeIdentity(
       listing.productTitle
     );
  
-  const removableValues = [
-    listing.brand,
-    listing.supplement,
-    listing.dosage,
-  ]
-    .map(normalizeIdentity)
-    .filter(Boolean)
-    .sort(
-      (left, right) =>
-        right.length -
-        left.length
-    );
+  const removablePhrases =
+    [
+      listing.dosage,
+      listing.form,
+    ]
+      .map(
+        (value) =>
+          normalizeIdentity(
+            value ?? ""
+          )
+      )
+      .filter(
+        Boolean
+      )
+      .sort(
+        (
+          left,
+          right
+        ) =>
+          right.length -
+          left.length
+      );
  
   for (
-    const removableValue of
-    removableValues
+    const phrase of
+    removablePhrases
   ) {
-    title = title
-      .replace(
+    title =
+      title.replace(
         new RegExp(
-          `\\b${removableValue
-            .split(/\s+/)
-            .join("\\s+")}\\b`,
+          `\\b${escapeRegExp(
+            phrase
+          ).replace(
+            /\\ /g,
+            "\\s+"
+          )}\\b`,
           "gi"
         ),
         " "
-      )
-      .trim();
+      );
   }
  
-  title = title
-    /*
-     * Dosage values.
-     */
-    .replace(
-      /\b\d+(?:\.\d+)?\s*(?:mcg|mg|g|iu)\b/gi,
-      " "
-    )
+  title =
+    title
+      /*
+       * Explicit dosage values.
+       */
+      .replace(
+        /\b\d+(?:\.\d+)?\s*(?:mcg|mg|g|iu)\b/gi,
+        " "
+      )
  
-    /*
-     * Package quantities.
-     */
-    .replace(
-      /\b\d{1,4}\s*(?:count|ct|capsules?|caps?|tablets?|tabs?|caplets?|softgels?|vegcaps?|gummies|gummy|chewables?|chews?|servings?|packets?|sticks?|sachets?)\b/gi,
-      " "
-    )
+      /*
+       * Package quantities.
+       */
+      .replace(
+        /\b\d{1,4}\s*(?:count|ct|capsules?|caps?|tablets?|tabs?|caplets?|soft[\s-]?gels?|vegcaps?|veg\s+caps?|gummies|gummy|chewables?|chews?|servings?|packets?|sticks?|sachets?|bottles?)\b/gi,
+        " "
+      )
  
-    /*
-     * Form already has its own part of the
-     * product identity key.
-     */
-    .replace(
-      /\b(?:capsules?|caps?|tablets?|tabs?|caplets?|softgels?|vegcaps?|veg caps?|gummies|gummy|chewables?|chews?|powder|liquid|drops?|spray)\b/gi,
-      " "
-    )
+      /*
+       * Dosage forms are stored separately.
+       */
+      .replace(
+        /\b(?:capsules?|caps?|tablets?|tabs?|caplets?|soft[\s-]?gels?|vegcaps?|veg\s+caps?|gummies|gummy|chewables?|chews?|powder|liquid|drops?|spray)\b/gi,
+        " "
+      )
  
-    /*
-     * Generic product language.
-     */
-    .replace(
-      /\b(?:dietary|supplement|vitamin|mineral|bottle|pack|size|health|support|formula|product)\b/gi,
-      " "
-    )
+      /*
+       * Retail and shipping language.
+       */
+      .replace(
+        /\b(?:free shipping|free delivery|same day|subscribe and save|subscription|bundle|multi pack|multipack)\b/gi,
+        " "
+      )
  
-    /*
-     * Marketing language that should not
-     * create a separate product identity.
-     */
-    .replace(
-      /\b(?:new|official|best seller|bestseller|premium|quality|value size|bonus size|extra strength|max strength|maximum strength|high potency)\b/gi,
-      " "
-    )
+      /*
+       * Generic product language.
+       */
+      .replace(
+        /\b(?:dietary|supplement|vitamin|vitamins|mineral|minerals|bottle|pack|package|size|health|formula|product)\b/gi,
+        " "
+      )
  
-    .replace(/\s+/g, " ")
-    .trim();
+      /*
+       * Marketing language that should not create
+       * another product identity.
+       */
+      .replace(
+        /\b(?:new|official|original|best seller|bestseller|premium|quality|value size|bonus size|extra strength|max strength|maximum strength|high potency|advanced|complete)\b/gi,
+        " "
+      )
+ 
+      /*
+       * Common punctuation-derived conjunctions.
+       */
+      .replace(
+        /\b(?:with|plus|and)\b/gi,
+        " "
+      )
+ 
+      .replace(
+        /\s+/g,
+        " "
+      )
+      .trim();
  
   return (
     title ||
-    normalizeCompact(
+    normalizeIdentity(
       listing.productTitle
     )
   );
  }
  
- function getProductGroupKey(
-  listing: SearchRetailProduct
+ function buildIdentityTokens(
+  listing:
+    SearchRetailProduct
  ) {
-  return [
-    normalizeCompact(
-      listing.brand
-    ),
+  const titleIdentity =
+    buildCanonicalTitleIdentity(
+      listing
+    );
  
-    normalizeCompact(
-      listing.supplement
-    ),
+  const ignoredTokens =
+    new Set([
+      "the",
+      "a",
+      "an",
+      "for",
+      "of",
+      "to",
+      "by",
+      "support",
+      "daily",
+      "natural",
+    ]);
  
-    normalizeCompact(
-      buildProductVariantIdentity(
+  return new Set(
+    titleIdentity
+      .split(
+        /\s+/
+      )
+      .map(
+        (token) =>
+          token.trim()
+      )
+      .filter(
+        (token) =>
+          token.length >
+            1 &&
+          !ignoredTokens.has(
+            token
+          )
+      )
+  );
+ }
+ 
+ function calculateTokenSimilarity(
+  left:
+    Set<string>,
+ 
+  right:
+    Set<string>
+ ) {
+  if (
+    left.size ===
+      0 ||
+    right.size ===
+      0
+  ) {
+    return 0;
+  }
+ 
+  let intersectionCount =
+    0;
+ 
+  for (
+    const token of
+    left
+  ) {
+    if (
+      right.has(
+        token
+      )
+    ) {
+      intersectionCount +=
+        1;
+    }
+  }
+ 
+  const smallerSetSize =
+    Math.min(
+      left.size,
+      right.size
+    );
+ 
+  return (
+    intersectionCount /
+    smallerSetSize
+  );
+ }
+ 
+ function normalizeDosageIdentity(
+  listing:
+    SearchRetailProduct
+ ) {
+  if (
+    listing.dosageAmount !==
+      null &&
+    listing.dosageUnit !==
+      null
+  ) {
+    return [
+      listing.dosageAmount,
+      listing.dosageUnit,
+      listing.dosageIsPerServing ??
+        "unknown",
+    ].join(
+      "|"
+    );
+  }
+ 
+  return normalizeCompact(
+    listing.dosage
+  );
+ }
+ 
+ function normalizeFormIdentity(
+  listing:
+    SearchRetailProduct
+ ) {
+  return normalizeCompact(
+    listing.form
+  );
+ }
+ 
+ function listingsHaveCompatibleVariant(
+  left:
+    SearchRetailProduct,
+ 
+  right:
+    SearchRetailProduct
+ ) {
+  const leftDosage =
+    normalizeDosageIdentity(
+      left
+    );
+ 
+  const rightDosage =
+    normalizeDosageIdentity(
+      right
+    );
+ 
+  if (
+    leftDosage &&
+    rightDosage &&
+    leftDosage !==
+      rightDosage
+  ) {
+    return false;
+  }
+ 
+  const leftForm =
+    normalizeFormIdentity(
+      left
+    );
+ 
+  const rightForm =
+    normalizeFormIdentity(
+      right
+    );
+ 
+  if (
+    leftForm &&
+    rightForm &&
+    leftForm !==
+      "unknown" &&
+    rightForm !==
+      "unknown" &&
+    leftForm !==
+      rightForm
+  ) {
+    return false;
+  }
+ 
+  /*
+   * A known package-count difference normally means
+   * the customer is looking at a different purchasable
+   * product variant.
+   */
+  if (
+    left.capsulesPerBottle >
+      0 &&
+    right.capsulesPerBottle >
+      0 &&
+    left.capsulesPerBottle !==
+      right.capsulesPerBottle
+  ) {
+    return false;
+  }
+ 
+  return true;
+ }
+ 
+ function groupContainsShoppingProductId(
+  group:
+    ProductGroup,
+ 
+  listing:
+    SearchRetailProduct
+ ) {
+  const shoppingProductId =
+    getStableShoppingProductId(
+      listing
+    );
+ 
+  return (
+    shoppingProductId !==
+      null &&
+    group.shoppingProductIds.has(
+      shoppingProductId
+    )
+  );
+ }
+ 
+ function groupLooksLikeSameProduct(
+  group:
+    ProductGroup,
+ 
+  listing:
+    SearchRetailProduct
+ ) {
+  const representative =
+    group.listings[0];
+ 
+  if (
+    !representative ||
+    !listingsHaveCompatibleVariant(
+      representative,
+      listing
+    )
+  ) {
+    return false;
+  }
+ 
+  const listingTokens =
+    buildIdentityTokens(
+      listing
+    );
+ 
+  const similarity =
+    calculateTokenSimilarity(
+      group.identityTokens,
+      listingTokens
+    );
+ 
+  /*
+   * A high containment score permits small title
+   * differences such as:
+   *
+   * "MagOx 400 Magnesium Tablets"
+   * "Mag-Ox 400 Magnesium Oxide Tablets"
+   *
+   * Dosage, form, and package-count compatibility
+   * are checked separately above.
+   */
+  if (
+    similarity >=
+      0.8
+  ) {
+    return true;
+  }
+ 
+  const groupTitle =
+    buildCanonicalTitleIdentity(
+      representative
+    );
+ 
+  const listingTitle =
+    buildCanonicalTitleIdentity(
+      listing
+    );
+ 
+  return (
+    groupTitle.length >
+      4 &&
+    listingTitle.length >
+      4 &&
+    (
+      groupTitle.includes(
+        listingTitle
+      ) ||
+      listingTitle.includes(
+        groupTitle
+      )
+    )
+  );
+ }
+ 
+ function findMatchingProductGroup(
+  groups:
+    ProductGroup[],
+ 
+  listing:
+    SearchRetailProduct
+ ) {
+  /*
+   * Google Shopping product identity is the
+   * strongest signal and is independent of vendor.
+   */
+  const shoppingProductMatch =
+    groups.find(
+      (group) =>
+        groupContainsShoppingProductId(
+          group,
+          listing
+        )
+    );
+ 
+  if (
+    shoppingProductMatch
+  ) {
+    return shoppingProductMatch;
+  }
+ 
+  return groups.find(
+    (group) =>
+      groupLooksLikeSameProduct(
+        group,
         listing
       )
-    ),
+  );
+ }
  
-    normalizeCompact(
-      listing.dosage
-    ),
+ function addListingToGroup(
+  group:
+    ProductGroup,
  
-    normalizeCompact(
-      listing.form
-    ),
+  listing:
+    SearchRetailProduct
+ ) {
+  group.listings.push(
+    listing
+  );
  
-    listing.capsulesPerBottle,
-  ].join("|");
+  const shoppingProductId =
+    getStableShoppingProductId(
+      listing
+    );
+ 
+  if (
+    shoppingProductId
+  ) {
+    group.shoppingProductIds.add(
+      shoppingProductId
+    );
+  }
+ 
+  for (
+    const token of
+    buildIdentityTokens(
+      listing
+    )
+  ) {
+    group.identityTokens.add(
+      token
+    );
+  }
+ }
+ 
+ function createProductGroup(
+  listing:
+    SearchRetailProduct
+ ): ProductGroup {
+  const shoppingProductIds =
+    new Set<string>();
+ 
+  const shoppingProductId =
+    getStableShoppingProductId(
+      listing
+    );
+ 
+  if (
+    shoppingProductId
+  ) {
+    shoppingProductIds.add(
+      shoppingProductId
+    );
+  }
+ 
+  return {
+    productName:
+      listing.productTitle,
+ 
+    brand:
+      listing.brand.trim(),
+ 
+    supplement:
+      listing.supplement.trim(),
+ 
+    listings: [
+      listing,
+    ],
+ 
+    shoppingProductIds,
+ 
+    identityTokens:
+      buildIdentityTokens(
+        listing
+      ),
+  };
  }
  
  function getListingTotalPrice(
-  listing: SearchRetailProduct
+  listing:
+    SearchRetailProduct
  ) {
   return (
     listing.bottlePrice +
@@ -275,15 +755,50 @@ import type {
   );
  }
  
+ function getListingDeduplicationKey(
+  listing:
+    SearchRetailProduct
+ ) {
+  const shoppingProductId =
+    getStableShoppingProductId(
+      listing
+    );
+ 
+  return [
+    normalizeRetailerIdentity(
+      listing.retailer
+    ),
+ 
+    shoppingProductId ??
+      buildCanonicalTitleIdentity(
+        listing
+      ),
+ 
+    normalizeDosageIdentity(
+      listing
+    ),
+ 
+    normalizeFormIdentity(
+      listing
+    ),
+ 
+    listing.capsulesPerBottle,
+  ].join(
+    "|"
+  );
+ }
+ 
  /*
- * Keep the least expensive offer from each
- * retailer while preserving offers from
- * different retailers.
+ * Remove duplicate offers inside one product group.
+ *
+ * This first collapses exact duplicate rows and then
+ * keeps the least expensive offer from each retailer.
  */
  function collapseListingsByRetailer(
-  listings: SearchRetailProduct[]
+  listings:
+    SearchRetailProduct[]
  ) {
-  const cheapestByRetailer =
+  const exactListings =
     new Map<
       string,
       SearchRetailProduct
@@ -293,8 +808,44 @@ import type {
     const listing of
     listings
   ) {
+    const exactKey =
+      getListingDeduplicationKey(
+        listing
+      );
+ 
+    const current =
+      exactListings.get(
+        exactKey
+      );
+ 
+    if (
+      !current ||
+      getListingTotalPrice(
+        listing
+      ) <
+        getListingTotalPrice(
+          current
+        )
+    ) {
+      exactListings.set(
+        exactKey,
+        listing
+      );
+    }
+  }
+ 
+  const cheapestByRetailer =
+    new Map<
+      string,
+      SearchRetailProduct
+ >();
+ 
+  for (
+    const listing of
+    exactListings.values()
+  ) {
     const retailerKey =
-      normalizeCompact(
+      normalizeRetailerIdentity(
         listing.retailer
       );
  
@@ -322,7 +873,10 @@ import type {
   return Array.from(
     cheapestByRetailer.values()
   ).sort(
-    (left, right) =>
+    (
+      left,
+      right
+    ) =>
       getListingTotalPrice(
         left
       ) -
@@ -333,66 +887,86 @@ import type {
  }
  
  function chooseRepresentativeListing(
-  listings: SearchRetailProduct[]
+  listings:
+    SearchRetailProduct[]
  ) {
   const ranked =
-    [...listings].sort(
-      (left, right) => {
-        const leftCompleteness = [
-          Boolean(
-            left.imageUrl
-          ),
+    [
+      ...listings,
+    ].sort(
+      (
+        left,
+        right
+      ) => {
+        const leftCompleteness =
+          [
+            Boolean(
+              left.imageUrl
+            ),
  
-          Boolean(
-            left.url
-          ),
+            Boolean(
+              left.url
+            ),
  
-          Boolean(
-            left.rating
-          ),
+            Boolean(
+              left.rating
+            ),
  
-          Boolean(
-            left.reviewCount
-          ),
+            Boolean(
+              left.reviewCount
+            ),
  
-          Boolean(
-            left.dosage
-          ),
+            Boolean(
+              left.dosage
+            ),
  
-          left.form !==
-            "Unknown",
+            Boolean(
+              left.shoppingProductId
+            ),
  
-          left.productTitle.length >
-            0,
-        ].filter(Boolean).length;
+            left.form !==
+              "Unknown",
  
-        const rightCompleteness = [
-          Boolean(
-            right.imageUrl
-          ),
+            left.productTitle.length >
+              0,
+          ].filter(
+            Boolean
+          ).length;
  
-          Boolean(
-            right.url
-          ),
+        const rightCompleteness =
+          [
+            Boolean(
+              right.imageUrl
+            ),
  
-          Boolean(
-            right.rating
-          ),
+            Boolean(
+              right.url
+            ),
  
-          Boolean(
-            right.reviewCount
-          ),
+            Boolean(
+              right.rating
+            ),
  
-          Boolean(
-            right.dosage
-          ),
+            Boolean(
+              right.reviewCount
+            ),
  
-          right.form !==
-            "Unknown",
+            Boolean(
+              right.dosage
+            ),
  
-          right.productTitle.length >
-            0,
-        ].filter(Boolean).length;
+            Boolean(
+              right.shoppingProductId
+            ),
+ 
+            right.form !==
+              "Unknown",
+ 
+            right.productTitle.length >
+              0,
+          ].filter(
+            Boolean
+          ).length;
  
         if (
           rightCompleteness !==
@@ -419,7 +993,8 @@ import type {
  }
  
  function buildProductName(
-  listings: SearchRetailProduct[]
+  listings:
+    SearchRetailProduct[]
  ) {
   const representative =
     chooseRepresentativeListing(
@@ -433,88 +1008,116 @@ import type {
       representative.supplement,
       representative.dosage,
     ]
-      .filter(Boolean)
-      .join(" ")
+      .filter(
+        Boolean
+      )
+      .join(
+        " "
+      )
   );
  }
  
  function groupVendorListings(
-  listings: SearchRetailProduct[]
+  listings:
+    SearchRetailProduct[]
  ) {
-  const groups =
-    new Map<
-      string,
-      ProductGroup
- >();
+  const groups:
+    ProductGroup[] = [];
  
   for (
     const listing of
     listings
   ) {
-    const key =
-      getProductGroupKey(
+    const existingGroup =
+      findMatchingProductGroup(
+        groups,
         listing
       );
  
-    const existing =
-      groups.get(key);
- 
-    if (existing) {
-      existing.listings.push(
+    if (
+      existingGroup
+    ) {
+      addListingToGroup(
+        existingGroup,
         listing
       );
  
       continue;
     }
  
-    groups.set(key, {
-      productName:
-        listing.productTitle,
- 
-      brand:
-        listing.brand.trim(),
- 
-      supplement:
-        listing.supplement.trim(),
- 
-      listings: [
-        listing,
-      ],
-    });
+    groups.push(
+      createProductGroup(
+        listing
+      )
+    );
   }
  
   const groupedProducts =
-    Array.from(
-      groups.values()
-    ).map(
+    groups.map(
       (group) => {
         const collapsedListings =
           collapseListingsByRetailer(
             group.listings
           );
  
-        return {
-          ...group,
+        const representative =
+          chooseRepresentativeListing(
+            collapsedListings
+          );
  
-          productName:
-            buildProductName(
-              collapsedListings
-            ),
- 
-          listings:
-            collapsedListings,
-        };
+
+
+
+          return {
+            ...group,
+           
+            productName:
+              buildProductName(
+                collapsedListings
+              ),
+           
+            brand:
+              representative.brand
+                .trim(),
+           
+            supplement:
+              representative
+                .supplement
+                .trim(),
+           
+            listings:
+              collapsedListings,
+           };
+
+
+
+
       }
     );
  
   console.log(
-    "VitaSearch exact products grouped:",
+    "VidaSearch exact products grouped:",
     {
       retailerListingCount:
         listings.length,
  
       productGroupCount:
         groupedProducts.length,
+ 
+      duplicateListingsRemoved:
+        Math.max(
+          0,
+          listings.length -
+            groupedProducts.reduce(
+              (
+                total,
+                group
+              ) =>
+                total +
+                group.listings.length,
+              0
+            )
+        ),
  
       groups:
         groupedProducts.map(
@@ -530,6 +1133,11 @@ import type {
  
               brand:
                 group.brand,
+ 
+              shoppingProductId:
+                representative
+                  .shoppingProductId ??
+                null,
  
               dosage:
                 representative.dosage,
@@ -577,12 +1185,13 @@ import type {
  }
  
  function countUniqueVendors(
-  listings: SearchRetailProduct[]
+  listings:
+    SearchRetailProduct[]
  ) {
   return new Set(
     listings.map(
       (listing) =>
-        normalizeCompact(
+        normalizeRetailerIdentity(
           listing.retailer
         )
     )
@@ -597,9 +1206,11 @@ import type {
   research:
     ProductResearch | null;
  
-  vendorsCompared: number;
+  vendorsCompared:
+    number;
  
-  listingsCompared: number;
+  listingsCompared:
+    number;
  }) {
   const researchConfidence =
     research
@@ -630,19 +1241,22 @@ import type {
  }
  
  function getConfidenceLabel(
-  confidenceScore: number
+  confidenceScore:
+    number
  ):
   | "high"
   | "medium"
   | "low" {
   if (
-    confidenceScore >= 80
+    confidenceScore >=
+    80
   ) {
     return "high";
   }
  
   if (
-    confidenceScore >= 55
+    confidenceScore >=
+    55
   ) {
     return "medium";
   }
@@ -678,17 +1292,20 @@ import type {
       0,
  
     representative
-      .capsulesPerBottle > 0,
+      .capsulesPerBottle >
+      0,
  
     Boolean(
       representative.dosage
     ),
  
     representative
-      .dosageAmount !== null,
+      .dosageAmount !==
+      null,
  
     representative
-      .dosageUnit !== null,
+      .dosageUnit !==
+      null,
  
     representative.form !==
       "Unknown",
@@ -709,7 +1326,9 @@ import type {
   ];
  
   const completedChecks =
-    checks.filter(Boolean).length;
+    checks.filter(
+      Boolean
+    ).length;
  
   return Math.round(
     (
@@ -719,38 +1338,34 @@ import type {
   );
  }
  
-
-
-
  function buildPreliminaryScore({
   value,
   availability,
   dataCompleteness,
  }: {
-  value: number;
+  value:
+    number;
  
-  availability: number;
+  availability:
+    number;
  
-  dataCompleteness: number;
+  dataCompleteness:
+    number;
  }): SearchProductScore {
-  /*
-   * Do not display an overall VidaPouch
-   * Score until product research exists.
-   *
-   * Price, availability, and listing
-   * completeness are still preserved for
-   * internal comparison, but they are not
-   * presented as a finished quality score.
-   */
   return {
-    overall: null,
+    overall:
+      null,
  
     value:
-      clampScore(value),
+      clampScore(
+        value
+      ),
  
-    productQuality: null,
+    productQuality:
+      null,
  
-    dosageFit: null,
+    dosageFit:
+      null,
  
     retailerConfidence:
       clampScore(
@@ -763,52 +1378,39 @@ import type {
       ),
   };
  }
-
-
-
-
  
  async function prepareSearchProduct({
   group,
   capsulesPerDay,
   pricingStrategy,
  }: {
-  group: ProductGroup;
+  group:
+    ProductGroup;
  
-  capsulesPerDay: number;
+  capsulesPerDay:
+    number;
  
-  pricingStrategy: Awaited<
-    ReturnType<
-      typeof getPricingStrategy
+  pricingStrategy:
+    Awaited<
+      ReturnType<
+        typeof getPricingStrategy
  >
  >;
- }): Promise<PreparedSearchProduct> {
-  
-  
-  
-/*
-* Search reads only previously saved
-* research.
-*
-* This does not call OpenAI and does not
-* perform live web research.
-*/
-const representativeProduct =
- chooseRepresentativeListing(
-   group.listings
- );
-
-const research:
- ProductResearch | null =
-   await getCachedProductResearch(
-     group.productName,
-     representativeProduct
-       .shoppingProductId
-   );
-
-
-
-
+ }): Promise<
+  PreparedSearchProduct
+ >{
+  const representativeProduct =
+    chooseRepresentativeListing(
+      group.listings
+    );
+ 
+  const research:
+    ProductResearch | null =
+      await getCachedProductResearch(
+        group.productName,
+        representativeProduct
+          .shoppingProductId
+      );
  
   const pricing =
     calculateDisplayedMonthlyCost(
@@ -819,8 +1421,6 @@ const research:
  
   const monthlyUnits =
     pricing.monthlyCapsules;
- 
-
  
   return {
     productName:
@@ -899,7 +1499,10 @@ const research:
  ) {
   return listings.some(
     (listing) =>
-      listing[claim] === true
+      listing[
+        claim
+      ] ===
+      true
   );
  }
  
@@ -910,7 +1513,9 @@ const research:
   patterns:
     RegExp[]
  ) {
-  if (!research) {
+  if (
+    !research
+  ) {
     return false;
   }
  
@@ -931,7 +1536,8 @@ const research:
  ) {
   return {
     vegan:
-      research?.vegan === true,
+      research?.vegan ===
+      true,
  
     vegetarian:
       research?.vegetarian ===
@@ -1000,7 +1606,8 @@ const research:
     );
  
   const thirdPartyTested =
-    research?.thirdPartyTested ===
+    research
+      ?.thirdPartyTested ===
       true ||
     uspVerified ||
     nsfCertified ||
@@ -1024,10 +1631,14 @@ const research:
   listings:
     SearchRetailProduct[],
  
-  capsulesPerDay: number
- ): Promise<SearchProductOption[]> {
+  capsulesPerDay:
+    number
+ ): Promise<
+  SearchProductOption[]
+ >{
   if (
-    listings.length === 0
+    listings.length ===
+    0
   ) {
     return [];
   }
@@ -1055,7 +1666,8 @@ const research:
     );
  
   if (
-    preparedProducts.length === 0
+    preparedProducts.length ===
+    0
   ) {
     return [];
   }
@@ -1161,7 +1773,8 @@ const research:
  
             productQuality,
  
-            dosageFit: 100,
+            dosageFit:
+              100,
  
             retailerConfidence:
               productScore
@@ -1203,7 +1816,8 @@ const research:
  
         const form =
           prepared.research
-            ?.form?.trim() ||
+            ?.form
+            ?.trim() ||
           (
             representative.form ===
               "Unknown" ||
@@ -1214,7 +1828,7 @@ const research:
           );
  
         console.log(
-          "VitaSearch product prepared:",
+          "VidaSearch product prepared:",
           {
             productName:
               prepared.productName,
@@ -1297,10 +1911,6 @@ const research:
             prepared
               .vendorsCompared,
  
-          /*
-           * First-class dosage fields used
-           * directly by cards and filters.
-           */
           dosage:
             representative.dosage,
  
@@ -1351,29 +1961,23 @@ const research:
               ? "complete"
               : "undetermined",
  
-
-
-              form,
-
-              dietaryPreferences,
-     
-              thirdPartyTesting,
-     
-              certifications:
-                prepared.research
-                  ?.certifications ??
-                [],
-     
-              qualityClaims:
-                prepared.research
-                  ?.qualityClaims ??
-                [],
-     
-              verifiedClaims: {
-
-
-
-
+          form,
+ 
+          dietaryPreferences,
+ 
+          thirdPartyTesting,
+ 
+          certifications:
+            prepared.research
+              ?.certifications ??
+            [],
+ 
+          qualityClaims:
+            prepared.research
+              ?.qualityClaims ??
+            [],
+ 
+          verifiedClaims: {
             nsfCertified:
               thirdPartyTesting
                 .nsfCertified ||
@@ -1430,16 +2034,22 @@ const research:
               confidenceScore
             ),
  
-          selected: false,
+          selected:
+            false,
  
-          recommended: false,
+          recommended:
+            false,
  
-          reasons: [],
+          reasons:
+            [],
         };
       }
     )
     .sort(
-      (left, right) =>
+      (
+        left,
+        right
+      ) =>
         right.vendorsCompared -
           left.vendorsCompared ||
         (
@@ -1450,9 +2060,6 @@ const research:
             left.score.overall ??
             0
           )
-    )
-    .slice(
-      0,
-      MAX_PRODUCT_CARDS
     );
  }
+ 

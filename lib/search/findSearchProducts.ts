@@ -1,28 +1,13 @@
-{/* import {
-  writeFileSync,
- } from "node:fs";
- 
- import {
-  join,
- } from "node:path"; */}
-
-
 import type {
   SearchDosageUnit,
   SearchProductForm,
   SearchRetailProduct,
  } from "./searchRetailProduct";
  
-
-
-import {
- getSupplementAliases,
- getSupplementSearchTerms,
-} from "@/lib/pricing/supplementAliases";
-
-
-
-
+ import {
+  getSupplementAliases,
+  getSupplementSearchTerms,
+ } from "@/lib/pricing/supplementAliases";
  
  import type {
   ProductSearchRequest,
@@ -31,7 +16,181 @@ import {
  const SERP_API_ENDPOINT =
   "https://serpapi.com/search.json";
  
- const MAX_RETAIL_LISTINGS = 80;
+ const DEFAULT_MAX_PAGES =
+  3;
+ 
+ const MAX_ALLOWED_PAGES =
+  10;
+ 
+ const DEFAULT_MAX_RETAIL_LISTINGS =
+  400;
+ 
+ const MAX_ALLOWED_RETAIL_LISTINGS =
+  1000;
+ 
+ const MAX_INTERNAL_ALIAS_QUERIES =
+  4;
+ 
+ /*
+ * These are established supplement and wellness
+ * brands commonly encountered in shopping results.
+ *
+ * The list is used only to recognize a brand at the
+ * beginning of a product title. It does not control
+ * which products may appear in search.
+ */
+ const KNOWN_BRANDS = [
+  "21st Century",
+  "Advanced Orthomolecular Research",
+  "American Health",
+  "Ancient Nutrition",
+  "Arthur Andrew Medical",
+  "Barlean's",
+  "Best Naturals",
+  "Bluebonnet Nutrition",
+  "Bronson",
+  "Bulletproof",
+  "Carlson Labs",
+  "Centrum",
+  "ChildLife Essentials",
+  "Codeage",
+  "Country Life",
+  "Designs for Health",
+  "Doctor's Best",
+  "Douglas Laboratories",
+  "Dr. Berg",
+  "Dr. Mercola",
+  "Emergen-C",
+  "Enzymedica",
+  "Equate",
+  "Flintstones",
+  "Garden of Life",
+  "Gaia Herbs",
+  "GNC",
+  "Jarrow Formulas",
+  "KAL",
+  "Kirkland Signature",
+  "Klaire Labs",
+  "Life Extension",
+  "LifeSeasons",
+  "MaryRuth Organics",
+  "MegaFood",
+  "Metagenics",
+  "Nature Made",
+  "Nature's Answer",
+  "Nature's Bounty",
+  "Nature's Plus",
+  "Nature's Truth",
+  "Nature's Way",
+  "Nordic Naturals",
+  "NOW Foods",
+  "Nutricost",
+  "NutraBio",
+  "NutraChamps",
+  "OLLY",
+  "One A Day",
+  "Ortho Molecular Products",
+  "Pure Encapsulations",
+  "Qunol",
+  "Rainbow Light",
+  "Renew Life",
+  "Schiff",
+  "Seeking Health",
+  "Solgar",
+  "Spring Valley",
+  "Sports Research",
+  "Swanson",
+  "Thorne",
+  "Trace Minerals",
+  "Unisom",
+  "Up&Up",
+  "Vital Proteins",
+  "Vitafusion",
+  "Vitamin Shoppe",
+  "Viva Naturals",
+  "Walgreens",
+  "Webber Naturals",
+  "Wiley's Finest",
+  "Xymogen",
+  "Zahler",
+  "Zarbee's",
+  "Zenwise Health",
+ ] as const;
+ 
+ const BRAND_STOP_PHRASES = [
+  "sleep aid",
+  "sleep aids",
+  "sleep support",
+  "mood support",
+  "mood balance",
+  "stress support",
+  "calm support",
+  "brain support",
+  "focus support",
+  "immune support",
+  "digestive support",
+  "joint support",
+  "heart support",
+  "energy support",
+  "hair skin and nails",
+  "dietary supplement",
+  "vitamin supplement",
+  "mineral supplement",
+ ] as const;
+ 
+ const BRAND_STOP_WORDS = new Set([
+  "supplement",
+  "supplements",
+  "vitamin",
+  "vitamins",
+  "mineral",
+  "minerals",
+  "melatonin",
+  "magnesium",
+  "calcium",
+  "zinc",
+  "iron",
+  "probiotic",
+  "probiotics",
+  "ashwagandha",
+  "elderberry",
+  "collagen",
+  "biotin",
+  "turmeric",
+  "curcumin",
+  "coq10",
+  "omega",
+  "fish",
+  "oil",
+  "gummy",
+  "gummies",
+  "capsule",
+  "capsules",
+  "tablet",
+  "tablets",
+  "caplet",
+  "caplets",
+  "softgel",
+  "softgels",
+  "powder",
+  "liquid",
+  "drops",
+  "sleep",
+  "mood",
+  "stress",
+  "calm",
+  "energy",
+  "focus",
+  "immune",
+  "immunity",
+  "digestive",
+  "joint",
+  "heart",
+  "support",
+  "formula",
+  "complex",
+  "blend",
+ ]);
  
  type SerpApiShoppingResult = {
   title?: unknown;
@@ -71,34 +230,67 @@ import {
   extensions?: unknown;
  };
  
+ type SerpApiPagination = {
+  next?: unknown;
+ };
+ 
  type SerpApiResponse = {
   shopping_results?: unknown;
+ 
+  serpapi_pagination?:
+    SerpApiPagination;
+ 
   error?: unknown;
  };
  
+ type ShoppingPageResult = {
+  results:
+    SerpApiShoppingResult[];
+ 
+  nextUrl:
+    string | null;
+ };
+ 
  function normalizeText(
-  value: string
+  value:
+    string
  ) {
   return value
     .toLowerCase()
-    .replace(/['’]/g, "")
+    .replace(
+      /[®™©]/g,
+      " "
+    )
+    .replace(
+      /['’]/g,
+      ""
+    )
     .replace(
       /[^a-z0-9]+/g,
+      " "
+    )
+    .replace(
+      /\s+/g,
       " "
     )
     .trim();
  }
  
  function normalizeCompact(
-  value: string
+  value:
+    string
  ) {
   return normalizeText(
     value
-  ).replace(/\s+/g, "");
+  ).replace(
+    /\s+/g,
+    ""
+  );
  }
  
  function stringValue(
-  value: unknown
+  value:
+    unknown
  ): string {
   return typeof value ===
     "string"
@@ -107,12 +299,15 @@ import {
  }
  
  function numberValue(
-  value: unknown
+  value:
+    unknown
  ): number | null {
   if (
     typeof value ===
       "number" &&
-    Number.isFinite(value)
+    Number.isFinite(
+      value
+    )
   ) {
     return value;
   }
@@ -140,7 +335,8 @@ import {
  }
  
  function booleanValue(
-  value: unknown
+  value:
+    unknown
  ) {
   if (
     typeof value ===
@@ -153,7 +349,8 @@ import {
     typeof value ===
     "number"
   ) {
-    return value > 0;
+    return value >
+      0;
   }
  
   if (
@@ -166,81 +363,192 @@ import {
         .toLowerCase();
  
     return (
-      normalized === "true" ||
-      normalized === "1" ||
-      normalized === "yes"
+      normalized ===
+        "true" ||
+      normalized ===
+        "1" ||
+      normalized ===
+        "yes"
     );
   }
  
-  /*
-   * Some SerpApi results may represent
-   * multiple sources as an array.
-   */
   if (
-    Array.isArray(value)
+    Array.isArray(
+      value
+    )
   ) {
-    return value.length > 1;
+    return value.length >
+      1;
   }
  
   return false;
  }
  
-
-
-
- function buildSearchQueries({
-  supplement,
-  brand,
- }: ProductSearchRequest) {
-  const requestedQuery = [
-    brand?.trim(),
-    supplement.trim(),
-    "supplement",
-  ]
-    .filter(Boolean)
-    .join(" ");
+ function clampInteger({
+  value,
+  fallback,
+  minimum,
+  maximum,
+ }: {
+  value:
+    number | undefined;
  
-  const expandedQueries =
-    getSupplementSearchTerms(
-      supplement
-    ).map(
-      (searchTerm) =>
-        [
-          brand?.trim(),
-          searchTerm,
-        ]
-          .filter(Boolean)
-          .join(" ")
-    );
+  fallback:
+    number;
  
-  /*
-   * Keep the user's original request first,
-   * then supplement it with controlled
-   * alias searches.
-   *
-   * Four total SerpApi searches provides
-   * breadth without issuing every possible
-   * alias query.
-   */
-  return Array.from(
-    new Set([
-      requestedQuery,
-      ...expandedQueries,
-    ])
-  ).slice(
-    0,
-    4
+  minimum:
+    number;
+ 
+  maximum:
+    number;
+ }) {
+  if (
+    typeof value !==
+      "number" ||
+    !Number.isFinite(
+      value
+    )
+  ) {
+    return fallback;
+  }
+ 
+  return Math.max(
+    minimum,
+    Math.min(
+      maximum,
+      Math.round(
+        value
+      )
+    )
   );
  }
  
-
-
-
-
-
+ function containsSupplementShoppingWord(
+  value:
+    string
+ ) {
+  const normalized =
+    normalizeText(
+      value
+    );
+ 
+  return [
+    "supplement",
+    "supplements",
+    "vitamin",
+    "vitamins",
+    "mineral",
+    "minerals",
+    "capsule",
+    "capsules",
+    "tablet",
+    "tablets",
+    "softgel",
+    "softgels",
+  ].some(
+    (word) =>
+      normalized ===
+        word ||
+      normalized.startsWith(
+        `${word} `
+      ) ||
+      normalized.endsWith(
+        ` ${word}`
+      ) ||
+      normalized.includes(
+        ` ${word} `
+      )
+  );
+ }
+ 
+ function buildRequestedQuery({
+  supplement,
+  brand,
+  searchMode,
+ }: ProductSearchRequest) {
+  const cleanedSupplement =
+    supplement.trim();
+ 
+  const supplementQuery =
+    searchMode ===
+      "direct-marketplace" ||
+    containsSupplementShoppingWord(
+      cleanedSupplement
+    )
+      ? cleanedSupplement
+      : `${cleanedSupplement} supplement`;
+ 
+  return [
+    brand?.trim(),
+    supplementQuery,
+  ]
+    .filter(
+      Boolean
+    )
+    .join(
+      " "
+    );
+ }
+ 
+ function buildSearchQueries(
+  request:
+    ProductSearchRequest
+ ) {
+  const requestedQuery =
+    buildRequestedQuery(
+      request
+    );
+ 
+  /*
+   * A direct marketplace query has already
+   * been expanded by the intent resolver.
+   */
+  if (
+    request.searchMode ===
+      "direct-marketplace" ||
+    request.expandAliases ===
+      false
+  ) {
+    return [
+      requestedQuery,
+    ];
+  }
+ 
+  const expandedQueries =
+    getSupplementSearchTerms(
+      request.supplement
+    ).map(
+      (searchTerm) =>
+        [
+          request.brand?.trim(),
+          searchTerm,
+        ]
+          .filter(
+            Boolean
+          )
+          .join(
+            " "
+          )
+    );
+ 
+  return Array.from(
+    new Set(
+      [
+        requestedQuery,
+        ...expandedQueries,
+      ].filter(
+        Boolean
+      )
+    )
+  ).slice(
+    0,
+    MAX_INTERNAL_ALIAS_QUERIES
+  );
+ }
  
  function getExtensionsText(
-  extensions: unknown
+  extensions:
+    unknown
  ) {
   if (
     !Array.isArray(
@@ -258,14 +566,18 @@ import {
         typeof value ===
         "string"
     )
-    .join(" ");
+    .join(
+      " "
+    );
  }
  
  function extractForm(
-  searchableText: string
+  searchableText:
+    string
  ): SearchProductForm {
   const text =
-    searchableText.toLowerCase();
+    searchableText
+      .toLowerCase();
  
   if (
     /\bsoft[\s-]?gels?\b/.test(
@@ -335,9 +647,14 @@ import {
  }
  
  function getUnitLabel(
-  form: SearchProductForm
- ): SearchRetailProduct["unitLabel"] {
-  switch (form) {
+  form:
+    SearchProductForm
+ ): SearchRetailProduct[
+  "unitLabel"
+ ] {
+  switch (
+    form
+  ) {
     case "Capsule":
       return "capsule";
  
@@ -366,46 +683,36 @@ import {
  }
  
  function isVitaPouchFormEligible(
-  form: SearchProductForm
+  form:
+    SearchProductForm
  ) {
-  /*
-   * Unknown and unspecified forms are not
-   * considered eligible.
-   *
-   * Softgels are also excluded for launch.
-   */
   return (
-    form === "Capsule" ||
-    form === "Tablet" ||
-    form === "Caplet" ||
-    form === "Gummy"
+    form ===
+      "Capsule" ||
+    form ===
+      "Tablet" ||
+    form ===
+      "Caplet" ||
+    form ===
+      "Gummy"
   );
  }
  
  function extractCount(
-  searchableText: string
+  searchableText:
+    string
  ): number | null {
   const patterns = [
     /\b(\d{1,4})\s*(?:veg\s+capsules?|veg\s+caps?|veggie\s+capsules?|vegetarian\s+capsules?|vegcaps?)\b/i,
- 
     /\b(\d{1,4})\s*(?:soft[\s-]?gels?)\b/i,
- 
     /\b(\d{1,4})\s*(?:caplets?)\b/i,
- 
     /\b(\d{1,4})\s*(?:capsules?|caps)\b/i,
- 
     /\b(\d{1,4})\s*(?:tablets?|tabs)\b/i,
- 
     /\b(\d{1,4})\s*(?:gummies|gummy)\b/i,
- 
     /\b(\d{1,4})\s*(?:chewables?|chews?)\b/i,
- 
     /\b(\d{1,4})\s*(?:packets?|sticks?|sachets?)\b/i,
- 
     /\b(\d{1,4})\s*(?:servings?)\b/i,
- 
     /\b(\d{1,4})\s*(?:count|ct)\b/i,
- 
     /\b(?:bottle of|contains)\s*(\d{1,4})\b/i,
   ];
  
@@ -418,19 +725,25 @@ import {
         pattern
       );
  
-    if (!match) {
+    if (
+      !match
+    ) {
       continue;
     }
  
     const count =
-      Number(match[1]);
+      Number(
+        match[1]
+      );
  
     if (
       Number.isInteger(
         count
       ) &&
-      count > 0 &&
-      count <= 2000
+      count >
+        0 &&
+      count <=
+        2000
     ) {
       return count;
     }
@@ -440,17 +753,14 @@ import {
  }
  
  function extractServingSize(
-  searchableText: string
+  searchableText:
+    string
  ) {
   const patterns = [
     /\bserving size[:\s]+(\d+)\s*(?:capsules?|caps|tablets?|tabs|soft[\s-]?gels?|caplets?|gummies|gummy|chewables?|chews?)\b/i,
- 
     /\b(\d+)\s*(?:capsules?|caps|tablets?|tabs|soft[\s-]?gels?|caplets?|gummies|gummy|chewables?|chews?)\s+per serving\b/i,
- 
     /\btake\s+(\d+)\s*(?:capsules?|caps|tablets?|tabs|soft[\s-]?gels?|caplets?|gummies|gummy|chewables?|chews?)\b/i,
- 
     /\b(?:one|1)\s+scoop\s+per serving\b/i,
- 
     /\bserving size[:\s]+(\d+)\s*(?:scoops?|packets?|sticks?|teaspoons?|tablespoons?|ml)\b/i,
   ];
  
@@ -463,21 +773,27 @@ import {
         pattern
       );
  
-    if (!match) {
+    if (
+      !match
+    ) {
       continue;
     }
  
     const servingSize =
       match[1]
-        ? Number(match[1])
+        ? Number(
+            match[1]
+          )
         : 1;
  
     if (
       Number.isInteger(
         servingSize
       ) &&
-      servingSize > 0 &&
-      servingSize <= 20
+      servingSize >
+        0 &&
+      servingSize <=
+        20
     ) {
       return servingSize;
     }
@@ -487,18 +803,22 @@ import {
  }
  
  type ExtractedDosage = {
-  displayValue: string;
+  displayValue:
+    string;
  
-  amount: number | null;
+  amount:
+    number | null;
  
-  unit: SearchDosageUnit;
+  unit:
+    SearchDosageUnit;
  
   isPerServing:
     boolean | null;
  };
  
  function normalizeDosageUnit(
-  unit: string
+  unit:
+    string
  ): SearchDosageUnit {
   switch (
     unit.toLowerCase()
@@ -524,7 +844,8 @@ import {
   amount,
   unit,
  }: {
-  amount: number;
+  amount:
+    number;
  
   unit:
     Exclude<
@@ -536,8 +857,12 @@ import {
     Number.isInteger(
       amount
     )
-      ? String(amount)
-      : String(amount).replace(
+      ? String(
+          amount
+        )
+      : String(
+          amount
+        ).replace(
           /\.0+$/,
           ""
         );
@@ -546,8 +871,11 @@ import {
  }
  
  function extractDosage(
-  searchableText: string,
-  requestedDosage?: string
+  searchableText:
+    string,
+ 
+  requestedDosage?:
+    string
  ): ExtractedDosage {
   const perServingMatch =
     searchableText.match(
@@ -559,10 +887,11 @@ import {
   ) {
     const amount =
       Number(
-        perServingMatch[1].replace(
-          /,/g,
-          ""
-        )
+        perServingMatch[1]
+          .replace(
+            /,/g,
+            ""
+          )
       );
  
     const unit =
@@ -571,8 +900,11 @@ import {
       );
  
     if (
-      Number.isFinite(amount) &&
-      amount > 0 &&
+      Number.isFinite(
+        amount
+      ) &&
+      amount >
+        0 &&
       unit
     ) {
       return {
@@ -586,7 +918,8 @@ import {
  
         unit,
  
-        isPerServing: true,
+        isPerServing:
+          true,
       };
     }
   }
@@ -601,10 +934,11 @@ import {
   ) {
     const amount =
       Number(
-        dosageMatch[1].replace(
-          /,/g,
-          ""
-        )
+        dosageMatch[1]
+          .replace(
+            /,/g,
+            ""
+          )
       );
  
     const unit =
@@ -613,8 +947,11 @@ import {
       );
  
     if (
-      Number.isFinite(amount) &&
-      amount > 0 &&
+      Number.isFinite(
+        amount
+      ) &&
+      amount >
+        0 &&
       unit
     ) {
       const amountPattern =
@@ -659,7 +996,8 @@ import {
   }
  
   const requested =
-    requestedDosage?.trim() ||
+    requestedDosage
+      ?.trim() ||
     "";
  
   const requestedMatch =
@@ -672,10 +1010,11 @@ import {
   ) {
     const amount =
       Number(
-        requestedMatch[1].replace(
-          /,/g,
-          ""
-        )
+        requestedMatch[1]
+          .replace(
+            /,/g,
+            ""
+          )
       );
  
     const unit =
@@ -684,8 +1023,11 @@ import {
       );
  
     if (
-      Number.isFinite(amount) &&
-      amount > 0 &&
+      Number.isFinite(
+        amount
+      ) &&
+      amount >
+        0 &&
       unit
     ) {
       return {
@@ -699,7 +1041,8 @@ import {
  
         unit,
  
-        isPerServing: null,
+        isPerServing:
+          null,
       };
     }
   }
@@ -708,18 +1051,24 @@ import {
     displayValue:
       requested,
  
-    amount: null,
+    amount:
+      null,
  
-    unit: null,
+    unit:
+      null,
  
-    isPerServing: null,
+    isPerServing:
+      null,
   };
  }
  
  function extractShipping(
-  delivery: string
+  delivery:
+    string
  ) {
-  if (!delivery) {
+  if (
+    !delivery
+  ) {
     return 0;
   }
  
@@ -736,12 +1085,16 @@ import {
       /\$([0-9]+(?:\.[0-9]{1,2})?)/
     );
  
-  if (!match) {
+  if (
+    !match
+  ) {
     return 0;
   }
  
   const shipping =
-    Number(match[1]);
+    Number(
+      match[1]
+    );
  
   return Number.isFinite(
     shipping
@@ -751,8 +1104,11 @@ import {
  }
  
  function supplementMatches(
-  searchableText: string,
-  requestedSupplement: string
+  searchableText:
+    string,
+ 
+  requestedSupplement:
+    string
  ) {
   const normalizedResult =
     normalizeText(
@@ -765,19 +1121,56 @@ import {
     );
  
   return aliases.some(
-    (alias) =>
-      normalizedResult.includes(
-        normalizeText(alias)
-      )
+    (alias) => {
+      const normalizedAlias =
+        normalizeText(
+          alias
+        );
+ 
+      return (
+        normalizedAlias.length >
+          0 &&
+        normalizedResult.includes(
+          normalizedAlias
+        )
+      );
+    }
+  );
+ }
+ 
+ function shouldKeepMarketplaceResult({
+  searchableText,
+  request,
+ }: {
+  searchableText:
+    string;
+ 
+  request:
+    ProductSearchRequest;
+ }) {
+  if (
+    request.searchMode ===
+      "direct-marketplace"
+  ) {
+    return true;
+  }
+ 
+  return supplementMatches(
+    searchableText,
+    request.supplement
   );
  }
  
  function brandMatches(
-  searchableText: string,
-  requestedBrand?: string
+  searchableText:
+    string,
+ 
+  requestedBrand?:
+    string
  ) {
   if (
-    !requestedBrand?.trim()
+    !requestedBrand
+      ?.trim()
   ) {
     return true;
   }
@@ -791,214 +1184,424 @@ import {
   );
  }
  
- function removeTrailingDescriptors(
-  candidate: string
+ function cleanBrandCandidate(
+  value:
+    string
  ) {
-  const descriptorPattern =
-    /\b(?:triple|double|advanced|premium|complete|complex|blend|formula|high absorption|maximum strength|max strength|extra strength|ultra strength|high potency|chelated|buffered|glycinate|citrate|oxide|pure|liposomal|zero sugar|magtein)\s*$/i;
- 
   let cleaned =
-    candidate.trim();
- 
-  let previous = "";
- 
-  while (
-    cleaned &&
-    cleaned !== previous
-  ) {
-    previous = cleaned;
- 
-    cleaned = cleaned
+    value
       .replace(
-        descriptorPattern,
+        /[®™©]/g,
         ""
       )
+      .replace(
+        /^[\s,|:;–—-]+/,
+        ""
+      )
+      .replace(
+        /[\s,|:;–—-]+$/,
+        ""
+      )
+      .replace(
+        /^(?:buy|shop|new|best|official)\s+/i,
+        ""
+      )
+      .replace(
+        /\s+/g,
+        " "
+      )
       .trim();
+ 
+  for (
+    const phrase of
+    BRAND_STOP_PHRASES
+  ) {
+    const normalizedCleaned =
+      normalizeText(
+        cleaned
+      );
+ 
+    const normalizedPhrase =
+      normalizeText(
+        phrase
+      );
+ 
+    const phraseIndex =
+      normalizedCleaned.indexOf(
+        normalizedPhrase
+      );
+ 
+    if (
+      phraseIndex >
+        0
+    ) {
+      const originalWords =
+        cleaned.split(
+          /\s+/
+        );
+ 
+      const normalizedWords =
+        normalizedCleaned.split(
+          /\s+/
+        );
+ 
+      const phraseWords =
+        normalizedPhrase.split(
+          /\s+/
+        );
+ 
+      const firstPhraseWord =
+        phraseWords[0];
+ 
+      const stopIndex =
+        normalizedWords.indexOf(
+          firstPhraseWord
+        );
+ 
+      if (
+        stopIndex >
+          0
+      ) {
+        cleaned =
+          originalWords
+            .slice(
+              0,
+              stopIndex
+            )
+            .join(
+              " "
+            )
+            .trim();
+      }
+    }
   }
+ 
+  cleaned =
+    cleaned
+      .replace(
+        /\b(?:dietary|supplement|supplements|vitamin|vitamins|mineral|minerals)\b.*$/i,
+        ""
+      )
+      .replace(
+        /\b\d+(?:\.\d+)?\s*(?:mcg|mg|g|iu)\b.*$/i,
+        ""
+      )
+      .replace(
+        /\b(?:capsules?|caps?|tablets?|tabs?|caplets?|soft[\s-]?gels?|gummies|gummy|chewables?|powder|liquid|drops?)\b.*$/i,
+        ""
+      )
+      .replace(
+        /[\s,|:;–—-]+$/,
+        ""
+      )
+      .replace(
+        /\s+/g,
+        " "
+      )
+      .trim();
  
   return cleaned;
  }
  
- function extractLikelyBrand(
-  title: string,
-  supplement: string
+ function findKnownBrand(
+  title:
+    string
+ ) {
+  const normalizedTitle =
+    normalizeText(
+      title
+    );
+ 
+  const sortedBrands =
+    [
+      ...KNOWN_BRANDS,
+    ].sort(
+      (
+        left,
+        right
+      ) =>
+        right.length -
+        left.length
+    );
+ 
+  for (
+    const brand of
+    sortedBrands
+  ) {
+    const normalizedBrand =
+      normalizeText(
+        brand
+      );
+ 
+    if (
+      normalizedTitle ===
+        normalizedBrand ||
+      normalizedTitle.startsWith(
+        `${normalizedBrand} `
+      )
+    ) {
+      return brand;
+    }
+  }
+ 
+  return null;
+ }
+ 
+ function extractBrandBeforeKnownProductWord(
+  title:
+    string
  ) {
   const cleanedTitle =
     title
       .replace(
-        /[|()[\]–—]/g,
+        /[®™©]/g,
+        ""
+      )
+      .replace(
+        /[|()[\]–—,:;]/g,
         " "
       )
-      .replace(/\s+/g, " ")
+      .replace(
+        /\s+/g,
+        " "
+      )
       .trim();
  
-  const byBrandMatch =
-    cleanedTitle.match(
-      /\bby\s+(.+?)\s*$/i
+  const originalWords =
+    cleanedTitle.split(
+      /\s+/
+    );
+ 
+  const normalizedWords =
+    normalizeText(
+      cleanedTitle
+    ).split(
+      /\s+/
+    );
+ 
+  const stopIndex =
+    normalizedWords.findIndex(
+      (word) =>
+        BRAND_STOP_WORDS.has(
+          word
+        ) ||
+        /^\d/.test(
+          word
+        )
     );
  
   if (
-    byBrandMatch?.[1]
+    stopIndex <=
+      0
   ) {
-    return byBrandMatch[1]
-      .replace(/[®™]/g, "")
-      .trim();
+    return null;
   }
  
+  /*
+   * Most product-title brands contain between one
+   * and four words. Avoid treating a long product
+   * description as the brand.
+   */
+  const candidateWords =
+    originalWords.slice(
+      0,
+      Math.min(
+        stopIndex,
+        4
+      )
+    );
+ 
+  const candidate =
+    cleanBrandCandidate(
+      candidateWords.join(
+        " "
+      )
+    );
+ 
+  return candidate ||
+    null;
+ }
+ 
+ function extractBrandFromByPhrase(
+  title:
+    string
+ ) {
+  const match =
+    title.match(
+      /\bby\s+(.+?)(?:\s*[|,;–—-]|$)/i
+    );
+ 
+  if (
+    !match?.[1]
+  ) {
+    return null;
+  }
+ 
+  const candidate =
+    cleanBrandCandidate(
+      match[1]
+    );
+ 
+  return candidate ||
+    null;
+ }
+ 
+ function extractBrandFromSupplementAlias({
+  title,
+  supplement,
+ }: {
+  title:
+    string;
+ 
+  supplement:
+    string;
+ }) {
   const aliases =
     getSupplementAliases(
       supplement
     )
-      .map((alias) =>
-        alias.trim()
+      .map(
+        (alias) =>
+          alias.trim()
       )
-      .filter(Boolean)
+      .filter(
+        Boolean
+      )
       .sort(
-        (left, right) =>
+        (
+          left,
+          right
+        ) =>
           right.length -
           left.length
       );
- 
-  let earliestMatch:
-    {
-      index: number;
-      length: number;
-    } | null = null;
  
   for (
     const alias of
     aliases
   ) {
     const escapedAlias =
-      alias.replace(
-        /[.*+?^${}()|[\]\\]/g,
-        "\\$&"
-      );
- 
-    const aliasPattern =
-      escapedAlias.replace(
-        /\s+/g,
-        "\\s+"
-      );
+      alias
+        .replace(
+          /[.*+?^${}()|[\]\\]/g,
+          "\\$&"
+        )
+        .replace(
+          /\s+/g,
+          "\\s+"
+        );
  
     const match =
       new RegExp(
-        `\\b${aliasPattern}\\b`,
+        `\\b${escapedAlias}\\b`,
         "i"
       ).exec(
-        cleanedTitle
+        title
       );
  
     if (
-      match &&
-      (
-        !earliestMatch ||
-        match.index <
-          earliestMatch.index
-      )
+      !match ||
+      match.index <=
+        0
     ) {
-      earliestMatch = {
-        index:
-          match.index,
- 
-        length:
-          match[0].length,
-      };
+      continue;
     }
-  }
  
-  if (
-    earliestMatch &&
-    earliestMatch.index > 0
-  ) {
-    let candidate =
-      cleanedTitle
-        .slice(
+    const candidate =
+      cleanBrandCandidate(
+        title.slice(
           0,
-          earliestMatch.index
+          match.index
         )
-        .replace(
-          /^(?:buy|shop|new|best|official)\s+/i,
-          ""
-        )
-        .trim();
- 
-    candidate =
-      removeTrailingDescriptors(
-        candidate
       );
  
     if (
-      candidate &&
-      !/^(?:the|a|an|new)$/i.test(
-        candidate
-      )
+      candidate
     ) {
       return candidate;
     }
   }
  
+  return null;
+ }
+ 
+ function extractLikelyBrand(
+  title:
+    string,
+ 
+  supplement:
+    string
+ ) {
+  /*
+   * First prefer a recognized brand appearing at
+   * the beginning of the product title.
+   *
+   * Examples:
+   * - "Nature Made Melatonin..." -> "Nature Made"
+   * - "Unisom Sleep Aid..." -> "Unisom"
+   */
+  const knownBrand =
+    findKnownBrand(
+      title
+    );
+ 
   if (
-    earliestMatch &&
-    earliestMatch.index === 0
+    knownBrand
   ) {
-    const afterSupplement =
-      cleanedTitle
-        .slice(
-          earliestMatch.length
-        )
-        .replace(
-          /^[,\s]+/,
-          ""
-        )
-        .replace(
-          /^(?:oxide|glycinate|citrate|bisglycinate|complex|l[\s-]?threonate)\b\s*/i,
-          ""
-        )
-        .replace(
-          /^\d+(?:\.\d+)?\s*(?:mcg|mg|g|iu)\b\s*/i,
-          ""
-        )
-        .replace(
-          /^(?:capsules?|caps?|tablets?|tabs?|soft[\s-]?gels?|caplets?|vegcaps?)\b\s*/i,
-          ""
-        )
-        .replace(/[®™]/g, "")
-        .trim();
- 
-    /*
-     * Do not interpret dosage or dosage-form
-     * text as a brand.
-     */
-    if (
-      !afterSupplement ||
-      /^\d/.test(
-        afterSupplement
-      ) ||
-      /^(?:mcg|mg|g|iu|capsules?|caps?|tablets?|tabs?|soft[\s-]?gels?|caplets?|vegcaps?)\b/i.test(
-        afterSupplement
-      )
-    ) {
-      return "Unknown Brand";
-    }
- 
-    return afterSupplement;
+    return knownBrand;
   }
  
-  const fallback =
-    cleanedTitle
+  const byPhraseBrand =
+    extractBrandFromByPhrase(
+      title
+    );
+ 
+  if (
+    byPhraseBrand
+  ) {
+    return byPhraseBrand;
+  }
+ 
+  const aliasBrand =
+    extractBrandFromSupplementAlias({
+      title,
+      supplement,
+    });
+ 
+  if (
+    aliasBrand
+  ) {
+    return aliasBrand;
+  }
+ 
+  /*
+   * Direct health-goal searches may use a broad
+   * query such as "sleep supplements," so the
+   * supplement alias may not appear in the title.
+   *
+   * In that case, stop at the first recognizable
+   * product-category word.
+   */
+  const prefixBrand =
+    extractBrandBeforeKnownProductWord(
+      title
+    );
+ 
+  if (
+    prefixBrand
+  ) {
+    return prefixBrand;
+  }
+ 
+  const firstDelimitedSection =
+    title
       .split(
-        /\b(?:\d+(?:\.\d+)?\s*(?:mcg|mg|g|iu)|capsules?|caps?|tablets?|tabs?|soft[\s-]?gels?|caplets?|vegcaps?|gummies|gummy|powder|liquid)\b/i
-      )[0]
-      .replace(
-        /^(?:buy|shop|new|best|official)\s+/i,
-        ""
-      )
-      .trim();
+        /[|,;–—:]/
+      )[0];
  
   const cleanedFallback =
-    removeTrailingDescriptors(
-      fallback
+    cleanBrandCandidate(
+      firstDelimitedSection
     );
  
   if (
@@ -1013,11 +1616,28 @@ import {
     return "Unknown Brand";
   }
  
+  const fallbackWords =
+    cleanedFallback.split(
+      /\s+/
+    );
+ 
+  /*
+   * Prevent the full product title from becoming
+   * the brand when no reliable boundary was found.
+   */
+  if (
+    fallbackWords.length >
+      4
+  ) {
+    return "Unknown Brand";
+  }
+ 
   return cleanedFallback;
  }
  
  function extractListingClaims(
-  searchableText: string
+  searchableText:
+    string
  ) {
   return {
     nsfCertified:
@@ -1065,15 +1685,20 @@ import {
  }
  
  function mapShoppingResult(
-  result: SerpApiShoppingResult,
-  request: ProductSearchRequest
+  result:
+    SerpApiShoppingResult,
+ 
+  request:
+    ProductSearchRequest
  ): SearchRetailProduct | null {
   const title =
     stringValue(
       result.title
     );
  
-  if (!title) {
+  if (
+    !title
+  ) {
     return null;
   }
  
@@ -1087,19 +1712,24 @@ import {
       result.extensions
     );
  
-  const searchableText = [
-    title,
-    snippet,
-    extensions,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const searchableText =
+    [
+      title,
+      snippet,
+      extensions,
+    ]
+      .filter(
+        Boolean
+      )
+      .join(
+        " "
+      );
  
   if (
-    !supplementMatches(
+    !shouldKeepMarketplaceResult({
       searchableText,
-      request.supplement
-    )
+      request,
+    })
   ) {
     return null;
   }
@@ -1122,8 +1752,10 @@ import {
     );
  
   if (
-    bottlePrice == null ||
-    bottlePrice <= 0
+    bottlePrice ===
+      null ||
+    bottlePrice <=
+      0
   ) {
     return null;
   }
@@ -1142,7 +1774,8 @@ import {
   const capsulesPerBottle =
     extractCount(
       searchableText
-    ) ?? 100;
+    ) ??
+    100;
  
   const retailer =
     stringValue(
@@ -1155,12 +1788,14 @@ import {
       result.thumbnail
     ) ||
     stringValue(
-      result.serpapi_thumbnail
+      result
+        .serpapi_thumbnail
     ) ||
     undefined;
  
   const brand =
-    request.brand?.trim() ||
+    request.brand
+      ?.trim() ||
     extractLikelyBrand(
       title,
       request.supplement
@@ -1221,7 +1856,8 @@ import {
     brand,
  
     supplement:
-      request.supplement.trim(),
+      request.supplement
+        .trim(),
  
     dosage:
       extractedDosage
@@ -1254,14 +1890,11 @@ import {
       ),
  
     /*
-     * Do not expose the Google Shopping page
-     * as though it were a direct vendor URL.
-     *
-     * The direct merchant URL will be
-     * resolved from the immersive product
-     * stores API when Buy Bottle is clicked.
+     * The merchant URL is resolved only when the
+     * customer selects Buy Bottle.
      */
-    url: undefined,
+    url:
+      undefined,
  
     imageUrl,
  
@@ -1279,18 +1912,20 @@ import {
     rating:
       numberValue(
         result.rating
-      ) ?? undefined,
+      ) ??
+      undefined,
  
     reviewCount:
       numberValue(
         result.reviews
-      ) ?? undefined,
+      ) ??
+      undefined,
  
     ...listingClaims,
   } satisfies SearchRetailProduct;
  
   console.log(
-    "VitaSearch retailer listing mapped:",
+    "VidaSearch retailer listing mapped:",
     {
       productTitle:
         product.productTitle,
@@ -1300,6 +1935,10 @@ import {
  
       brand:
         product.brand,
+ 
+      searchMode:
+        request.searchMode ??
+        "supplement",
  
       dosage:
         product.dosage,
@@ -1352,10 +1991,6 @@ import {
         product
           .multipleSourcesAvailable,
  
-      /*
-       * Diagnostic only. This is deliberately
-       * not assigned to product.url.
-       */
       googleShoppingUrl:
         googleShoppingUrl ??
         null,
@@ -1365,6 +2000,72 @@ import {
   return product;
  }
  
+ function getListingTotalPrice(
+  product:
+    SearchRetailProduct
+ ) {
+  return (
+    product.bottlePrice +
+    (
+      product.estimatedShipping ??
+      0
+    )
+  );
+ }
+ 
+ function normalizeRetailer(
+  retailer:
+    string
+ ) {
+  return normalizeText(
+    retailer
+  )
+    .replace(
+      /\b(?:com|inc|llc|online|marketplace|store|stores|shop)\b/g,
+      " "
+    )
+    .replace(
+      /\s+/g,
+      " "
+    )
+    .trim();
+ }
+ 
+ function buildFallbackProductIdentity(
+  product:
+    SearchRetailProduct
+ ) {
+  return [
+    normalizeCompact(
+      product.productTitle
+    ),
+ 
+    normalizeCompact(
+      product.brand
+    ),
+ 
+    normalizeCompact(
+      product.dosage
+    ),
+ 
+    normalizeCompact(
+      product.form
+    ),
+ 
+    product.capsulesPerBottle,
+  ].join(
+    "|"
+  );
+ }
+ 
+ /*
+ * Keep one offer for each exact product and
+ * retailer combination.
+ *
+ * When the same retailer appears more than once
+ * for the same Google Shopping product, retain the
+ * least expensive total offer.
+ */
  function deduplicateListings(
   products:
     SearchRetailProduct[]
@@ -1379,43 +2080,36 @@ import {
     const product of
     products
   ) {
-    const key = [
-      normalizeCompact(
-        product.retailer
-      ),
+    const productIdentity =
+      product.shoppingProductId
+        ? `shopping:${product.shoppingProductId}`
+        : buildFallbackProductIdentity(
+            product
+          );
  
-      normalizeCompact(
-        product.productTitle
-      ),
+    const key =
+      [
+        productIdentity,
+        normalizeRetailer(
+          product.retailer
+        ),
+      ].join(
+        "|"
+      );
  
-      normalizeCompact(
-        product.brand
-      ),
- 
-      normalizeCompact(
-        product.dosage
-      ),
- 
-      normalizeCompact(
-        product.form
-      ),
- 
-      product.bottlePrice.toFixed(
-        2
-      ),
- 
-      product.capsulesPerBottle,
- 
-      product.shoppingProductId ??
-        "",
- 
-      product
-        .immersiveProductPageToken ??
-        "",
-    ].join("|");
+    const current =
+      uniqueProducts.get(
+        key
+      );
  
     if (
-      !uniqueProducts.has(key)
+      !current ||
+      getListingTotalPrice(
+        product
+      ) <
+        getListingTotalPrice(
+          current
+        )
     ) {
       uniqueProducts.set(
         key,
@@ -1429,13 +2123,163 @@ import {
   );
  }
  
-
+ function ensureApiKeyOnPaginationUrl({
+  url,
+  apiKey,
+ }: {
+  url:
+    string;
+ 
+  apiKey:
+    string;
+ }) {
+  try {
+    const parsedUrl =
+      new URL(
+        url
+      );
+ 
+    if (
+      !parsedUrl.searchParams.has(
+        "api_key"
+      )
+    ) {
+      parsedUrl.searchParams.set(
+        "api_key",
+        apiKey
+      );
+    }
+ 
+    return parsedUrl.toString();
+  } catch {
+    return url;
+  }
+ }
+ 
+ async function fetchShoppingPage({
+  url,
+  query,
+  pageNumber,
+ }: {
+  url:
+    string;
+ 
+  query:
+    string;
+ 
+  pageNumber:
+    number;
+ }): Promise<
+  ShoppingPageResult
+ >{
+  const response =
+    await fetch(
+      url,
+      {
+        method:
+          "GET",
+ 
+        cache:
+          "no-store",
+ 
+        headers: {
+          Accept:
+            "application/json",
+        },
+      }
+    );
+ 
+  let data:
+    SerpApiResponse;
+ 
+  try {
+    data =
+      (await response.json()) as
+        SerpApiResponse;
+  } catch {
+    throw new Error(
+      `SerpApi returned invalid JSON for "${query}" on page ${pageNumber}.`
+    );
+  }
+ 
+  if (
+    !response.ok
+  ) {
+    throw new Error(
+      stringValue(
+        data.error
+      ) ||
+      `SerpApi search failed with status ${response.status} for "${query}" on page ${pageNumber}.`
+    );
+  }
+ 
+  if (
+    typeof data.error ===
+      "string" &&
+    data.error.trim()
+  ) {
+    throw new Error(
+      data.error.trim()
+    );
+  }
+ 
+  const results =
+    Array.isArray(
+      data.shopping_results
+    )
+      ? data.shopping_results as
+          SerpApiShoppingResult[]
+      : [];
+ 
+  const nextUrl =
+    stringValue(
+      data
+        .serpapi_pagination
+        ?.next
+    ) ||
+    null;
+ 
+  console.log(
+    "VidaSearch shopping page completed:",
+    {
+      query,
+ 
+      pageNumber,
+ 
+      rawResultCount:
+        results.length,
+ 
+      hasNextPage:
+        Boolean(
+          nextUrl
+        ),
+    }
+  );
+ 
+  return {
+    results,
+ 
+    nextUrl,
+  };
+ }
+ 
  async function fetchShoppingResults({
   query,
   apiKey,
+  maxPages,
+  maxRetailListings,
  }: {
-  query: string;
-  apiKey: string;
+  query:
+    string;
+ 
+  apiKey:
+    string;
+ 
+  maxPages:
+    number;
+ 
+  maxRetailListings:
+    number;
  }): Promise<
   SerpApiShoppingResult[]
  >{
@@ -1460,221 +2304,285 @@ import {
         "true",
     });
  
-  const response =
-    await fetch(
-      `${SERP_API_ENDPOINT}?${params.toString()}`,
-      {
-        method:
-          "GET",
+  let nextUrl:
+    string | null =
+    `${SERP_API_ENDPOINT}?${params.toString()}`;
  
-        cache:
-          "no-store",
+  const results:
+    SerpApiShoppingResult[] =
+    [];
  
-        headers: {
-          Accept:
-            "application/json",
-        },
-      }
-    );
+  const visitedUrls =
+    new Set<string>();
  
-  let data:
-    SerpApiResponse;
+  let pageNumber =
+    1;
  
-  try {
-    data =
-      (await response.json()) as
-        SerpApiResponse;
-  } catch {
-    throw new Error(
-      `SerpApi returned invalid JSON for "${query}".`
-    );
-  }
+  let pagesFetched =
+    0;
  
-  if (!response.ok) {
-    throw new Error(
-      stringValue(
-        data.error
-      ) ||
-        `SerpApi search failed with status ${response.status} for "${query}".`
-    );
-  }
- 
-  if (
-    typeof data.error ===
-      "string" &&
-    data.error.trim()
+  while (
+    nextUrl &&
+    pageNumber <=
+      maxPages &&
+    results.length <
+      maxRetailListings
   ) {
-    throw new Error(
-      data.error.trim()
+    const requestUrl =
+      ensureApiKeyOnPaginationUrl({
+        url:
+          nextUrl,
+ 
+        apiKey,
+      });
+ 
+    if (
+      visitedUrls.has(
+        requestUrl
+      )
+    ) {
+      console.warn(
+        "VidaSearch pagination stopped because SerpApi returned a repeated next-page URL:",
+        {
+          query,
+          pageNumber,
+        }
+      );
+ 
+      break;
+    }
+ 
+    visitedUrls.add(
+      requestUrl
     );
+ 
+    const page =
+      await fetchShoppingPage({
+        url:
+          requestUrl,
+ 
+        query,
+ 
+        pageNumber,
+      });
+ 
+    pagesFetched +=
+      1;
+ 
+    results.push(
+      ...page.results
+    );
+ 
+    nextUrl =
+      page.nextUrl;
+ 
+    if (
+      page.results.length ===
+        0
+    ) {
+      break;
+    }
+ 
+    pageNumber +=
+      1;
   }
  
-  const results =
-    Array.isArray(
-      data.shopping_results
-    )
-      ? (
-          data.shopping_results as
-            SerpApiShoppingResult[]
-        )
-      : [];
+  const limitedResults =
+    results.slice(
+      0,
+      maxRetailListings
+    );
  
   console.log(
-    "VidaSearch expanded query completed:",
+    "VidaSearch paginated query completed:",
     {
       query,
  
+      requestedMaxPages:
+        maxPages,
+ 
+      pagesFetched,
+ 
       rawResultCount:
-        results.length,
+        limitedResults.length,
     }
   );
  
-  return results;
+  return limitedResults;
  }
-
-
+ 
  export async function findSearchProducts(
-  request: ProductSearchRequest
+  request:
+    ProductSearchRequest
  ): Promise<
   SearchRetailProduct[]
  >{
   const apiKey =
-    process.env.SERPAPI_API_KEY;
+    process.env
+      .SERPAPI_API_KEY;
  
-  if (!apiKey) {
+  if (
+    !apiKey
+  ) {
     throw new Error(
       "SERPAPI_API_KEY is not configured."
     );
   }
  
-
-
-
-
+  const maxPages =
+    clampInteger({
+      value:
+        request.maxPages,
+ 
+      fallback:
+        DEFAULT_MAX_PAGES,
+ 
+      minimum:
+        1,
+ 
+      maximum:
+        MAX_ALLOWED_PAGES,
+    });
+ 
+  const maxRetailListings =
+    clampInteger({
+      value:
+        request
+          .maxRetailListings,
+ 
+      fallback:
+        DEFAULT_MAX_RETAIL_LISTINGS,
+ 
+      minimum:
+        20,
+ 
+      maximum:
+        MAX_ALLOWED_RETAIL_LISTINGS,
+    });
+ 
   const queries =
-  buildSearchQueries(
-    request
+    buildSearchQueries(
+      request
+    );
+ 
+  console.log(
+    "VidaSearch expanded retailer search started:",
+    {
+      queries,
+ 
+      supplement:
+        request.supplement,
+ 
+      brand:
+        request.brand ??
+        null,
+ 
+      searchMode:
+        request.searchMode ??
+        "supplement",
+ 
+      expandAliases:
+        request.expandAliases ??
+        true,
+ 
+      maxPages,
+ 
+      maxRetailListings,
+    }
   );
-
-console.log(
-  "VidaSearch expanded retailer search started:",
-  {
-    queries,
-
-    supplement:
-      request.supplement,
-
-    brand:
-      request.brand ??
-      null,
+ 
+  const queryResults =
+    await Promise.allSettled(
+      queries.map(
+        (query) =>
+          fetchShoppingResults({
+            query,
+ 
+            apiKey,
+ 
+            maxPages,
+ 
+            maxRetailListings,
+          })
+      )
+    );
+ 
+  const successfulResults =
+    queryResults.flatMap(
+      (result) =>
+        result.status ===
+          "fulfilled"
+          ? result.value
+          : []
+    );
+ 
+  const failedQueries =
+    queryResults.flatMap(
+      (
+        result,
+        index
+      ) =>
+        result.status ===
+          "rejected"
+          ? [
+              {
+                query:
+                  queries[index],
+ 
+                error:
+                  result.reason instanceof
+                    Error
+                    ? result.reason
+                        .message
+                    : String(
+                        result.reason
+                      ),
+              },
+            ]
+          : []
+    );
+ 
+  if (
+    failedQueries.length >
+      0
+  ) {
+    console.error(
+      "VidaSearch expanded queries failed:",
+      failedQueries
+    );
   }
-);
-
-const queryResults =
-  await Promise.allSettled(
-    queries.map(
-      (query) =>
-        fetchShoppingResults({
-          query,
-          apiKey,
-        })
-    )
-  );
-
-const successfulResults =
-  queryResults.flatMap(
-    (result) =>
-      result.status ===
-      "fulfilled"
-        ? result.value
-        : []
-  );
-
-const failedQueries =
-  queryResults.flatMap(
-    (
-      result,
-      index
-    ) =>
-      result.status ===
-      "rejected"
-        ? [
-            {
-              query:
-                queries[index],
-
-              error:
-                result.reason instanceof
-                  Error
-                  ? result.reason
-                      .message
-                  : String(
-                      result.reason
-                    ),
-            },
-          ]
-        : []
-  );
-
-if (
-  failedQueries.length >
-  0
-) {
-  console.error(
-    "VidaSearch expanded queries failed:",
-    failedQueries
-  );
-}
-
-if (
-  successfulResults.length ===
-    0 &&
-  failedQueries.length ===
-    queries.length
-) {
-  throw new Error(
-    failedQueries[0]
-      ?.error ||
+ 
+  if (
+    successfulResults.length ===
+      0 &&
+    failedQueries.length ===
+      queries.length
+  ) {
+    throw new Error(
+      failedQueries[0]
+        ?.error ||
       "All supplement searches failed."
-  );
-}
-
-/*
- * Results from all successful query
- * expansions are validated against the
- * original requested supplement below.
- */
-const rawResults =
-  successfulResults;
-
-
-
-
-
-
-
-
-
-
-       
-
-      
-
-
+    );
+  }
+ 
+  const rawResults =
+    successfulResults;
  
   const mappedListings =
     rawResults
-      .map((result) =>
-        mapShoppingResult(
-          result,
-          request
-        )
+      .map(
+        (result) =>
+          mapShoppingResult(
+            result,
+            request
+          )
       )
       .filter(
         (
           product
         ): product is SearchRetailProduct =>
-          product !== null
+          product !==
+          null
       );
  
   const uniqueListings =
@@ -1682,145 +2590,78 @@ const rawResults =
       mappedListings
     ).slice(
       0,
-      MAX_RETAIL_LISTINGS
+      maxRetailListings
     );
  
-
-
-
-    console.log(
-      "VitaSearch retailer search completed:",
-      {
-        queries,
-     
-        rawResultCount:
-          rawResults.length,
-     
-        mappedResultCount:
-          mappedListings.length,
-     
-        uniqueRetailerListingCount:
-          uniqueListings.length,
-     
-        listingsWithImmersiveToken:
-          uniqueListings.filter(
-            (listing) =>
-              Boolean(
-                listing
-                  .immersiveProductPageToken
-              )
-          ).length,
-     
-        listingsWithMultipleSources:
-          uniqueListings.filter(
-            (listing) =>
+  console.log(
+    "VidaSearch retailer search completed:",
+    {
+      queries,
+ 
+      searchMode:
+        request.searchMode ??
+        "supplement",
+ 
+      rawResultCount:
+        rawResults.length,
+ 
+      mappedResultCount:
+        mappedListings.length,
+ 
+      duplicateListingCount:
+        Math.max(
+          0,
+          mappedListings.length -
+            uniqueListings.length
+        ),
+ 
+      uniqueRetailerListingCount:
+        uniqueListings.length,
+ 
+      listingsWithImmersiveToken:
+        uniqueListings.filter(
+          (listing) =>
+            Boolean(
               listing
-                .multipleSourcesAvailable
-          ).length,
-     
-        retailerCounts:
-          uniqueListings.reduce(
-            (
-              counts:
-                Record<
-                  string,
-                  number>
-     ,
-              listing
-            ) => {
-              counts[
-                listing.retailer
-              ] =
-                (
-                  counts[
-                    listing.retailer
-                  ] ?? 0
-                ) + 1;
-     
-              return counts;
-            },
-            {}
-          ),
-      }
-     );
-     
-
-
-     {/* const rawVendorDiagnostics =
-      rawResults.filter(
-        (result) => {
-          const title =
-            normalizeText(
-              stringValue(
-                result.title
-              )
-            );
-     
-          const source =
-            normalizeText(
-              stringValue(
-                result.source
-              )
-            );
-     
-          return (
-            title.includes(
-              "magnesium"
-            ) &&
-            (
-              title.includes(
-                "now"
-              ) ||
-              source.includes(
-                "walmart"
-              ) ||
-              source.includes(
-                "cvs"
-              )
+                .immersiveProductPageToken
             )
-          );
-        }
-      );
-     
-     const debugFilePath =
-      join(
-        process.cwd(),
-        "serpapi-shopping-debug.json"
-      );
-     
-     writeFileSync(
-      debugFilePath,
-      JSON.stringify(
-        {
-          generatedAt:
-            new Date().toISOString(),
-     
-          query,
-     
-          matchingResultCount:
-            rawVendorDiagnostics.length,
-     
-          matchingResults:
-            rawVendorDiagnostics,
-        },
-        null,
-        2
-      ),
-      "utf8"
-     );
-     
-     console.log(
-      "VitaSearch raw shopping diagnostics written:",
-      debugFilePath
-     );*/}
-     
-     return uniqueListings;
-     
-     
-
-
-
-
-
-
+        ).length,
+ 
+      listingsWithMultipleSources:
+        uniqueListings.filter(
+          (listing) =>
+            listing
+              .multipleSourcesAvailable
+        ).length,
+ 
+      retailerCounts:
+        uniqueListings.reduce(
+          (
+            counts:
+              Record<
+                string,
+                number>
+ ,
+ 
+            listing
+          ) => {
+            counts[
+              listing.retailer
+            ] =
+              (
+                counts[
+                  listing.retailer
+                ] ??
+                0
+              ) +
+              1;
+ 
+            return counts;
+          },
+          {}
+        ),
+    }
+  );
+ 
+  return uniqueListings;
  }

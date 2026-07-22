@@ -738,6 +738,39 @@ function PouchOutlineIcon() {
  );
 }
 
+function SearchQuestionIcon() {
+ return (
+   <svg
+     viewBox="0 0 24 24"
+     fill="none"
+     aria-hidden="true"
+     className="h-[27px] w-[27px]">
+
+     <circle
+       cx="10.5"
+       cy="10.5"
+       r="6.5"
+       stroke="currentColor"
+       strokeWidth="1.5"
+     />
+
+     <path
+       d="m15.5 15.5 4 4"
+       stroke="currentColor"
+       strokeWidth="1.5"
+       strokeLinecap="round"
+     />
+
+     <path
+       d="M8.8 8.8a2 2 0 0 1 3.8.9c0 1.4-1.7 1.7-1.7 3M10.9 15.7h.01"
+       stroke="currentColor"
+       strokeWidth="1.4"
+       strokeLinecap="round"
+     />
+   </svg>
+ );
+}
+
 type PromotionDetailProps = {
  icon:
    ReactNode;
@@ -1402,6 +1435,12 @@ export default function SearchResults({
    loading,
 
    error,
+
+   errorCode,
+
+   errorSuggestion,
+
+   isUnsupportedSearch,
  } =
    useSearch(
      query
@@ -1569,7 +1608,9 @@ export default function SearchResults({
    query.trim().length >
      0
      ? query.trim()
-     : "All Products";
+     : "";
+
+     {/* was "All Products" (above)*/}
 
  const visibleProducts =
    filteredProducts.slice(
@@ -1653,6 +1694,172 @@ export default function SearchResults({
  }
 
  if (
+   isUnsupportedSearch
+ ) {
+   return (
+     <div
+       className="
+         w-full
+         overflow-hidden
+         rounded-[12px]
+         border
+         border-[#E8DED4]
+         bg-[#FCF9F5]
+         px-6
+         py-14
+         text-center
+         shadow-[0_2px_10px_rgba(54,38,20,0.025)]
+         sm:px-10
+         sm:py-16
+       ">
+
+       <span
+         className="
+           mx-auto
+           flex
+           h-[58px]
+           w-[58px]
+           items-center
+           justify-center
+           rounded-full
+           bg-[#F3E8DE]
+           text-[#8C1D40]
+         ">
+
+         <SearchQuestionIcon />
+       </span>
+
+       <p
+         className="
+           mt-5
+           text-[11px]
+           font-semibold
+           uppercase
+           tracking-[0.12em]
+           text-[#8C6B55]
+         ">
+
+         Search not recognized
+       </p>
+
+       <h3
+         className="
+           mx-auto
+           mt-2
+           max-w-[650px]
+           text-[25px]
+           leading-tight
+           text-[#172127]
+           sm:text-[29px]
+         "
+         style={{
+           fontFamily:
+             'Georgia, "Times New Roman", serif',
+         }}>
+
+         “{resultLabel}” doesn’t appear to be a
+         supplement or health goal
+       </h3>
+
+       <p
+         className="
+           mx-auto
+           mt-4
+           max-w-[590px]
+           text-[13px]
+           leading-[1.65]
+           text-[#626C70]
+         ">
+
+         VidaSearch currently searches recognized
+         supplements and health goals. We won’t send
+         unrelated shopping terms to the product
+         search engine.
+       </p>
+
+       <div
+         className="
+           mx-auto
+           mt-6
+           max-w-[610px]
+           rounded-[9px]
+           border
+           border-[#E5D9CE]
+           bg-white
+           px-5
+           py-4
+         ">
+
+         <p
+           className="
+             text-[11px]
+             font-semibold
+             text-[#342F2B]
+           ">
+
+           Try a search such as:
+         </p>
+
+         <div
+           className="
+             mt-3
+             flex
+             flex-wrap
+             items-center
+             justify-center
+             gap-2
+           ">
+
+           {[
+             "Magnesium",
+             "Mood Support",
+             "Sleep",
+             "Energy",
+             "Vitamin D",
+           ].map(
+             (example) => (
+               <span
+                 key={
+                   example
+                 }
+                 className="
+                   rounded-full
+                   border
+                   border-[#DED2C7]
+                   bg-[#FBF8F4]
+                   px-3
+                   py-1.5
+                   text-[10.5px]
+                   font-medium
+                   text-[#5D554F]
+                 ">
+
+                 {example}
+               </span>
+             )
+           )}
+         </div>
+       </div>
+
+       {errorSuggestion && (
+         <p
+           className="
+             mx-auto
+             mt-4
+             max-w-[600px]
+             text-[11px]
+             leading-[1.55]
+             text-[#77706A]
+           ">
+
+           {errorSuggestion}
+         </p>
+       )}
+     </div>
+   );
+ }
+
+ if (
    error
  ) {
    return (
@@ -1687,7 +1894,11 @@ export default function SearchResults({
            text-[#667074]
          ">
 
-         Please try the search again.
+         {errorCode ===
+         "MISSING_SEARCH_QUERY"
+           ? error
+           : errorSuggestion ??
+             "Please try the search again."}
        </p>
      </div>
    );
