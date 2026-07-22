@@ -18,20 +18,16 @@ import {
 } from "@/lib/search/useSearch";
 
 import {
-  applySearchDailyDose,
- } from "@/lib/search/applySearchDailyDose";
- 
- import {
-  parseSearchDailyDose,
- } from "@/lib/search/parseSearchDailyDose";
+ applySearchDailyDose,
+} from "@/lib/search/applySearchDailyDose";
 
-
+import {
+ parseSearchDailyDose,
+} from "@/lib/search/parseSearchDailyDose";
 
 import type {
  SearchProductOption,
 } from "@/lib/search/searchProductOption";
-
-
 
 import type {
  SearchFilterState,
@@ -39,60 +35,71 @@ import type {
  SearchTestingFilter,
 } from "./types/searchFilters";
 
+import type {
+ SearchPouchItem,
+} from "./types/searchPouch";
+
+import {
+ SEARCH_PLANS,
+} from "./types/searchPlan";
 
 import type {
-  SearchPouchItem,
- } from "./types/searchPouch";
+ SearchPlan,
+ SearchPlanId,
+} from "./types/searchPlan";
 
+type SearchResultsProps = {
+ query: string;
 
+ filters:
+   SearchFilterState;
 
+ onFiltersChange:
+   Dispatch<
+     SetStateAction<
+       SearchFilterState
+>
+>;
 
+ onAvailableBrandsChange:
+   Dispatch<
+     SetStateAction<
+       string[]
+>
+>;
 
+ pouchItems:
+   SearchPouchItem[];
 
- type SearchResultsProps = {
-  query: string;
- 
-  filters:
-    SearchFilterState;
- 
-  onFiltersChange:
-    Dispatch<
-      SetStateAction<
-        SearchFilterState
- >
- >;
- 
-  onAvailableBrandsChange:
-    Dispatch<
-      SetStateAction<
-        string[]
- >
- >;
- 
-  pouchItems:
-    SearchPouchItem[];
- 
-  onAddToPouch: (
-    item:
-      SearchPouchItem
-  ) => void;
- };
- 
- 
+ onAddToPouch: (
+   item:
+     SearchPouchItem
+ ) => void;
 
+ selectedPlanId:
+   SearchPlanId;
 
+ selectedPlan:
+   SearchPlan;
 
+ onPlanChange: (
+   planId:
+     SearchPlanId
+ ) => void;
+};
 
-
-
-const INITIAL_VISIBLE_RESULTS = 6;
+const INITIAL_VISIBLE_RESULTS =
+ 6;
 
 function normalizeText(
  value: string
 ) {
  return value
    .toLowerCase()
-   .replace(/['’]/g, "")
+   .replace(
+     /['’]/g,
+     ""
+   )
    .replace(
      /[^a-z0-9]+/g,
      " "
@@ -115,7 +122,9 @@ function parsePrice(
  }
 
  const parsed =
-   Number(cleaned);
+   Number(
+     cleaned
+   );
 
  return Number.isFinite(
    parsed
@@ -325,7 +334,7 @@ function filterProducts({
          (form) =>
            normalizeText(
              product.form ??
-             ""
+               ""
            ) ===
            normalizeText(
              form
@@ -349,7 +358,9 @@ function filterProducts({
        filters.testing.length ===
          0 ||
        filters.testing.some(
-         (testingFilter) =>
+         (
+           testingFilter
+         ) =>
            matchesTestingFilter(
              product,
              testingFilter
@@ -368,30 +379,22 @@ function filterProducts({
        ) ===
          selectedBrand;
 
+     if (!matchesBrand) {
+       return false;
+     }
 
+     if (
+       filters
+         .vitaPouchEligibleOnly &&
+       !product
+         .vitaPouchFormEligible
+     ) {
+       return false;
+     }
 
-
-         if (!matchesBrand) {
-          return false;
-        }
-   
-        if (
-          filters
-            .vitaPouchEligibleOnly &&
-          !product
-            .vitaPouchFormEligible
-        ) {
-          return false;
-        }
-   
-        const monthlyPrice =
-          product
-            .displayedMonthlyCost;
-   
-
-
-
-
+     const monthlyPrice =
+       product
+         .displayedMonthlyCost;
 
      return (
        monthlyPrice >=
@@ -428,21 +431,21 @@ function sortProducts({
              .productQuality ??
            -1
          ) -
-         (
-           left.score
-             .productQuality ??
-           -1
-         ) ||
+           (
+             left.score
+               .productQuality ??
+             -1
+           ) ||
          (
            right.score
              .overall ??
            -1
          ) -
-         (
-           left.score
-             .overall ??
-           -1
-         )
+           (
+             left.score
+               .overall ??
+             -1
+           )
      );
 
    case "price-low":
@@ -484,127 +487,314 @@ function sortProducts({
            right.score.overall ??
            -1
          ) -
-         (
-           left.score.overall ??
-           -1
-         ) ||
+           (
+             left.score.overall ??
+             -1
+           ) ||
          right.vendorsCompared -
            left.vendorsCompared
      );
  }
 }
 
+type SearchPlanSelectorProps = {
+ selectedPlanId:
+   SearchPlanId;
 
+ selectedSupplementCount:
+   number;
 
+ onPlanChange: (
+   planId:
+     SearchPlanId
+ ) => void;
+};
+
+function SearchPlanSelector({
+ selectedPlanId,
+ selectedSupplementCount,
+ onPlanChange,
+}: SearchPlanSelectorProps) {
+ return (
+   <section className="mb-4">
+     <div
+       className="
+         grid
+         grid-cols-1
+         gap-3
+         md:grid-cols-3
+       ">
+
+       {SEARCH_PLANS.map(
+         (plan) => {
+           const selected =
+             plan.id ===
+             selectedPlanId;
+
+           const planTooSmall =
+             selectedSupplementCount >
+             plan.supplementLimit;
+
+           return (
+             <button
+               key={
+                 plan.id
+               }
+               type="button"
+               onClick={
+                 () =>
+                   onPlanChange(
+                     plan.id
+                   )
+               }
+               disabled={
+                 planTooSmall
+               }
+               aria-pressed={
+                 selected
+               }
+               className={`
+                 min-w-0
+                 rounded-[10px]
+                 border
+                 px-4
+                 py-4
+                 text-left
+                 transition
+                 ${
+                   selected
+                     ? `
+                         border-[#8C1D40]
+                         bg-[#FFFDFB]
+                         shadow-[inset_0_0_0_1px_#8C1D40]
+                       `
+                     : `
+                         border-[#E7DFD6]
+                         bg-white
+                         hover:border-[#CDB8AC]
+                         hover:bg-[#FFFCF9]
+                       `
+                 }
+                 disabled:cursor-not-allowed
+                 disabled:opacity-45
+               `}>
+
+               <div
+                 className="
+                   flex
+                   items-start
+                   justify-between
+                   gap-3
+                 ">
+
+                 <div
+                   className="
+                     flex
+                     min-w-0
+                     items-center
+                     gap-2
+                   ">
+
+                   {selected && (
+                     <span
+                       className="
+                         flex
+                         h-[17px]
+                         w-[17px]
+                         shrink-0
+                         items-center
+                         justify-center
+                         rounded-full
+                         bg-[#8C1D40]
+                         text-[10px]
+                         font-bold
+                         text-white
+                       "
+                       aria-hidden="true">
+
+                       ✓
+                     </span>
+                   )}
+
+                   <h3
+                     className="
+                       text-[15px]
+                       font-semibold
+                       text-[#171C1F]
+                     ">
+
+                     {plan.name}
+                   </h3>
+                 </div>
+
+                 <p
+                   className="
+                     shrink-0
+                     text-[15px]
+                     font-bold
+                     text-[#4F1118]
+                   ">
+
+                   $
+                   {plan.monthlyPrice.toFixed(
+                     2
+                   )}
+
+                   <span
+                     className="
+                       ml-0.5
+                       text-[10px]
+                       font-medium
+                       text-[#5F6669]
+                     ">
+
+                     /mo
+                   </span>
+                 </p>
+               </div>
+
+               <p
+                 className="
+                   mt-3
+                   text-[12px]
+                   font-medium
+                   text-[#343D40]
+                 ">
+
+                 {plan.description}
+               </p>
+
+               <p
+                 className="
+                   mt-2
+                   text-[11px]
+                   leading-[1.45]
+                   text-[#667074]
+                 ">
+
+                 {plan.selectionDescription}
+               </p>
+
+               {planTooSmall && (
+                 <p
+                   className="
+                     mt-2
+                     text-[10px]
+                     font-semibold
+                     text-[#A23636]
+                   ">
+
+                   Remove supplements before
+                   selecting this plan.
+                 </p>
+               )}
+             </button>
+           );
+         }
+       )}
+     </div>
+   </section>
+ );
+}
 
 export default function SearchResults({
-  query,
-  filters,
-  onFiltersChange,
-  onAvailableBrandsChange,
-  pouchItems,
-  onAddToPouch,
- }: SearchResultsProps) {
-
-
-
-
+ query,
+ filters,
+ onFiltersChange,
+ onAvailableBrandsChange,
+ pouchItems,
+ onAddToPouch,
+ selectedPlanId,
+ selectedPlan,
+ onPlanChange,
+}: SearchResultsProps) {
  const {
    results:
      searchProducts,
    loading,
    error,
- } = useSearch(query);
-
-
-
+ } =
+   useSearch(
+     query
+   );
 
  const [
    visibleResultCount,
    setVisibleResultCount,
- ] = useState(
-   INITIAL_VISIBLE_RESULTS
- );
-
+ ] =
+   useState(
+     INITIAL_VISIBLE_RESULTS
+   );
 
  useEffect(
-  () => {
-    const brands =
-      Array.from(
-        new Set(
-          searchProducts
-            .map(
-              (product) =>
-                product.brand
-                  .trim()
-            )
-            .filter(
-              (brand) =>
-                brand.length >
-                  0 &&
-                brand
-                  .toLowerCase() !==
-                  "unknown brand"
-            )
-        )
-      ).sort(
-        (
-          left,
-          right
-        ) =>
-          left.localeCompare(
-            right
-          )
-      );
+   () => {
+     const brands =
+       Array.from(
+         new Set(
+           searchProducts
+             .map(
+               (product) =>
+                 product.brand
+                   .trim()
+             )
+             .filter(
+               (brand) =>
+                 brand.length >
+                   0 &&
+                 brand
+                   .toLowerCase() !==
+                   "unknown brand"
+             )
+         )
+       ).sort(
+         (
+           left,
+           right
+         ) =>
+           left.localeCompare(
+             right
+           )
+       );
 
-    onAvailableBrandsChange(
-      brands
-    );
+     onAvailableBrandsChange(
+       brands
+     );
 
-    /*
-     * Reset a previously selected brand
-     * when it is not present in the new
-     * search results.
-     */
-    onFiltersChange(
-      (current) => {
-        if (
-          current.brand ===
-            "all" ||
-          brands.some(
-            (brand) =>
-              normalizeText(
-                brand
-              ) ===
-              normalizeText(
-                current.brand
-              )
-          )
-        ) {
-          return current;
-        }
+     onFiltersChange(
+       (current) => {
+         if (
+           current.brand ===
+             "all" ||
+           brands.some(
+             (brand) =>
+               normalizeText(
+                 brand
+               ) ===
+               normalizeText(
+                 current.brand
+               )
+           )
+         ) {
+           return current;
+         }
 
-        return {
-          ...current,
+         return {
+           ...current,
 
-          brand:
-            "all",
-        };
-      }
-    );
-  },
-  [
-    searchProducts,
-    onAvailableBrandsChange,
-    onFiltersChange,
-  ]
-);
+           brand:
+             "all",
+         };
+       }
+     );
+   },
+   [
+     searchProducts,
+     onAvailableBrandsChange,
+     onFiltersChange,
+   ]
+ );
 
-
-
-
-
-const filteredProducts =
+ const filteredProducts =
    useMemo(
      () => {
        const parsedDailyDose =
@@ -647,13 +837,6 @@ const filteredProducts =
            filters.sort,
        });
      },
-
-
-
-
-
-
-
      [
        searchProducts,
        filters,
@@ -673,7 +856,8 @@ const filteredProducts =
  );
 
  const resultLabel =
-   query.trim().length > 0
+   query.trim().length >
+     0
      ? query.trim()
      : "All Products";
 
@@ -816,6 +1000,7 @@ const filteredProducts =
            }}>
 
            Results for:{" "}
+
            <span className="text-[#71162F]">
              {resultLabel}
            </span>
@@ -831,7 +1016,8 @@ const filteredProducts =
            Showing{" "}
            {visibleProducts.length} of{" "}
            {filteredProducts.length} result
-           {filteredProducts.length !== 1
+           {filteredProducts.length !==
+           1
              ? "s"
              : ""}
          </p>
@@ -853,7 +1039,9 @@ const filteredProducts =
            shadow-[0_1px_4px_rgba(36,49,53,0.03)]
          ">
 
-         <span>Sort by:</span>
+         <span>
+           Sort by:
+         </span>
 
          <select
            value={
@@ -910,6 +1098,68 @@ const filteredProducts =
        </label>
      </div>
 
+     <SearchPlanSelector
+       selectedPlanId={
+         selectedPlanId
+       }
+       selectedSupplementCount={
+         pouchItems.length
+       }
+       onPlanChange={
+         onPlanChange
+       }
+     />
+
+     <div
+       className="
+         mb-4
+         flex
+         items-start
+         gap-3
+         rounded-[9px]
+         border
+         border-[#E8DDD3]
+         bg-[#FCF8F3]
+         px-4
+         py-3
+       ">
+
+       <span
+         className="
+           flex
+           h-[19px]
+           w-[19px]
+           shrink-0
+           items-center
+           justify-center
+           rounded-full
+           border
+           border-[#9B8B7C]
+           text-[11px]
+           font-semibold
+           text-[#665B52]
+         "
+         aria-hidden="true">
+
+         i
+       </span>
+
+       <p
+         className="
+           text-[11px]
+           leading-[1.55]
+           text-[#504943]
+         ">
+
+         Choose your exact brand and dosage.
+         Your {selectedPlan.name} Plan includes
+         up to{" "}
+         {selectedPlan.supplementLimit} supplements.
+         Premium selections will show any add-on
+         before checkout.
+       </p>
+     </div>
+
      {filteredProducts.length >
      0 ? (
        <div
@@ -956,7 +1206,7 @@ const filteredProducts =
                text-[#081620]
              ">
 
-             Buy Bottle{" "}
+             Buy Bottle
 
              <span
                className="
@@ -983,7 +1233,7 @@ const filteredProducts =
                underline-offset-4
              ">
 
-             Add to VidaPouch
+             Add to VidaPouch Plan
            </div>
          </div>
 
@@ -1039,16 +1289,18 @@ const filteredProducts =
              <p
                className="
                  mt-1
-                 max-w-[620px]
+                 max-w-[680px]
                  text-[13px]
                  leading-[1.55]
                  text-[#354044]
                ">
 
-               Buy a full bottle from trusted
-               retailers, or add to your
-               personalized pouch and only pay
-               for what you need.
+               Purchase a full bottle from a
+               trusted retailer, or add this
+               supplement to your{" "}
+               {selectedPlan.name} VidaPouch
+               Plan. Exact brands and dosages
+               are supported.
              </p>
            </div>
          </div>
@@ -1060,30 +1312,38 @@ const filteredProducts =
              (product) => (
                
                
-               
-<ProductCard
- key={`${product.brand}-${product.productName}`}
- product={product}
- isInPouch={
-   pouchItems.some(
-     (item) =>
-       item.id ===
-       (
-         product
-           .representativeProduct
-           .shoppingProductId ??
-         `${product.brand}-${product.productName}`
-       )
-   )
- }
- onAddToPouch={
-   onAddToPouch
- }
-/>
+               <ProductCard
+                 key={`${product.brand}-${product.productName}`}
+                 product={
+                   product
+                 }
+                 isInPouch={
+                   pouchItems.some(
+                     (item) =>
+                       item.id ===
+                       (
+                         product
+                           .representativeProduct
+                           .shoppingProductId ??
+                         `${product.brand}-${product.productName}`
+                       )
+                   )
+                 }
+
+                 selectedPlan={
+                  selectedPlan
+                 }
+                 
+                 selectedSupplementCount={
+                  pouchItems.length
+                 }
 
 
 
-
+                 onAddToPouch={
+                   onAddToPouch
+                 }
+               />
              )
            )}
          </div>

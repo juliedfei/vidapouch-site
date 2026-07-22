@@ -4,74 +4,70 @@ import {
  useState,
 } from "react";
 
-
-
-
 import type {
  SearchProductOption,
  SearchProductUnitLabel,
 } from "@/lib/search/searchProductOption";
 
+import type {
+ SearchPouchItem,
+} from "./types/searchPouch";
 
 import type {
-  SearchPouchItem,
- } from "./types/searchPouch";
+ SearchPlan,
+} from "./types/searchPlan";
 
- import {
-  getSearchPouchTiming,
- } from "@/lib/search/getSearchPouchTiming";
+import {
+ getSearchPouchTiming,
+} from "@/lib/search/getSearchPouchTiming";
 
+type ProductCardProps = {
+ product:
+   SearchProductOption;
 
+ isInPouch:
+   boolean;
 
+ selectedPlan:
+   SearchPlan;
 
- type ProductCardProps = {
-  product:
-    SearchProductOption;
- 
-  isInPouch:
-    boolean;
- 
-  onAddToPouch: (
-    item:
-      SearchPouchItem
-  ) => void;
- };
+ selectedSupplementCount:
+   number;
 
-
-
+ onAddToPouch: (
+   item:
+     SearchPouchItem
+ ) => void;
+};
 
 type VendorLinkResponse = {
-  url?: string;
-  
-  error?: string;
-  
-  matchType?: string;
-  
-  retailer?: string;
-  
-  productTitle?: string;
-  
-  merchantProductTitle?: string;
-  
-  originalBottlePrice?:
-    number | null;
-  
-  liveBottlePrice?:
-    number | null;
-  
-  priceChanged?: boolean;
-  
-  priceDifferenceAmount?:
-    number | null;
-  
-  priceDifferencePercentage?:
-    number | null;
-  };
+ url?: string;
 
+ error?: string;
 
+ matchType?: string;
 
+ retailer?: string;
 
+ productTitle?: string;
 
+ merchantProductTitle?: string;
+
+ originalBottlePrice?:
+   number | null;
+
+ liveBottlePrice?:
+   number | null;
+
+ priceChanged?:
+   boolean;
+
+ priceDifferenceAmount?:
+   number | null;
+
+ priceDifferencePercentage?:
+   number | null;
+};
 
 function formatCurrency(
  value: number
@@ -86,7 +82,9 @@ function clampScore(
    0,
    Math.min(
      100,
-     Math.round(value)
+     Math.round(
+       value
+     )
    )
  );
 }
@@ -96,7 +94,9 @@ function formatReviewCount(
 ) {
  return new Intl.NumberFormat(
    "en-US"
- ).format(value);
+ ).format(
+   value
+ );
 }
 
 function getPluralUnitLabel(
@@ -150,7 +150,8 @@ function RatingStars({
 
  const filledWidth =
    `${(
-     normalizedRating / 5
+     normalizedRating /
+     5
    ) * 100}%`;
 
  return (
@@ -198,93 +199,243 @@ function RatingStars({
  );
 }
 
+function CalendarIcon() {
+ return (
+   <svg
+     viewBox="0 0 24 24"
+     fill="none"
+     aria-hidden="true"
+     className="h-[16px] w-[16px]">
+
+     <rect
+       x="4.5"
+       y="5.5"
+       width="15"
+       height="14"
+       rx="2"
+       stroke="currentColor"
+       strokeWidth="1.5"
+     />
+
+     <path
+       d="M8 3.5v4M16 3.5v4M4.5 9.5h15"
+       stroke="currentColor"
+       strokeWidth="1.5"
+       strokeLinecap="round"
+     />
+
+     <path
+       d="M9 13h2v2H9z"
+       fill="currentColor"
+     />
+   </svg>
+ );
+}
+
+function ShieldIcon() {
+ return (
+   <svg
+     viewBox="0 0 24 24"
+     fill="none"
+     aria-hidden="true"
+     className="h-[16px] w-[16px]">
+
+     <path
+       d="M12 3.5 19 6v5.2c0 4.4-2.8 7.4-7 9.3-4.2-1.9-7-4.9-7-9.3V6l7-2.5Z"
+       stroke="currentColor"
+       strokeWidth="1.5"
+       strokeLinejoin="round"
+     />
+
+     <path
+       d="m9.2 12 1.8 1.8 3.8-4"
+       stroke="currentColor"
+       strokeWidth="1.5"
+       strokeLinecap="round"
+       strokeLinejoin="round"
+     />
+   </svg>
+ );
+}
+
+function PersonIcon() {
+ return (
+   <svg
+     viewBox="0 0 24 24"
+     fill="none"
+     aria-hidden="true"
+     className="h-[16px] w-[16px]">
+
+     <circle
+       cx="12"
+       cy="8"
+       r="3"
+       stroke="currentColor"
+       strokeWidth="1.5"
+     />
+
+     <path
+       d="M6.5 19c.4-3.4 2.3-5.2 5.5-5.2s5.1 1.8 5.5 5.2"
+       stroke="currentColor"
+       strokeWidth="1.5"
+       strokeLinecap="round"
+     />
+   </svg>
+ );
+}
+
+function CheckCircleIcon() {
+ return (
+   <svg
+     viewBox="0 0 24 24"
+     fill="none"
+     aria-hidden="true"
+     className="h-[16px] w-[16px]">
+
+     <circle
+       cx="12"
+       cy="12"
+       r="8.5"
+       stroke="currentColor"
+       strokeWidth="1.5"
+     />
+
+     <path
+       d="m8.5 12.2 2.2 2.2 4.8-5"
+       stroke="currentColor"
+       strokeWidth="1.5"
+       strokeLinecap="round"
+       strokeLinejoin="round"
+     />
+   </svg>
+ );
+}
+
+function InfoIcon() {
+ return (
+   <svg
+     viewBox="0 0 24 24"
+     fill="none"
+     aria-hidden="true"
+     className="h-[16px] w-[16px]">
+
+     <circle
+       cx="12"
+       cy="12"
+       r="8.5"
+       stroke="currentColor"
+       strokeWidth="1.5"
+     />
+
+     <path
+       d="M12 10.5v5M12 7.5h.01"
+       stroke="currentColor"
+       strokeWidth="1.7"
+       strokeLinecap="round"
+     />
+   </svg>
+ );
+}
+
+type PlanDetailRowProps = {
+ icon:
+   React.ReactNode;
+
+ children:
+   React.ReactNode;
+};
+
+function PlanDetailRow({
+ icon,
+ children,
+}: PlanDetailRowProps) {
+ return (
+   <div
+     className="
+       flex
+       items-start
+       gap-2.5
+       text-[11px]
+       leading-[1.45]
+       text-[#4F5A5E]
+     ">
+
+     <span
+       className="
+         mt-[1px]
+         shrink-0
+         text-[#8C6B55]
+       ">
+
+       {icon}
+     </span>
+
+     <span>
+       {children}
+     </span>
+   </div>
+ );
+}
 
 export default function ProductCard({
-  product,
-  isInPouch,
-  onAddToPouch,
- }: ProductCardProps) {
-
-
-
-
+ product,
+ isInPouch,
+ selectedPlan,
+ selectedSupplementCount,
+ onAddToPouch,
+}: ProductCardProps) {
  const [
    isFindingVendorLink,
    setIsFindingVendorLink,
- ] = useState(false);
-
-
-
+ ] =
+   useState(
+     false
+   );
 
  const [
    vendorLinkError,
    setVendorLinkError,
- ] = useState("");
-
+ ] =
+   useState(
+     ""
+   );
 
  const [
-  resolvedBottlePrice,
-  setResolvedBottlePrice,
- ] = useState<
-  number | null
- >(null);
- 
- {/* const [
-  vendorPriceNotice,
-  setVendorPriceNotice,
- ] = useState(""); */}
- 
-
-
-
+   resolvedBottlePrice,
+   setResolvedBottlePrice,
+ ] =
+   useState<
+     number | null>
+(
+     null
+   );
 
  const representative =
-   product.representativeProduct;
+   product
+     .representativeProduct;
 
-
-
-
-   const bottleUnitCount =
+ const bottleUnitCount =
    representative
      .capsulesPerBottle;
-  
-  const displayedBottlePrice =
+
+ const displayedBottlePrice =
    resolvedBottlePrice ??
-   representative.bottlePrice;
-  
-  const bottlePricePerUnit =
+   representative
+     .bottlePrice;
+
+ const bottlePricePerUnit =
    bottleUnitCount > 0
      ? displayedBottlePrice /
        bottleUnitCount
      : null;
 
+ const pouchUnitsPerDay =
+   product.unitsPerDay ??
+   1;
 
-
-
-
-/*
- * The Daily Dose filter places the actual
- * required number of physical units per
- * day on the product.
- */
-const pouchUnitsPerDay =
-  product.unitsPerDay ??
-  1;
-
-const pouchUnitCount =
-  pouchUnitsPerDay *
-  30;
-
-
-
-
-
- const pouchPricePerUnit =
-   pouchUnitCount > 0
-     ? product
-         .displayedMonthlyCost /
-       pouchUnitCount
-     : null;
+ const pouchUnitCount =
+   pouchUnitsPerDay *
+   30;
 
  const unitLabel =
    product.unitLabel;
@@ -305,7 +456,8 @@ const pouchUnitCount =
    product.score.overall !==
    null
      ? clampScore(
-         product.score.overall
+         product.score
+           .overall
        )
      : null;
 
@@ -313,51 +465,53 @@ const pouchUnitCount =
    representative.rating;
 
  const retailerReviewCount =
-   representative.reviewCount;
+   representative
+     .reviewCount;
 
  const hasRetailerRating =
    typeof retailerRating ===
      "number" &&
    retailerRating > 0;
 
-
-
-
-
-
-   const productClaims =
+ const productClaims =
    Array.from(
      new Set([
        ...product.certifications,
- 
+
        ...product.qualityClaims,
- 
-       product.verifiedClaims
+
+       product
+         .verifiedClaims
          .nsfCertified
          ? "NSF Certified"
          : null,
- 
-       product.verifiedClaims
+
+       product
+         .verifiedClaims
          .uspVerified
          ? "USP Verified"
          : null,
- 
-       product.verifiedClaims
+
+       product
+         .verifiedClaims
          .thirdPartyTested
          ? "Third-Party Tested"
          : null,
- 
-       product.verifiedClaims
+
+       product
+         .verifiedClaims
          .vegan
          ? "Vegan"
          : null,
- 
-       product.verifiedClaims
+
+       product
+         .verifiedClaims
          .nonGmo
          ? "Non-GMO"
          : null,
- 
-       product.verifiedClaims
+
+       product
+         .verifiedClaims
          .glutenFree
          ? "Gluten-Free"
          : null,
@@ -372,11 +526,6 @@ const pouchUnitCount =
          0
    );
 
-
-
-
-
-
  const dosageLabel =
    product.dosage ||
    "Not specified";
@@ -386,7 +535,8 @@ const pouchUnitCount =
    "Not specified";
 
  const dosageBasisLabel =
-   product.dosageIsPerServing ===
+   product
+     .dosageIsPerServing ===
    true
      ? "Per serving"
      : product
@@ -395,361 +545,325 @@ const pouchUnitCount =
        ? `Per ${unitLabel}`
        : null;
 
-
  const canAddToVitaPouch =
-   product.vitaPouchFormEligible;
+   product
+     .vitaPouchFormEligible;
 
-
-   const recommendedPouchTiming =
+ const recommendedPouchTiming =
    getSearchPouchTiming(
      product
    );
- 
 
+ const pouchItemId =
+   representative
+     .shoppingProductId ??
+   `${product.brand}-${product.productName}`;
 
+ const planIsFull =
+   selectedSupplementCount >=
+     selectedPlan
+       .supplementLimit &&
+   !isInPouch;
 
+ const addButtonDisabled =
+   isInPouch ||
+   planIsFull;
 
-const pouchItemId =
-  representative
-    .shoppingProductId ??
-  `${product.brand}-${product.productName}`;
-
-function handleAddToPouch() {
-  if (
-    !canAddToVitaPouch ||
-    isInPouch
-  ) {
-    return;
-  }
-
-  onAddToPouch({
-    id:
-      pouchItemId,
-
-    shoppingProductId:
-      representative
-        .shoppingProductId ??
-      null,
-
-    productName:
-      product.productName,
-
-    brand:
-      product.brand,
-
-    dosage:
-      product.dosage,
-
-    form:
-      product.form,
-
-    unitLabel:
-      product.unitLabel,
-
-    unitsPerDay:
-      pouchUnitsPerDay,
-
-    monthlyUnitCount:
-      pouchUnitCount,
-
-    monthlyPrice:
-      product
-        .displayedMonthlyCost,
-
-    bottlePrice:
-      representative
-        .bottlePrice,
-
-    retailer:
-      representative
-        .retailer,
-
-    imageUrl:
-      representative
-        .imageUrl ??
-      null,
-
-    vitaPouchScore:
-      vidaPouchScore,
-
-    certifications:
-      product.certifications,
-
-    qualityClaims:
-      product.qualityClaims,
-
-    /*
-     * Morning is the initial default.
-     * Timing can become editable inside
-     * My Pouch afterward.
-     */
-
-
-    timing:
-    recommendedPouchTiming
-      .timing,
-
-  recommendedTiming:
-    recommendedPouchTiming
-      .timing,
-
-  timingPreference:
-    "vidapouch",
-
-
-
-
-
-  timingReason:
-    recommendedPouchTiming
-      .reason,
-
-
-
-
-  });
-}
-
-
-
-
-   async function handleBuyBottle() {
-    if (
-      isFindingVendorLink
-    ) {
-      return;
-    }
-   
-    const immersiveProductPageToken =
-      representative
-        .immersiveProductPageToken;
-   
-    if (
-      !immersiveProductPageToken
-    ) {
-      setVendorLinkError(
-        "The exact Google Shopping product token is missing for this listing."
-      );
-   
-      return;
-    }
-   
-    setVendorLinkError("");
-    {/* setVendorPriceNotice(""); */}
-    setIsFindingVendorLink(
-      true
-    );
-   
-    /*
-     * Open the tab during the original click
-     * so Safari does not block it after the
-     * asynchronous product lookup.
-     */
-    const vendorWindow =
-      window.open(
-        "",
-        "_blank"
-      );
-   
-    if (vendorWindow) {
-      vendorWindow.document.title =
-        `Opening ${representative.retailer}…`;
-   
-      vendorWindow.document.body.innerHTML =
-        `
-          <div style="
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-            box-sizing: border-box;
-            font-family: Arial, sans-serif;
-            color: #17252c;
-            background: #faf8f6;
-            text-align: center;
-          ">
-            Confirming the exact
-            ${representative.retailer}
-            product and current price…
-          </div>
-        `;
-    }
-   
-    try {
-      const response =
-        await fetch(
-          "/api/search/vendor-link",
-          {
-            method: "POST",
-   
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-   
-            body:
-              JSON.stringify({
-                retailer:
-                  representative
-                    .retailer,
-   
-                productTitle:
-                  product
-                    .productName,
-   
-                bottlePrice:
-                  representative
-                    .bottlePrice,
-   
-                shoppingProductId:
-                  representative
-                    .shoppingProductId,
-   
-                immersiveProductPageToken:
-                  representative
-                    .immersiveProductPageToken,
-   
-                serpApiImmersiveProductUrl:
-                  representative
-                    .serpApiImmersiveProductUrl,
-              }),
-          }
-        );
-   
-      let data:
-        VendorLinkResponse;
-   
-      try {
-        data =
-          (await response.json()) as
-            VendorLinkResponse;
-      } catch {
-        throw new Error(
-          "The vendor-link service returned an invalid response."
-        );
-      }
-   
-      if (
-        !response.ok ||
-        !data.url
-      ) {
-        throw new Error(
-          data.error ||
-            `The exact ${representative.retailer} offer could not be found.`
-        );
-      }
-   
-      const liveBottlePrice =
-        typeof data.liveBottlePrice ===
-          "number" &&
-        Number.isFinite(
-          data.liveBottlePrice
-        ) &&
-        data.liveBottlePrice > 0
-          ? data.liveBottlePrice
-          : null;
-   
-      if (
-        liveBottlePrice !== null
-      ) {
-        setResolvedBottlePrice(
-          liveBottlePrice
-        );
-      }
-   
-
-
-   {/*}   
-      if (
-        data.priceChanged &&
-        liveBottlePrice !== null
-      ) {
-        setVendorPriceNotice(
-          `Current ${representative.retailer} price: ${formatCurrency(
-            liveBottlePrice
-          )}. The original Google Shopping price was ${formatCurrency(
-            representative
-              .bottlePrice
-          )}.`
-        );
-      } else if (
-        liveBottlePrice !== null
-      ) {
-        setVendorPriceNotice(
-          `Current price confirmed at ${formatCurrency(
-            liveBottlePrice
-          )}.`
-        );
-      }  */}
-   
-      if (vendorWindow) {
-        vendorWindow.opener =
-          null;
-   
-        vendorWindow.location.href =
-          data.url;
-      } else {
-        window.location.href =
-          data.url;
-      }
-    } catch (
-      error
-    ) {
-      if (
-        vendorWindow &&
-        !vendorWindow.closed
-      ) {
-        vendorWindow.close();
-      }
-   
-      const message =
-        error instanceof Error
-          ? error.message
-          : "The exact vendor offer could not be found.";
-   
-      console.error(
-        "VitaSearch Buy Bottle failed:",
-        {
-          retailer:
-            representative
-              .retailer,
-   
-          productTitle:
-            product
-              .productName,
-   
-          shoppingProductId:
-            representative
-              .shoppingProductId ??
-            null,
-   
-          hasImmersiveProductPageToken:
-            Boolean(
-              representative
-                .immersiveProductPageToken
-            ),
-   
-          error:
-            message,
-        }
-      );
-   
-      setVendorLinkError(
-        message
-      );
-    } finally {
-      setIsFindingVendorLink(
-        false
-      );
-    }
+ function handleAddToPouch() {
+   if (
+     !canAddToVitaPouch ||
+     addButtonDisabled
+   ) {
+     return;
    }
-   
 
+   onAddToPouch({
+     id:
+       pouchItemId,
 
+     shoppingProductId:
+       representative
+         .shoppingProductId ??
+       null,
 
+     productName:
+       product.productName,
 
+     brand:
+       product.brand,
 
+     dosage:
+       product.dosage,
+
+     form:
+       product.form,
+
+     unitLabel:
+       product.unitLabel,
+
+     unitsPerDay:
+       pouchUnitsPerDay,
+
+     monthlyUnitCount:
+       pouchUnitCount,
+
+     /*
+      * Retained internally for future
+      * premium-selection calculations.
+      *
+      * This value is no longer displayed
+      * as the customer-facing plan price.
+      */
+     monthlyPrice:
+       product
+         .displayedMonthlyCost,
+
+     bottlePrice:
+       representative
+         .bottlePrice,
+
+     retailer:
+       representative
+         .retailer,
+
+     imageUrl:
+       representative
+         .imageUrl ??
+       null,
+
+     vitaPouchScore:
+       vidaPouchScore,
+
+     certifications:
+       product.certifications,
+
+     qualityClaims:
+       product.qualityClaims,
+
+     timing:
+       recommendedPouchTiming
+         .timing,
+
+     recommendedTiming:
+       recommendedPouchTiming
+         .timing,
+
+     timingPreference:
+       "vidapouch",
+
+     timingReason:
+       recommendedPouchTiming
+         .reason,
+   });
+ }
+
+ async function handleBuyBottle() {
+   if (
+     isFindingVendorLink
+   ) {
+     return;
+   }
+
+   const immersiveProductPageToken =
+     representative
+       .immersiveProductPageToken;
+
+   if (
+     !immersiveProductPageToken
+   ) {
+     setVendorLinkError(
+       "The exact Google Shopping product token is missing for this listing."
+     );
+
+     return;
+   }
+
+   setVendorLinkError(
+     ""
+   );
+
+   setIsFindingVendorLink(
+     true
+   );
+
+   const vendorWindow =
+     window.open(
+       "",
+       "_blank"
+     );
+
+   if (vendorWindow) {
+     vendorWindow.document.title =
+       `Opening ${representative.retailer}…`;
+
+     vendorWindow.document.body.innerHTML =
+       `
+         <div style="
+           min-height: 100vh;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           padding: 24px;
+           box-sizing: border-box;
+           font-family: Arial, sans-serif;
+           color: #17252c;
+           background: #faf8f6;
+           text-align: center;
+         ">
+           Confirming the exact
+           ${representative.retailer}
+           product and current price…
+         </div>
+       `;
+   }
+
+   try {
+     const response =
+       await fetch(
+         "/api/search/vendor-link",
+         {
+           method:
+             "POST",
+
+           headers: {
+             "Content-Type":
+               "application/json",
+           },
+
+           body:
+             JSON.stringify({
+               retailer:
+                 representative
+                   .retailer,
+
+               productTitle:
+                 product
+                   .productName,
+
+               bottlePrice:
+                 representative
+                   .bottlePrice,
+
+               shoppingProductId:
+                 representative
+                   .shoppingProductId,
+
+               immersiveProductPageToken:
+                 representative
+                   .immersiveProductPageToken,
+
+               serpApiImmersiveProductUrl:
+                 representative
+                   .serpApiImmersiveProductUrl,
+             }),
+         }
+       );
+
+     let data:
+       VendorLinkResponse;
+
+     try {
+       data =
+         (await response.json()) as
+           VendorLinkResponse;
+     } catch {
+       throw new Error(
+         "The vendor-link service returned an invalid response."
+       );
+     }
+
+     if (
+       !response.ok ||
+       !data.url
+     ) {
+       throw new Error(
+         data.error ||
+           `The exact ${representative.retailer} offer could not be found.`
+       );
+     }
+
+     const liveBottlePrice =
+       typeof data
+         .liveBottlePrice ===
+         "number" &&
+       Number.isFinite(
+         data.liveBottlePrice
+       ) &&
+       data.liveBottlePrice >
+         0
+         ? data.liveBottlePrice
+         : null;
+
+     if (
+       liveBottlePrice !==
+       null
+     ) {
+       setResolvedBottlePrice(
+         liveBottlePrice
+       );
+     }
+
+     if (vendorWindow) {
+       vendorWindow.opener =
+         null;
+
+       vendorWindow.location.href =
+         data.url;
+     } else {
+       window.location.href =
+         data.url;
+     }
+   } catch (
+     error
+   ) {
+     if (
+       vendorWindow &&
+       !vendorWindow.closed
+     ) {
+       vendorWindow.close();
+     }
+
+     const message =
+       error instanceof Error
+         ? error.message
+         : "The exact vendor offer could not be found.";
+
+     console.error(
+       "VidaSearch Buy Bottle failed:",
+       {
+         retailer:
+           representative
+             .retailer,
+
+         productTitle:
+           product
+             .productName,
+
+         shoppingProductId:
+           representative
+             .shoppingProductId ??
+           null,
+
+         hasImmersiveProductPageToken:
+           Boolean(
+             representative
+               .immersiveProductPageToken
+           ),
+
+         error:
+           message,
+       }
+     );
+
+     setVendorLinkError(
+       message
+     );
+   } finally {
+     setIsFindingVendorLink(
+       false
+     );
+   }
+ }
 
  return (
    <article
@@ -763,7 +877,7 @@ function handleAddToPouch() {
        border-[#EEE7DF]
        bg-white
        last:border-b-0
-       lg:grid-cols-[minmax(0,1.65fr)_minmax(155px,0.68fr)_minmax(175px,0.77fr)]
+       lg:grid-cols-[minmax(0,1.65fr)_minmax(155px,0.68fr)_minmax(190px,0.82fr)]
      ">
 
      {/* Product and score */}
@@ -779,8 +893,6 @@ function handleAddToPouch() {
          py-5
          lg:border-b-0
        ">
-
-       {/* Product image */}
 
        <div
          className="
@@ -806,7 +918,8 @@ function handleAddToPouch() {
 
              <img
                src={
-                 representative.imageUrl
+                 representative
+                   .imageUrl
                }
                alt={`${product.productName} product`}
                className="
@@ -841,8 +954,6 @@ function handleAddToPouch() {
            </div>
          )}
        </div>
-
-       {/* Product details */}
 
        <div className="min-w-0 flex-1">
          <h3
@@ -896,8 +1007,6 @@ function handleAddToPouch() {
              </span>
            )}
          </div>
-
-         {/* Dosage and form */}
 
          <div
            className="
@@ -989,8 +1098,6 @@ function handleAddToPouch() {
            </div>
          </div>
 
-         {/* VitaPouch score */}
-
          <div
            className="
              mt-3
@@ -1016,8 +1123,8 @@ function handleAddToPouch() {
              aria-label={
                vidaPouchScore !==
                null
-                 ? `VitaPouch score ${vidaPouchScore} out of 100`
-                 : "VitaPouch score not available"
+                 ? `VidaPouch score ${vidaPouchScore} out of 100`
+                 : "VidaPouch score not available"
              }>
 
              <span
@@ -1044,8 +1151,6 @@ function handleAddToPouch() {
            </p>
          </div>
 
-         {/* Certifications */}
-
          {productClaims.length >
            0 && (
            <div
@@ -1059,7 +1164,9 @@ function handleAddToPouch() {
              {productClaims.map(
                (claim) => (
                  <span
-                   key={claim}
+                   key={
+                     claim
+                   }
                    className="
                      whitespace-nowrap
                      rounded
@@ -1119,17 +1226,9 @@ function handleAddToPouch() {
              text-[#081620]
            ">
 
-
-
-
-{formatCurrency(
- displayedBottlePrice
-)}
-
-
-
-
-
+           {formatCurrency(
+             displayedBottlePrice
+           )}
          </p>
 
          {bottlePricePerUnit !==
@@ -1282,22 +1381,6 @@ function handleAddToPouch() {
            : `Buy at ${representative.retailer}`}
        </button>
 
-{/*
-       {vendorPriceNotice && (
- <p
-   className="
-     mt-2
-     text-[10px]
-     leading-[1.4]
-     text-[#596367]
-   "
-   role="status">
-
-   {vendorPriceNotice}
- </p>
-)} */}
-
-
        {vendorLinkError && (
          <p
            className="
@@ -1311,12 +1394,9 @@ function handleAddToPouch() {
            {vendorLinkError}
          </p>
        )}
-
-
-
      </div>
 
-     {/* Add to VitaPouch */}
+     {/* Add to VidaPouch plan */}
 
      <div
        className="
@@ -1332,137 +1412,187 @@ function handleAddToPouch() {
        {canAddToVitaPouch ? (
          <>
            <div className="min-w-0">
-             <p
-               className="
-                 whitespace-nowrap
-                 text-[11px]
-                 leading-5
-                 text-[#485256]
-               ">
-
-               {pouchUnitCount}{" "}
-               {pouchPluralUnitLabel}
-             </p>
-
-             <p
-               className="
-                 mt-1
-                 whitespace-nowrap
-                 text-[23px]
-                 font-semibold
-                 leading-none
-                 tracking-[-0.025em]
-                 text-[#081620]
-               ">
-
-               {formatCurrency(
-                 product
-                   .displayedMonthlyCost
-               )}
-             </p>
-
-             {pouchPricePerUnit !==
-               null && (
-               <p
-                 className="
-                   mt-2
-                   whitespace-nowrap
-                   text-[11px]
-                   leading-5
-                   text-[#596367]
-                 ">
-
-                 {formatCurrency(
-                   pouchPricePerUnit
-                 )}{" "}
-                 / {unitLabel}
-               </p>
-             )}
-
              <div
                className="
-                 mt-4
-                 text-[11px]
-                 leading-[1.55]
+                 flex
+                 items-center
+                 gap-2
                  text-[#4F5A5E]
                ">
 
-               <p>
-                 Only pay for what you need.
-               </p>
+               <CalendarIcon />
 
-               <p className="mt-1">
-                 Ships in your daily pouch.
+               <p
+                 className="
+                   text-[11px]
+                   font-medium
+                 ">
+
+                 {pouchUnitCount}{" "}
+                 {pouchPluralUnitLabel} monthly
                </p>
              </div>
+
+             <div
+               className="
+                 mt-3
+                 inline-flex
+                 rounded-[7px]
+                 border
+                 border-[#DCCBB8]
+                 bg-[#FBF2E6]
+                 px-2.5
+                 py-1.5
+                 text-[10px]
+                 font-semibold
+                 text-[#76552E]
+               ">
+
+               Included in{" "}
+               {selectedPlan.name}
+             </div>
+
+             <div className="mt-4 space-y-3">
+               <PlanDetailRow
+                 icon={
+                   <PersonIcon />
+                 }>
+
+                 Uses 1 of{" "}
+                 {selectedPlan.supplementLimit} supplement slots
+               </PlanDetailRow>
+
+               <PlanDetailRow
+                 icon={
+                   <CheckCircleIcon />
+                 }>
+
+                 Standard selection
+               </PlanDetailRow>
+
+               <PlanDetailRow
+                 icon={
+                   <ShieldIcon />
+                 }>
+
+                 Exact brand and dosage supported
+               </PlanDetailRow>
+
+               <PlanDetailRow
+                 icon={
+                   <InfoIcon />
+                 }>
+
+                 Premium brands may add a surcharge
+               </PlanDetailRow>
+             </div>
+
+             {planIsFull && (
+               <div
+                 className="
+                   mt-4
+                   rounded-[7px]
+                   border
+                   border-[#E4C6C6]
+                   bg-[#FCF2F2]
+                   px-3
+                   py-2.5
+                 ">
+
+                 <p
+                   className="
+                     text-[10px]
+                     font-semibold
+                     leading-[1.45]
+                     text-[#9A3030]
+                   ">
+
+                   Your {selectedPlan.name} Plan
+                   already has{" "}
+                   {selectedPlan.supplementLimit} supplements.
+                   Choose a larger plan or remove
+                   a supplement to add this product.
+                 </p>
+               </div>
+             )}
            </div>
 
-
-
-
-
            <button
-            type="button"
-            onClick={
-              handleAddToPouch
-            }
-            disabled={
-              isInPouch
-            }
-            className="
-              mt-auto
-              flex
-              h-[38px]
-              w-full
-              min-w-0
-              items-center
-              justify-between
-              gap-2
-              whitespace-nowrap
-              rounded-[7px]
-              bg-[#8C1D40]
-              px-3
-              text-[11px]
-              font-semibold
-              text-white
-              transition
-              hover:bg-[#741935]
-              disabled:cursor-default
-              disabled:bg-[#E9E2DC]
-              disabled:text-[#625B56]
-            ">
+             type="button"
+             onClick={
+               handleAddToPouch
+             }
+             disabled={
+               addButtonDisabled
+             }
+             className={`
+               mt-auto
+               flex
+               min-h-[42px]
+               w-full
+               min-w-0
+               items-center
+               justify-center
+               gap-2
+               rounded-[8px]
+               px-3
+               text-[11px]
+               font-semibold
+               transition
+               ${
+                 isInPouch
+                   ? `
+                       cursor-default
+                       border
+                       border-[#BCD0B8]
+                       bg-[#EEF5EA]
+                       text-[#35613D]
+                     `
+                   : planIsFull
+                     ? `
+                         cursor-not-allowed
+                         border
+                         border-[#DDD4CC]
+                         bg-[#EEE9E4]
+                         text-[#7A716A]
+                       `
+                     : `
+                         bg-[#8C1D40]
+                         text-white
+                         hover:bg-[#741935]
+                       `
+               }
+             `}>
 
-            <span>
-              {isInPouch
-                ? "Added to VidaPouch"
-                : "Add to VidaPouch"}
-            </span>
+             <span
+               className="
+                 text-[16px]
+                 leading-none
+               "
+               aria-hidden="true">
 
-            <span
-              className="
-                flex-none
-                text-[18px]
-                font-light
-                leading-none
-              "
-              aria-hidden="true">
+               {isInPouch
+                 ? "✓"
+                 : planIsFull
+                   ? "!"
+                   : "+"}
+             </span>
 
-              {isInPouch
-                ? "✓"
-                : "+"}
-            </span>
-          </button>
-
-
-
-
+             <span>
+               {isInPouch
+                 ? `Added to ${selectedPlan.name} Plan`
+                 : planIsFull
+                   ? `${selectedPlan.name} Plan Full`
+                   : `Add to ${selectedPlan.name} Plan`}
+             </span>
+           </button>
          </>
        ) : (
          <div
            className="
              flex
              h-full
-             min-h-[130px]
+             min-h-[150px]
              flex-col
              items-start
              justify-center
@@ -1486,9 +1616,8 @@ function handleAddToPouch() {
                text-[#697276]
              ">
 
-             This product form is not
-             currently available for
-             VitaPouch packaging.
+             This product form is not currently
+             available for VidaPouch packaging.
            </p>
          </div>
        )}

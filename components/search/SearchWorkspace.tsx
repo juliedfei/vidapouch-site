@@ -21,6 +21,15 @@ import type {
  SearchPouchTimingPreference,
 } from "./types/searchPouch";
 
+import {
+ DEFAULT_SEARCH_PLAN_ID,
+ getSearchPlan,
+} from "./types/searchPlan";
+
+import type {
+ SearchPlanId,
+} from "./types/searchPlan";
+
 import TrustBar from "./TrustBar";
 import SearchControls from "./SearchControls";
 import SearchResults from "./SearchResults";
@@ -131,6 +140,19 @@ export default function SearchWorkspace({
      []
    );
 
+ const [
+   selectedPlanId,
+   setSelectedPlanId,
+ ] =
+   useState<SearchPlanId>(
+     DEFAULT_SEARCH_PLAN_ID
+   );
+
+ const selectedPlan =
+   getSearchPlan(
+     selectedPlanId
+   );
+
  function toggleFilters() {
    setLayout(
      (current) => ({
@@ -153,6 +175,15 @@ export default function SearchWorkspace({
    );
  }
 
+ function changePlan(
+   planId:
+     SearchPlanId
+ ) {
+   setSelectedPlanId(
+     planId
+   );
+ }
+
  function addPouchItem(
    item:
      SearchPouchItem
@@ -167,6 +198,13 @@ export default function SearchWorkspace({
          );
 
        if (alreadyAdded) {
+         return currentItems;
+       }
+
+       if (
+         currentItems.length >=
+         selectedPlan.supplementLimit
+       ) {
          return currentItems;
        }
 
@@ -345,6 +383,15 @@ export default function SearchWorkspace({
            onAddToPouch={
              addPouchItem
            }
+           selectedPlanId={
+             selectedPlanId
+           }
+           selectedPlan={
+             selectedPlan
+           }
+           onPlanChange={
+             changePlan
+           }
          />
        </section>
 
@@ -403,6 +450,9 @@ export default function SearchWorkspace({
                  <PouchSidebar
                    items={
                      pouchItems
+                   }
+                   selectedPlan={
+                     selectedPlan
                    }
                    onRemoveItem={
                      removePouchItem

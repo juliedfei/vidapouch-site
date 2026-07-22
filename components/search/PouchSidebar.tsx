@@ -17,9 +17,16 @@ import type {
  SearchPouchTimingPreference,
 } from "./types/searchPouch";
 
+import type {
+ SearchPlan,
+} from "./types/searchPlan";
+
 type PouchSidebarProps = {
  items:
    SearchPouchItem[];
+
+ selectedPlan:
+   SearchPlan;
 
  onRemoveItem: (
    itemId: string
@@ -37,8 +44,6 @@ type TimingConfirmationMap =
    string,
    string>
 ;
-
-const SERVICE_COST = 19;
 
 const TIMING_CONFIRMATION_DURATION =
  5000;
@@ -189,6 +194,60 @@ function CheckIcon() {
  );
 }
 
+function PlanIcon() {
+ return (
+   <svg
+     viewBox="0 0 24 24"
+     fill="none"
+     aria-hidden="true"
+     className="h-[15px] w-[15px]">
+
+     <rect
+       x="5"
+       y="4"
+       width="14"
+       height="16"
+       rx="2"
+       stroke="currentColor"
+       strokeWidth="1.5"
+     />
+
+     <path
+       d="M9 2.8v3M15 2.8v3M8.5 10h7M8.5 14h5"
+       stroke="currentColor"
+       strokeWidth="1.5"
+       strokeLinecap="round"
+     />
+   </svg>
+ );
+}
+
+function ShieldIcon() {
+ return (
+   <svg
+     viewBox="0 0 24 24"
+     fill="none"
+     aria-hidden="true"
+     className="h-[15px] w-[15px]">
+
+     <path
+       d="M12 3.5 19 6v5.2c0 4.4-2.8 7.4-7 9.3-4.2-1.9-7-4.9-7-9.3V6l7-2.5Z"
+       stroke="currentColor"
+       strokeWidth="1.5"
+       strokeLinejoin="round"
+     />
+
+     <path
+       d="m9.2 12 1.8 1.8 3.8-4"
+       stroke="currentColor"
+       strokeWidth="1.5"
+       strokeLinecap="round"
+       strokeLinejoin="round"
+     />
+   </svg>
+ );
+}
+
 type TimingMenuOptionProps = {
  label: string;
 
@@ -296,7 +355,7 @@ function ItemRow({
        relative
        border-b
        border-[#EEE5DC]
-       py-[11px]
+       py-[12px]
        last:border-b-0
      ">
 
@@ -304,189 +363,242 @@ function ItemRow({
        className="
          flex
          items-start
-         justify-between
-         gap-3
-       ">
-
-       <div className="min-w-0">
-         <p
-           className="
-             text-[12px]
-             font-semibold
-             leading-[17px]
-             text-[#302A26]
-           ">
-
-           {item.productName}
-         </p>
-
-         <p
-           className="
-             mt-[2px]
-             text-[10px]
-             font-medium
-             text-[#706963]
-           ">
-
-           {item.brand}
-         </p>
-       </div>
-
-       <div className="relative shrink-0">
-         <button
-           type="button"
-           onClick={
-             () =>
-               setMenuOpen(
-                 (current) =>
-                   !current
-               )
-           }
-           aria-expanded={
-             menuOpen
-           }
-           aria-haspopup="menu"
-           aria-label={`Manage ${item.productName}`}
-           className="
-             flex
-             h-[27px]
-             w-[31px]
-             items-center
-             justify-center
-             rounded-[7px]
-             border
-             border-[#DED4CA]
-             bg-[#FFFDF9]
-             text-[#6F6862]
-             transition
-             hover:border-[#BFA99A]
-             hover:bg-white
-             hover:text-[#7D0E1C]
-           ">
-
-           <MoreIcon />
-         </button>
-
-         {menuOpen && (
-           <div
-             role="menu"
-             className="
-               absolute
-               right-0
-               top-[33px]
-               z-30
-               w-[190px]
-               overflow-hidden
-               rounded-[9px]
-               border
-               border-[#DDD2C7]
-               bg-white
-               py-1
-               shadow-[0_10px_30px_rgba(47,31,20,0.16)]
-             ">
-
-             <TimingMenuOption
-               label={
-                 oppositeTimingLabel
-               }
-               onSelect={
-                 () =>
-                   selectTiming(
-                     oppositeTiming
-                   )
-               }
-             />
-
-             {item.timingPreference !==
-               "vidapouch" && (
-               <TimingMenuOption
-                 label="Let VidaPouch Choose"
-                 onSelect={
-                   () =>
-                     selectTiming(
-                       "vidapouch"
-                     )
-                 }
-               />
-             )}
-
-             <div className="my-1 border-t border-[#EEE6DE]" />
-
-             <button
-               type="button"
-               role="menuitem"
-               onClick={
-                 removeItem
-               }
-               className="
-                 w-full
-                 px-3
-                 py-2.5
-                 text-left
-                 text-[11px]
-                 font-medium
-                 text-[#A23636]
-                 transition
-                 hover:bg-[#FCF2F2]
-               ">
-
-               Remove from VidaPouch
-             </button>
-           </div>
-         )}
-       </div>
-     </div>
-
-     <div
-       className="
-         mt-[7px]
-         flex
-         items-end
-         justify-between
          gap-3
        ">
 
        <div
          className="
-           min-w-0
-           text-[10px]
-           leading-[15px]
-           text-[#706963]
+           flex
+           h-[52px]
+           w-[42px]
+           shrink-0
+           items-center
+           justify-center
+           overflow-hidden
+           rounded-[7px]
+           bg-white
+           p-1
          ">
 
-         {item.dosage && (
-           <p>
-             {item.dosage}
-             {item.form
-               ? ` · ${item.form}`
-               : ""}
-           </p>
+         {item.imageUrl ? (
+           <img
+             src={
+               item.imageUrl
+             }
+             alt=""
+             aria-hidden="true"
+             className="
+               h-full
+               w-full
+               object-contain
+             "
+             referrerPolicy="no-referrer"
+           />
+         ) : (
+           <span
+             className="
+               text-[9px]
+               font-semibold
+               text-[#8C1D40]
+             ">
+
+             {item.brand
+               .slice(
+                 0,
+                 2
+               )
+               .toUpperCase()}
+           </span>
          )}
-
-         <p>
-           {getUnitsPerDayLabel(
-             item
-           )}
-         </p>
-
-         <p>
-           {item.monthlyUnitCount} units monthly
-         </p>
        </div>
 
-       <span
-         className="
-           shrink-0
-           text-[12px]
-           font-semibold
-           tabular-nums
-           text-[#74101D]
-         ">
+       <div className="min-w-0 flex-1">
+         <div
+           className="
+             flex
+             items-start
+             justify-between
+             gap-2
+           ">
 
-         {formatPrice(
-           item.monthlyPrice
-         )}
-       </span>
+           <div className="min-w-0">
+             <p
+               className="
+                 text-[12px]
+                 font-semibold
+                 leading-[17px]
+                 text-[#302A26]
+               ">
+
+               {item.productName}
+             </p>
+
+             <p
+               className="
+                 mt-[2px]
+                 text-[10px]
+                 font-medium
+                 text-[#706963]
+               ">
+
+               {item.brand}
+             </p>
+           </div>
+
+           <div className="relative shrink-0">
+             <button
+               type="button"
+               onClick={
+                 () =>
+                   setMenuOpen(
+                     (current) =>
+                       !current
+                   )
+               }
+               aria-expanded={
+                 menuOpen
+               }
+               aria-haspopup="menu"
+               aria-label={`Manage ${item.productName}`}
+               className="
+                 flex
+                 h-[27px]
+                 w-[31px]
+                 items-center
+                 justify-center
+                 rounded-[7px]
+                 border
+                 border-[#DED4CA]
+                 bg-[#FFFDF9]
+                 text-[#6F6862]
+                 transition
+                 hover:border-[#BFA99A]
+                 hover:bg-white
+                 hover:text-[#7D0E1C]
+               ">
+
+               <MoreIcon />
+             </button>
+
+             {menuOpen && (
+               <div
+                 role="menu"
+                 className="
+                   absolute
+                   right-0
+                   top-[33px]
+                   z-30
+                   w-[190px]
+                   overflow-hidden
+                   rounded-[9px]
+                   border
+                   border-[#DDD2C7]
+                   bg-white
+                   py-1
+                   shadow-[0_10px_30px_rgba(47,31,20,0.16)]
+                 ">
+
+                 <TimingMenuOption
+                   label={
+                     oppositeTimingLabel
+                   }
+                   onSelect={
+                     () =>
+                       selectTiming(
+                         oppositeTiming
+                       )
+                   }
+                 />
+
+                 {item.timingPreference !==
+                   "vidapouch" && (
+                   <TimingMenuOption
+                     label="Let VidaPouch Choose"
+                     onSelect={
+                       () =>
+                         selectTiming(
+                           "vidapouch"
+                         )
+                     }
+                   />
+                 )}
+
+                 <div className="my-1 border-t border-[#EEE6DE]" />
+
+                 <button
+                   type="button"
+                   role="menuitem"
+                   onClick={
+                     removeItem
+                   }
+                   className="
+                     w-full
+                     px-3
+                     py-2.5
+                     text-left
+                     text-[11px]
+                     font-medium
+                     text-[#A23636]
+                     transition
+                     hover:bg-[#FCF2F2]
+                   ">
+
+                   Remove from VidaPouch
+                 </button>
+               </div>
+             )}
+           </div>
+         </div>
+
+         <div
+           className="
+             mt-[7px]
+             flex
+             items-end
+             justify-between
+             gap-3
+           ">
+
+           <div
+             className="
+               min-w-0
+               text-[10px]
+               leading-[15px]
+               text-[#706963]
+             ">
+
+             {item.dosage && (
+               <p>
+                 {item.dosage}
+                 {item.form
+                   ? ` · ${item.form}`
+                   : ""}
+               </p>
+             )}
+
+             <p>
+               {getUnitsPerDayLabel(
+                 item
+               )}
+             </p>
+
+             <p>
+               {item.monthlyUnitCount} units monthly
+             </p>
+           </div>
+
+           <span
+             className="
+               shrink-0
+               text-[11px]
+               font-semibold
+               text-[#74101D]
+             ">
+
+             Included
+           </span>
+         </div>
+       </div>
      </div>
 
      {timingConfirmation && (
@@ -599,6 +711,24 @@ function PouchSection({
 
          {title}
        </h3>
+
+       <span
+         className="
+           flex
+           h-[20px]
+           min-w-[20px]
+           items-center
+           justify-center
+           rounded-full
+           bg-[#7D0E1C]
+           px-[5px]
+           text-[9px]
+           font-bold
+           text-white
+         ">
+
+         {items.length}
+       </span>
      </div>
 
      <div className="mt-[7px]">
@@ -629,9 +759,11 @@ function PouchSection({
 type PriceRowProps = {
  label: string;
 
- value: string;
+ value:
+   string;
 
- emphasized?: boolean;
+ emphasized?:
+   boolean;
 };
 
 function PriceRow({
@@ -693,6 +825,7 @@ function PriceRow({
 
 export default function PouchSidebar({
  items,
+ selectedPlan,
  onRemoveItem,
  onTimingChange,
 }: PouchSidebarProps) {
@@ -873,20 +1006,15 @@ export default function PouchSidebar({
        "evening"
    );
 
- const supplementCost =
-   items.reduce(
+ const progressPercentage =
+   Math.min(
+     100,
      (
-       total,
-       item
-     ) =>
-       total +
-       item.monthlyPrice,
-     0
+       items.length /
+       selectedPlan
+         .supplementLimit
+     ) * 100
    );
-
- const monthlyTotal =
-   supplementCost +
-   SERVICE_COST;
 
  return (
    <aside
@@ -959,6 +1087,117 @@ export default function PouchSidebar({
        </p>
      </header>
 
+     <section
+       className="
+         border-b
+         border-[#EAE1D7]
+         px-[17px]
+         py-[15px]
+       ">
+
+       <p
+         className="
+           text-[10px]
+           font-medium
+           text-[#716A63]
+         ">
+
+         Your Plan
+       </p>
+
+       <div
+         className="
+           mt-[5px]
+           flex
+           items-center
+           justify-between
+           gap-3
+         ">
+
+         <h3
+           className="
+             font-serif
+             text-[18px]
+             font-semibold
+             text-[#7D0E1C]
+           ">
+
+           {selectedPlan.name} Plan
+         </h3>
+
+         <p
+           className="
+             shrink-0
+             text-[12px]
+             font-bold
+             text-[#7D0E1C]
+           ">
+
+           {formatPrice(
+             selectedPlan
+               .monthlyPrice
+           )} / month
+         </p>
+       </div>
+
+       <div
+         className="
+           mt-[12px]
+           flex
+           items-center
+           gap-2
+           text-[#706963]
+         ">
+
+         <PlanIcon />
+
+         <p
+           className="
+             text-[10.5px]
+             font-medium
+           ">
+
+           {items.length} of{" "}
+           {selectedPlan.supplementLimit} supplements selected
+         </p>
+       </div>
+
+       <p
+         className="
+           mt-[10px]
+           text-[9.5px]
+           font-medium
+           text-[#77706A]
+         ">
+
+         Plan selection progress
+       </p>
+
+       <div
+         className="
+           mt-[6px]
+           h-[8px]
+           overflow-hidden
+           rounded-full
+           bg-[#EDE4DC]
+         ">
+
+         <div
+           className="
+             h-full
+             rounded-full
+             bg-[#8C1D40]
+             transition-[width]
+             duration-300
+           "
+           style={{
+             width:
+               `${progressPercentage}%`,
+           }}
+         />
+       </div>
+     </section>
+
      <PouchSection
        title="Morning Pouch"
        icon={
@@ -1007,24 +1246,49 @@ export default function PouchSidebar({
      <div className="border-t border-[#EAE1D7]" />
 
      <section className="px-[17px] py-[15px]">
-       <div className="space-y-[8px]">
+       <div className="space-y-[9px]">
          <PriceRow
-           label="Supplement Cost"
+           label="Plan Price"
            value={
              formatPrice(
-               supplementCost
+               selectedPlan
+                 .monthlyPrice
              )
            }
          />
 
          <PriceRow
-           label="VidaPouch Service"
-           value={
-             formatPrice(
-               SERVICE_COST
-             )
-           }
+           label="Premium Add-Ons"
+           value="$0.00"
          />
+
+         <div
+           className="
+             flex
+             items-center
+             justify-between
+             gap-3
+           ">
+
+           <span
+             className="
+               text-[12px]
+               text-[#6E6862]
+             ">
+
+             Shipping
+           </span>
+
+           <span
+             className="
+               text-[11px]
+               font-medium
+               text-[#6E6862]
+             ">
+
+             Calculated at checkout
+           </span>
+         </div>
        </div>
 
        <div
@@ -1039,7 +1303,8 @@ export default function PouchSidebar({
          label="Monthly Total"
          value={
            formatPrice(
-             monthlyTotal
+             selectedPlan
+               .monthlyPrice
            )
          }
          emphasized
@@ -1070,6 +1335,23 @@ export default function PouchSidebar({
 
          Review Pouches &amp; Checkout
        </button>
+
+       <div
+         className="
+           mt-[12px]
+           flex
+           items-center
+           justify-center
+           gap-2
+           text-[#716A63]
+         ">
+
+         <ShieldIcon />
+
+         <p className="text-[10px]">
+           Secure, private, and personalized.
+         </p>
+       </div>
      </section>
 
      <div className="border-t border-[#EAE1D7]" />
