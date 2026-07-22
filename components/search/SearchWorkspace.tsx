@@ -1,6 +1,7 @@
 "use client";
 
 import {
+ useEffect,
  useState,
 } from "react";
 
@@ -23,11 +24,14 @@ import type {
 
 import {
  DEFAULT_SEARCH_PLAN_ID,
+ getRequiredSearchPlan,
  getSearchPlan,
+ SEARCH_PLANS,
 } from "./types/searchPlan";
 
 import type {
  SearchPlanId,
+ SearchPlanSelection,
 } from "./types/searchPlan";
 
 import TrustBar from "./TrustBar";
@@ -36,7 +40,8 @@ import SearchResults from "./SearchResults";
 import PouchSidebar from "./PouchSidebar";
 
 type SearchWorkspaceProps = {
- query: string;
+ query:
+   string;
 };
 
 function PouchIcon() {
@@ -102,6 +107,31 @@ function RightChevronIcon() {
  );
 }
 
+function WarningIcon() {
+ return (
+   <svg
+     viewBox="0 0 24 24"
+     fill="none"
+     aria-hidden="true"
+     className="h-[23px] w-[23px]">
+
+     <path
+       d="M12 3.5 21 19H3L12 3.5Z"
+       stroke="currentColor"
+       strokeWidth="1.5"
+       strokeLinejoin="round"
+     />
+
+     <path
+       d="M12 9v4.5M12 16.5h.01"
+       stroke="currentColor"
+       strokeWidth="1.8"
+       strokeLinecap="round"
+     />
+   </svg>
+ );
+}
+
 export default function SearchWorkspace({
  query,
 }: SearchWorkspaceProps) {
@@ -110,10 +140,17 @@ export default function SearchWorkspace({
    setLayout,
  ] =
    useState<SearchLayoutState>({
-     hasSearched: false,
-     filtersOpen: false,
-     pouchOpen: false,
-     hasPouchItems: false,
+     hasSearched:
+       false,
+
+     filtersOpen:
+       false,
+
+     pouchOpen:
+       false,
+
+     hasPouchItems:
+       false,
    });
 
  const [
@@ -144,14 +181,67 @@ export default function SearchWorkspace({
    selectedPlanId,
    setSelectedPlanId,
  ] =
-   useState<SearchPlanId>(
+   useState<SearchPlanSelection>(
      DEFAULT_SEARCH_PLAN_ID
+   );
+
+ const [
+   deselectConfirmationOpen,
+   setDeselectConfirmationOpen,
+ ] =
+   useState(
+     false
    );
 
  const selectedPlan =
    getSearchPlan(
      selectedPlanId
    );
+
+ const largestPlan =
+   SEARCH_PLANS[
+     SEARCH_PLANS.length -
+       1
+   ];
+
+ useEffect(
+   () => {
+     if (
+       !deselectConfirmationOpen
+     ) {
+       return;
+     }
+
+     function handleKeyDown(
+       event:
+         KeyboardEvent
+     ) {
+       if (
+         event.key ===
+         "Escape"
+       ) {
+         setDeselectConfirmationOpen(
+           false
+         );
+       }
+     }
+
+     window.addEventListener(
+       "keydown",
+       handleKeyDown
+     );
+
+     return () => {
+       window.removeEventListener(
+         "keydown",
+         handleKeyDown
+       );
+     };
+   },
+   [
+     deselectConfirmationOpen,
+   ]
+ );
 
  function toggleFilters() {
    setLayout(
@@ -175,10 +265,93 @@ export default function SearchWorkspace({
    );
  }
 
+ function clearPouchAndPlan() {
+   setSelectedPlanId(
+     null
+   );
+
+   setPouchItems(
+     []
+   );
+
+   setLayout(
+     (current) => ({
+       ...current,
+
+       hasPouchItems:
+         false,
+
+       pouchOpen:
+         false,
+     })
+   );
+
+   setDeselectConfirmationOpen(
+     false
+   );
+ }
+
+ function cancelPlanDeselection() {
+   setDeselectConfirmationOpen(
+     false
+   );
+ }
+
  function changePlan(
    planId:
      SearchPlanId
  ) {
+   /*
+    * Clicking the active plan again means
+    * the customer wants to return to the
+    * standalone VidaSearch experience.
+    */
+   if (
+     selectedPlanId ===
+     planId
+   ) {
+     if (
+       pouchItems.length >
+       0
+     ) {
+       setDeselectConfirmationOpen(
+         true
+       );
+
+       return;
+     }
+
+     setSelectedPlanId(
+       null
+     );
+
+     return;
+   }
+
+   const requestedPlan =
+     getSearchPlan(
+       planId
+     );
+
+   if (
+     requestedPlan ===
+     null
+   ) {
+     return;
+   }
+
+   /*
+    * Do not allow a smaller plan that cannot
+    * hold the supplements already selected.
+    */
+   if (
+     pouchItems.length >
+     requestedPlan
+       .supplementLimit
+   ) {
+     return;
+   }
+
    setSelectedPlanId(
      planId
    );
@@ -188,6 +361,17 @@ export default function SearchWorkspace({
    item:
      SearchPouchItem
  ) {
+   /*
+    * VidaSearch remains fully usable without
+    * selecting a VidaPouch plan.
+    */
+   if (
+     selectedPlan ===
+     null
+   ) {
+     return;
+   }
+
    setPouchItems(
      (currentItems) => {
        const alreadyAdded =
@@ -197,15 +381,56 @@ export default function SearchWorkspace({
              item.id
          );
 
-       if (alreadyAdded) {
+       if (
+         alreadyAdded
+       ) {
          return currentItems;
        }
 
+       const nextSupplementCount =
+         currentItems.length +
+         1;
+
+       /*
+        * Premier currently supports up to
+        * eight supplements. More complex
+        * routines use the custom builder.
+        */
        if (
-         currentItems.length >=
-         selectedPlan.supplementLimit
+         nextSupplementCount >
+         largestPlan
+           .supplementLimit
        ) {
          return currentItems;
+       }
+
+       const requiredPlan =
+         getRequiredSearchPlan(
+           nextSupplementCount
+         );
+
+       if (
+         requiredPlan ===
+         null
+       ) {
+         return currentItems;
+       }
+
+       /*
+        * Essential upgrades automatically to
+        * Complete at supplement four.
+        *
+        * Complete upgrades automatically to
+        * Premier at supplement six.
+        */
+       if (
+         nextSupplementCount >
+         selectedPlan
+           .supplementLimit
+       ) {
+         setSelectedPlanId(
+           requiredPlan.id
+         );
        }
 
        return [
@@ -229,7 +454,8 @@ export default function SearchWorkspace({
  }
 
  function removePouchItem(
-   itemId: string
+   itemId:
+     string
  ) {
    setPouchItems(
      (currentItems) => {
@@ -257,13 +483,19 @@ export default function SearchWorkspace({
          );
        }
 
+       /*
+        * Removing a supplement does not
+        * automatically downgrade the plan.
+        */
        return nextItems;
      }
    );
  }
 
  function updatePouchItemTiming(
-   itemId: string,
+   itemId:
+     string,
+
    timingPreference:
      SearchPouchTimingPreference
  ) {
@@ -286,7 +518,8 @@ export default function SearchWorkspace({
                ...item,
 
                timing:
-                 item.recommendedTiming,
+                 item
+                   .recommendedTiming,
 
                timingPreference:
                  "vidapouch",
@@ -322,205 +555,413 @@ export default function SearchWorkspace({
      ? `${filterWidth} minmax(0, 1fr) ${pouchWidth}`
      : `${filterWidth} minmax(0, 1fr)`;
 
+ const pouchItemLabel =
+   pouchItems.length ===
+   1
+     ? "supplement"
+     : "supplements";
+
  return (
-   <section className="mx-auto max-w-[1440px] px-5 py-8 lg:px-10">
-     <div className="mt-6">
-       <TrustBar />
-     </div>
-
-     <div
+   <>
+     <section
        className="
-         mt-6
-         grid
-         items-start
-         gap-4
-         transition-[grid-template-columns]
-         duration-300
-         ease-in-out
-       "
-       style={{
-         gridTemplateColumns:
-           gridColumns,
-       }}>
+         mx-auto
+         max-w-[1440px]
+         px-5
+         py-8
+         lg:px-10
+       ">
 
-       <aside className="min-w-0">
-         <SearchControls
-           open={
-             layout.filtersOpen
-           }
-           onToggle={
-             toggleFilters
-           }
-           filters={
-             filters
-           }
-           onFiltersChange={
-             setFilters
-           }
-           availableBrands={
-             availableBrands
-           }
-         />
-       </aside>
+       <div className="mt-6">
+         <TrustBar />
+       </div>
 
-       <section className="min-w-0">
-         <SearchResults
-           query={
-             query
-           }
-           filters={
-             filters
-           }
-           onFiltersChange={
-             setFilters
-           }
-           onAvailableBrandsChange={
-             setAvailableBrands
-           }
-           pouchItems={
-             pouchItems
-           }
-           onAddToPouch={
-             addPouchItem
-           }
-           selectedPlanId={
-             selectedPlanId
-           }
-           selectedPlan={
-             selectedPlan
-           }
-           onPlanChange={
-             changePlan
-           }
-         />
-       </section>
+       <div
+         className="
+           mt-6
+           grid
+           items-start
+           gap-4
+           transition-[grid-template-columns]
+           duration-300
+           ease-in-out
+         "
+         style={{
+           gridTemplateColumns:
+             gridColumns,
+         }}>
 
-       {layout.hasPouchItems && (
-         <aside
-           className="
-             min-w-0
-             overflow-hidden
-             rounded-[12px]
-             border
-             border-[#E7DED3]
-             bg-[#FBF8F3]
-             shadow-[0_2px_10px_rgba(54,38,20,0.025)]
-           ">
+         <aside className="min-w-0">
+           <SearchControls
+             open={
+               layout.filtersOpen
+             }
+             onToggle={
+               toggleFilters
+             }
+             filters={
+               filters
+             }
+             onFiltersChange={
+               setFilters
+             }
+             availableBrands={
+               availableBrands
+             }
+           />
+         </aside>
 
-           {layout.pouchOpen ? (
-             <div className="min-w-[340px]">
+         <section className="min-w-0">
+           <SearchResults
+             query={
+               query
+             }
+             filters={
+               filters
+             }
+             onFiltersChange={
+               setFilters
+             }
+             onAvailableBrandsChange={
+               setAvailableBrands
+             }
+             pouchItems={
+               pouchItems
+             }
+             onAddToPouch={
+               addPouchItem
+             }
+             selectedPlanId={
+               selectedPlanId
+             }
+             selectedPlan={
+               selectedPlan
+             }
+             onPlanChange={
+               changePlan
+             }
+           />
+         </section>
+
+         {layout.hasPouchItems &&
+           selectedPlan !==
+             null && (
+           <aside
+             className="
+               min-w-0
+               overflow-hidden
+               rounded-[12px]
+               border
+               border-[#E7DED3]
+               bg-[#FBF8F3]
+               shadow-[0_2px_10px_rgba(54,38,20,0.025)]
+             ">
+
+             {layout.pouchOpen ? (
+               <div className="min-w-[340px]">
+                 <button
+                   type="button"
+                   onClick={
+                     togglePouch
+                   }
+                   aria-expanded="true"
+                   aria-label="Collapse My Pouch"
+                   className="
+                     flex
+                     h-[52px]
+                     w-full
+                     items-center
+                     justify-between
+                     border-b
+                     border-[#E7DED3]
+                     px-4
+                     text-[#302D29]
+                     transition
+                     hover:bg-[#F5EFE8]
+                   ">
+
+                   <span
+                     className="
+                       flex
+                       items-center
+                       gap-2
+                       text-[13px]
+                       font-semibold
+                     ">
+
+                     <PouchIcon />
+                     My Pouch
+                   </span>
+
+                   <RightChevronIcon />
+                 </button>
+
+                 <div className="p-3">
+                   <PouchSidebar
+                     items={
+                       pouchItems
+                     }
+                     selectedPlan={
+                       selectedPlan
+                     }
+                     onRemoveItem={
+                       removePouchItem
+                     }
+                     onTimingChange={
+                       updatePouchItemTiming
+                     }
+                   />
+                 </div>
+               </div>
+             ) : (
                <button
                  type="button"
                  onClick={
                    togglePouch
                  }
-                 aria-expanded="true"
-                 aria-label="Collapse My Pouch"
+                 aria-expanded="false"
+                 aria-label="Open My Pouch"
                  className="
                    flex
-                   h-[52px]
-                   w-full
+                   min-h-[520px]
+                   w-[52px]
+                   flex-col
                    items-center
-                   justify-between
-                   border-b
-                   border-[#E7DED3]
-                   px-4
-                   text-[#302D29]
+                   gap-3
+                   pt-4
+                   text-[#74101D]
                    transition
                    hover:bg-[#F5EFE8]
                  ">
 
+                 <PouchIcon />
+
                  <span
                    className="
                      flex
+                     h-[23px]
+                     min-w-[23px]
                      items-center
-                     gap-2
-                     text-[13px]
-                     font-semibold
+                     justify-center
+                     rounded-full
+                     bg-[#7D0E1C]
+                     px-[6px]
+                     text-[10px]
+                     font-bold
+                     text-white
                    ">
 
-                   <PouchIcon />
-                   My Pouch
+                   {pouchItems.length}
                  </span>
 
-                 <RightChevronIcon />
-               </button>
+                 <span
+                   className="
+                     [writing-mode:vertical-rl]
+                     text-[10px]
+                     font-bold
+                     tracking-[0.12em]
+                   ">
 
-               <div className="p-3">
-                 <PouchSidebar
-                   items={
-                     pouchItems
-                   }
-                   selectedPlan={
-                     selectedPlan
-                   }
-                   onRemoveItem={
-                     removePouchItem
-                   }
-                   onTimingChange={
-                     updatePouchItemTiming
-                   }
-                 />
-               </div>
-             </div>
-           ) : (
-             <button
-               type="button"
-               onClick={
-                 togglePouch
-               }
-               aria-expanded="false"
-               aria-label="Open My Pouch"
+                   MY POUCH
+                 </span>
+
+                 <LeftChevronIcon />
+               </button>
+             )}
+           </aside>
+         )}
+       </div>
+     </section>
+
+     {deselectConfirmationOpen && (
+       <div
+         className="
+           fixed
+           inset-0
+           z-[100]
+           flex
+           items-center
+           justify-center
+           bg-[rgba(16,20,22,0.48)]
+           px-5
+           py-8
+           backdrop-blur-[2px]
+         "
+         role="presentation"
+         onMouseDown={
+           cancelPlanDeselection
+         }>
+
+         <div
+           role="dialog"
+           aria-modal="true"
+           aria-labelledby="deselect-plan-title"
+           aria-describedby="deselect-plan-description"
+           onMouseDown={
+             (event) =>
+               event.stopPropagation()
+           }
+           className="
+             w-full
+             max-w-[470px]
+             overflow-hidden
+             rounded-[16px]
+             border
+             border-[#E3D8CD]
+             bg-white
+             shadow-[0_24px_70px_rgba(24,17,12,0.24)]
+           ">
+
+           <div className="px-6 pb-5 pt-6 sm:px-7">
+             <div
                className="
                  flex
-                 min-h-[520px]
-                 w-[52px]
-                 flex-col
-                 items-center
-                 gap-3
-                 pt-4
-                 text-[#74101D]
-                 transition
-                 hover:bg-[#F5EFE8]
+                 items-start
+                 gap-4
                ">
-
-               <PouchIcon />
 
                <span
                  className="
                    flex
-                   h-[23px]
-                   min-w-[23px]
+                   h-[46px]
+                   w-[46px]
+                   shrink-0
                    items-center
                    justify-center
                    rounded-full
-                   bg-[#7D0E1C]
-                   px-[6px]
-                   text-[10px]
-                   font-bold
-                   text-white
+                   bg-[#F8EDE8]
+                   text-[#8C1D40]
                  ">
 
-                 {pouchItems.length}
+                 <WarningIcon />
                </span>
 
-               <span
-                 className="
-                   [writing-mode:vertical-rl]
-                   text-[10px]
-                   font-bold
-                   tracking-[0.12em]
-                 ">
+               <div className="min-w-0">
+                 <h2
+                   id="deselect-plan-title"
+                   className="
+                     text-[22px]
+                     leading-tight
+                     text-[#281D1A]
+                   "
+                   style={{
+                     fontFamily:
+                       'Georgia, "Times New Roman", serif',
+                   }}>
 
-                 MY POUCH
-               </span>
+                   Deselect VidaPouch plan?
+                 </h2>
 
-               <LeftChevronIcon />
+                 <p
+                   id="deselect-plan-description"
+                   className="
+                     mt-3
+                     text-[13px]
+                     leading-[1.65]
+                     text-[#5E6669]
+                   ">
+
+                   Your current pouch contains{" "}
+                   <strong className="font-semibold text-[#302A26]">
+                     {pouchItems.length}{" "}
+                     {pouchItemLabel}
+                   </strong>
+                   . Deselecting your plan will
+                   remove them from My Pouch.
+                 </p>
+
+                 <p
+                   className="
+                     mt-2
+                     text-[12px]
+                     leading-[1.6]
+                     text-[#727A7D]
+                   ">
+
+                   Your VidaSearch results, filters,
+                   and bottle-buying options will
+                   remain available.
+                 </p>
+               </div>
+             </div>
+           </div>
+
+           <div
+             className="
+               flex
+               flex-col-reverse
+               gap-2.5
+               border-t
+               border-[#EEE6DE]
+               bg-[#FCFAF8]
+               px-6
+               py-4
+               sm:flex-row
+               sm:justify-end
+               sm:px-7
+             ">
+
+             <button
+               type="button"
+               onClick={
+                 clearPouchAndPlan
+               }
+               className="
+                 flex
+                 min-h-[42px]
+                 items-center
+                 justify-center
+                 rounded-[8px]
+                 border
+                 border-[#D7C5C5]
+                 bg-white
+                 px-4
+                 text-[12px]
+                 font-semibold
+                 text-[#9A3030]
+                 transition
+                 hover:border-[#C99B9B]
+                 hover:bg-[#FCF2F2]
+                 focus:outline-none
+                 focus-visible:ring-2
+                 focus-visible:ring-[#9A3030]
+                 focus-visible:ring-offset-2
+               ">
+
+               Deselect &amp; Clear Pouch
              </button>
-           )}
-         </aside>
-       )}
-     </div>
-   </section>
+
+             <button
+               type="button"
+               autoFocus
+               onClick={
+                 cancelPlanDeselection
+               }
+               className="
+                 flex
+                 min-h-[42px]
+                 items-center
+                 justify-center
+                 rounded-[8px]
+                 bg-[#7D0E1C]
+                 px-5
+                 text-[12px]
+                 font-semibold
+                 text-white
+                 transition
+                 hover:bg-[#65101A]
+                 focus:outline-none
+                 focus-visible:ring-2
+                 focus-visible:ring-[#7D0E1C]
+                 focus-visible:ring-offset-2
+               ">
+
+               Keep My Plan
+             </button>
+           </div>
+         </div>
+       </div>
+     )}
+   </>
  );
 }

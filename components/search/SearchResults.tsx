@@ -8,6 +8,7 @@ import {
 
 import type {
  Dispatch,
+ ReactNode,
  SetStateAction,
 } from "react";
 
@@ -46,10 +47,12 @@ import {
 import type {
  SearchPlan,
  SearchPlanId,
+ SearchPlanSelection,
 } from "./types/searchPlan";
 
 type SearchResultsProps = {
- query: string;
+ query:
+   string;
 
  filters:
    SearchFilterState;
@@ -77,10 +80,10 @@ type SearchResultsProps = {
  ) => void;
 
  selectedPlanId:
-   SearchPlanId;
+   SearchPlanSelection;
 
  selectedPlan:
-   SearchPlan;
+   SearchPlan | null;
 
  onPlanChange: (
    planId:
@@ -92,7 +95,8 @@ const INITIAL_VISIBLE_RESULTS =
  6;
 
 function normalizeText(
- value: string
+ value:
+   string
 ) {
  return value
    .toLowerCase()
@@ -108,8 +112,11 @@ function normalizeText(
 }
 
 function parsePrice(
- value: string,
- fallback: number
+ value:
+   string,
+
+ fallback:
+   number
 ) {
  const cleaned =
    value.replace(
@@ -134,8 +141,11 @@ function parsePrice(
 }
 
 function containsClaim(
- claims: string[],
- expectedClaim: string
+ claims:
+   string[],
+
+ expectedClaim:
+   string
 ) {
  const normalizedExpected =
    normalizeText(
@@ -497,9 +507,295 @@ function sortProducts({
  }
 }
 
+function SunIcon() {
+ return (
+   <svg
+     viewBox="0 0 24 24"
+     fill="none"
+     aria-hidden="true"
+     className="h-[25px] w-[25px]">
+
+     <circle
+       cx="12"
+       cy="12"
+       r="3.5"
+       stroke="currentColor"
+       strokeWidth="1.4"
+     />
+
+     <path
+       d="M12 2.5V5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M18.7 5.3l-1.8 1.8M7.1 16.9l-1.8 1.8"
+       stroke="currentColor"
+       strokeWidth="1.4"
+       strokeLinecap="round"
+     />
+   </svg>
+ );
+}
+
+function DeliveryIcon() {
+ return (
+   <svg
+     viewBox="0 0 28 24"
+     fill="none"
+     aria-hidden="true"
+     className="h-[25px] w-[29px]">
+
+     <path
+       d="M2.5 5.5h14v12h-14zM16.5 9h4.5l4 4v4.5h-8.5z"
+       stroke="currentColor"
+       strokeWidth="1.4"
+       strokeLinejoin="round"
+     />
+
+     <circle
+       cx="7"
+       cy="19"
+       r="2"
+       stroke="currentColor"
+       strokeWidth="1.4"
+     />
+
+     <circle
+       cx="21"
+       cy="19"
+       r="2"
+       stroke="currentColor"
+       strokeWidth="1.4"
+     />
+   </svg>
+ );
+}
+
+function CheckCircleIcon() {
+ return (
+   <svg
+     viewBox="0 0 24 24"
+     fill="none"
+     aria-hidden="true"
+     className="h-[25px] w-[25px]">
+
+     <circle
+       cx="12"
+       cy="12"
+       r="9"
+       stroke="currentColor"
+       strokeWidth="1.4"
+     />
+
+     <path
+       d="m8 12.2 2.5 2.5 5.5-5.7"
+       stroke="currentColor"
+       strokeWidth="1.4"
+       strokeLinecap="round"
+       strokeLinejoin="round"
+     />
+   </svg>
+ );
+}
+
+function SupplementIcon() {
+ return (
+   <svg
+     viewBox="0 0 24 24"
+     fill="none"
+     aria-hidden="true"
+     className="h-[18px] w-[18px]">
+
+     <path
+       d="M7 4.5h10v15H7z"
+       stroke="currentColor"
+       strokeWidth="1.4"
+       strokeLinejoin="round"
+     />
+
+     <path
+       d="M9 2.8h6v3H9zM9.5 10h5M9.5 13h5"
+       stroke="currentColor"
+       strokeWidth="1.4"
+       strokeLinecap="round"
+       strokeLinejoin="round"
+     />
+   </svg>
+ );
+}
+
+function ClockIcon() {
+ return (
+   <svg
+     viewBox="0 0 24 24"
+     fill="none"
+     aria-hidden="true"
+     className="h-[18px] w-[18px]">
+
+     <circle
+       cx="12"
+       cy="12"
+       r="8.5"
+       stroke="currentColor"
+       strokeWidth="1.4"
+     />
+
+     <path
+       d="M12 7.5v5l3 2"
+       stroke="currentColor"
+       strokeWidth="1.4"
+       strokeLinecap="round"
+       strokeLinejoin="round"
+     />
+   </svg>
+ );
+}
+
+function StarIcon() {
+ return (
+   <svg
+     viewBox="0 0 24 24"
+     fill="none"
+     aria-hidden="true"
+     className="h-[18px] w-[18px]">
+
+     <path
+       d="m12 3.5 2.5 5.2 5.7.8-4.1 4 1 5.7-5.1-2.7-5.1 2.7 1-5.7-4.1-4 5.7-.8L12 3.5Z"
+       stroke="currentColor"
+       strokeWidth="1.35"
+       strokeLinejoin="round"
+     />
+   </svg>
+ );
+}
+
+function ChevronUpIcon() {
+ return (
+   <svg
+     viewBox="0 0 24 24"
+     fill="none"
+     aria-hidden="true"
+     className="h-[15px] w-[15px]">
+
+     <path
+       d="m7 14.5 5-5 5 5"
+       stroke="currentColor"
+       strokeWidth="1.8"
+       strokeLinecap="round"
+       strokeLinejoin="round"
+     />
+   </svg>
+ );
+}
+
+function ChevronDownIcon() {
+ return (
+   <svg
+     viewBox="0 0 24 24"
+     fill="none"
+     aria-hidden="true"
+     className="h-[15px] w-[15px]">
+
+     <path
+       d="m7 9.5 5 5 5-5"
+       stroke="currentColor"
+       strokeWidth="1.8"
+       strokeLinecap="round"
+       strokeLinejoin="round"
+     />
+   </svg>
+ );
+}
+
+function PouchOutlineIcon() {
+ return (
+   <svg
+     viewBox="0 0 24 24"
+     fill="none"
+     aria-hidden="true"
+     className="h-[18px] w-[18px]">
+
+     <path
+       d="M7.5 4.5h9l1 3v11H6.5v-11l1-3Z"
+       stroke="currentColor"
+       strokeWidth="1.6"
+       strokeLinejoin="round"
+     />
+
+     <path
+       d="M7 8h10"
+       stroke="currentColor"
+       strokeWidth="1.6"
+       strokeLinecap="round"
+     />
+   </svg>
+ );
+}
+
+type PromotionDetailProps = {
+ icon:
+   ReactNode;
+
+ title:
+   string;
+
+ description:
+   string;
+};
+
+function PromotionDetail({
+ icon,
+ title,
+ description,
+}: PromotionDetailProps) {
+ return (
+   <div
+     className="
+       flex
+       min-w-0
+       items-start
+       gap-3
+     ">
+
+     <span
+       className="
+         flex
+         h-[42px]
+         w-[42px]
+         shrink-0
+         items-center
+         justify-center
+         text-[#A46F42]
+       ">
+
+       {icon}
+     </span>
+
+     <div className="min-w-0">
+       <p
+         className="
+           text-[12px]
+           font-semibold
+           text-[#182127]
+         ">
+
+         {title}
+       </p>
+
+       <p
+         className="
+           mt-1
+           text-[10.5px]
+           leading-[1.5]
+           text-[#626A6D]
+         ">
+
+         {description}
+       </p>
+     </div>
+   </div>
+ );
+}
+
 type SearchPlanSelectorProps = {
  selectedPlanId:
-   SearchPlanId;
+   SearchPlanSelection;
 
  selectedSupplementCount:
    number;
@@ -517,6 +813,65 @@ function SearchPlanSelector({
 }: SearchPlanSelectorProps) {
  return (
    <section className="mb-4">
+     <div
+       className="
+         mb-3
+         flex
+         flex-wrap
+         items-end
+         justify-between
+         gap-3
+       ">
+
+       <div>
+         <h3
+           className="
+             text-[19px]
+             font-semibold
+             text-[#172127]
+           "
+           style={{
+             fontFamily:
+               'Georgia, "Times New Roman", serif',
+           }}>
+
+           Build your personalized VidaPouch
+         </h3>
+
+         <p
+           className="
+             mt-1
+             text-[11px]
+             leading-[1.5]
+             text-[#667074]
+           ">
+
+           Optional monthly plans that organize
+           your exact supplements into convenient
+           daily pouches.
+         </p>
+       </div>
+
+       {selectedPlanId ===
+         null && (
+         <span
+           className="
+             rounded-full
+             border
+             border-[#E2D7CC]
+             bg-[#FBF8F3]
+             px-3
+             py-1.5
+             text-[10px]
+             font-semibold
+             text-[#71675F]
+           ">
+
+           No plan selected
+         </span>
+       )}
+     </div>
+
      <div
        className="
          grid
@@ -599,8 +954,8 @@ function SearchPlanSelector({
                      <span
                        className="
                          flex
-                         h-[17px]
-                         w-[17px]
+                         h-[18px]
+                         w-[18px]
                          shrink-0
                          items-center
                          justify-center
@@ -616,21 +971,21 @@ function SearchPlanSelector({
                      </span>
                    )}
 
-                   <h3
+                   <h4
                      className="
-                       text-[15px]
+                       text-[16px]
                        font-semibold
                        text-[#171C1F]
                      ">
 
                      {plan.name}
-                   </h3>
+                   </h4>
                  </div>
 
                  <p
                    className="
                      shrink-0
-                     text-[15px]
+                     text-[16px]
                      font-bold
                      text-[#4F1118]
                    ">
@@ -653,45 +1008,365 @@ function SearchPlanSelector({
                  </p>
                </div>
 
-               <p
+               <div
                  className="
-                   mt-3
-                   text-[12px]
-                   font-medium
-                   text-[#343D40]
+                   mt-4
+                   flex
+                   items-center
+                   gap-2.5
+                   text-[#A56D3F]
                  ">
 
-                 {plan.description}
-               </p>
+                 <SupplementIcon />
 
-               <p
+                 <p
+                   className="
+                     text-[11px]
+                     font-medium
+                     text-[#3D4548]
+                   ">
+
+                   {plan.description}
+                 </p>
+               </div>
+
+               <div
                  className="
-                   mt-2
-                   text-[11px]
-                   leading-[1.45]
-                   text-[#667074]
+                   my-3
+                   border-t
+                   border-[#EEE5DD]
+                 "
+               />
+
+               <div
+                 className="
+                   flex
+                   items-start
+                   gap-2.5
+                   text-[#A56D3F]
                  ">
 
-                 {plan.selectionDescription}
-               </p>
+                 {plan.id ===
+                   "essential" ? (
+                   <SupplementIcon />
+                 ) : plan.id ===
+                   "complete" ? (
+                   <ClockIcon />
+                 ) : (
+                   <StarIcon />
+                 )}
+
+                 <p
+                   className="
+                     text-[10.5px]
+                     leading-[1.45]
+                     text-[#525B5E]
+                   ">
+
+                   {plan.selectionDescription}
+                 </p>
+               </div>
 
                {planTooSmall && (
                  <p
                    className="
-                     mt-2
+                     mt-3
                      text-[10px]
                      font-semibold
                      text-[#A23636]
                    ">
 
-                   Remove supplements before
-                   selecting this plan.
+                   This plan is too small for your
+                   current routine.
                  </p>
                )}
              </button>
            );
          }
        )}
+     </div>
+   </section>
+ );
+}
+
+type VidaPouchPromotionProps = {
+ expanded:
+   boolean;
+
+ onToggle:
+   () => void;
+};
+
+function VidaPouchPromotion({
+ expanded,
+ onToggle,
+}: VidaPouchPromotionProps) {
+ if (!expanded) {
+   return (
+     <button
+       type="button"
+       onClick={
+         onToggle
+       }
+       aria-expanded="false"
+       aria-controls="vidapouch-promotion-content"
+       className="
+         mb-4
+         flex
+         min-h-[48px]
+         w-full
+         items-center
+         justify-between
+         gap-4
+         rounded-[10px]
+         border
+         border-[#E8DED4]
+         bg-[#FCF9F5]
+         px-4
+         py-3
+         text-left
+         transition
+         hover:border-[#D3C2B3]
+         hover:bg-[#FAF5EF]
+         focus:outline-none
+         focus-visible:ring-2
+         focus-visible:ring-[#8C1D40]
+         focus-visible:ring-offset-2
+       ">
+
+       <span
+         className="
+           flex
+           min-w-0
+           items-center
+           gap-3
+         ">
+
+         <span
+           className="
+             flex
+             h-[30px]
+             w-[30px]
+             shrink-0
+             items-center
+             justify-center
+             rounded-full
+             bg-[#F4E9DE]
+             text-[#8C1D40]
+           ">
+
+           <PouchOutlineIcon />
+         </span>
+
+         <span className="min-w-0">
+           <span
+             className="
+               block
+               text-[12px]
+               font-semibold
+               text-[#26342F]
+             ">
+
+             What is VidaPouch?
+           </span>
+
+           <span
+             className="
+               block
+               truncate
+               text-[10.5px]
+               text-[#697276]
+             ">
+
+             Personalized daily supplement
+             pouches, organized and shipped
+             monthly.
+           </span>
+         </span>
+       </span>
+
+       <span
+         className="
+           flex
+           shrink-0
+           items-center
+           gap-1.5
+           text-[10.5px]
+           font-semibold
+           text-[#7D0E1C]
+         ">
+
+         Show VidaPouch
+         <ChevronDownIcon />
+       </span>
+     </button>
+   );
+ }
+
+ return (
+   <section
+     id="vidapouch-promotion-content"
+     className="
+       relative
+       mb-4
+       overflow-hidden
+       rounded-[10px]
+       border
+       border-[#E8DED4]
+       bg-[#FCF9F5]
+     ">
+
+     <button
+       type="button"
+       onClick={
+         onToggle
+       }
+       aria-expanded="true"
+       aria-controls="vidapouch-promotion-content"
+       className="
+         absolute
+         right-3
+         top-3
+         z-20
+         flex
+         h-[32px]
+         items-center
+         justify-center
+         gap-1.5
+         rounded-full
+         border
+         border-[#DED1C5]
+         bg-[rgba(255,255,255,0.94)]
+         px-3
+         text-[10px]
+         font-semibold
+         text-[#665C55]
+         shadow-[0_2px_8px_rgba(46,32,20,0.06)]
+         backdrop-blur-sm
+         transition
+         hover:border-[#C9B3A3]
+         hover:bg-white
+         hover:text-[#7D0E1C]
+         focus:outline-none
+         focus-visible:ring-2
+         focus-visible:ring-[#8C1D40]
+         focus-visible:ring-offset-2
+       ">
+
+       Hide
+       <ChevronUpIcon />
+     </button>
+
+     <div
+       className="
+         grid
+         min-h-[170px]
+         grid-cols-1
+         lg:grid-cols-[310px_minmax(0,1fr)]
+       ">
+
+       <div
+         className="
+           relative
+           min-h-[190px]
+           overflow-hidden
+           bg-[#E8DED2]
+           lg:min-h-0
+         ">
+
+         <img
+           src="/images/search/vidapouch-box.PNG"
+           alt="VidaPouch personalized morning and evening supplement pouches"
+           className="
+             absolute
+             inset-0
+             h-full
+             w-full
+             object-cover
+           "
+         />
+
+         <div
+           className="
+             absolute
+             inset-0
+             bg-[linear-gradient(90deg,rgba(0,0,0,0.02),rgba(0,0,0,0))]
+           "
+         />
+       </div>
+
+       <div
+         className="
+           px-6
+           pb-5
+           pt-14
+           sm:pt-12
+           lg:px-7
+           lg:pb-5
+           lg:pt-5
+           lg:pr-[92px]
+         ">
+
+         <h3
+           className="
+             text-[25px]
+             leading-tight
+             text-[#17362C]
+             lg:text-[29px]
+           "
+           style={{
+             fontFamily:
+               'Georgia, "Times New Roman", serif',
+           }}>
+
+           What is VidaPouch?
+         </h3>
+
+         <p
+           className="
+             mt-1.5
+             text-[13px]
+             font-medium
+             text-[#2F3B3B]
+           ">
+
+           Personalized daily pouches, made for you.
+         </p>
+
+         <div
+           className="
+             mt-5
+             grid
+             grid-cols-1
+             gap-5
+             md:grid-cols-3
+           ">
+
+           <PromotionDetail
+             icon={
+               <SunIcon />
+             }
+             title="Organized by time of day"
+             description="Morning and evening pouches built around your routine."
+           />
+
+           <PromotionDetail
+             icon={
+               <DeliveryIcon />
+             }
+             title="Shipped monthly"
+             description="Convenient, discreet, and delivered directly to you."
+           />
+
+           <PromotionDetail
+             icon={
+               <CheckCircleIcon />
+             }
+             title="Your plan, your way"
+             description="Choose your exact supplement brands and dosages."
+           />
+         </div>
+       </div>
      </div>
    </section>
  );
@@ -724,6 +1399,14 @@ export default function SearchResults({
  ] =
    useState(
      INITIAL_VISIBLE_RESULTS
+   );
+
+ const [
+   promotionExpanded,
+   setPromotionExpanded,
+ ] =
+   useState(
+     true
    );
 
  useEffect(
@@ -890,6 +1573,13 @@ export default function SearchResults({
 
        sort,
      })
+   );
+ }
+
+ function togglePromotion() {
+   setPromotionExpanded(
+     (current) =>
+       !current
    );
  }
 
@@ -1098,6 +1788,15 @@ export default function SearchResults({
        </label>
      </div>
 
+     <VidaPouchPromotion
+       expanded={
+         promotionExpanded
+       }
+       onToggle={
+         togglePromotion
+       }
+     />
+
      <SearchPlanSelector
        selectedPlanId={
          selectedPlanId
@@ -1151,12 +1850,25 @@ export default function SearchResults({
            text-[#504943]
          ">
 
-         Choose your exact brand and dosage.
-         Your {selectedPlan.name} Plan includes
-         up to{" "}
-         {selectedPlan.supplementLimit} supplements.
-         Premium selections will show any add-on
-         before checkout.
+         {selectedPlan ? (
+           <>
+             Choose your exact brand and dosage.
+             Your {selectedPlan.name} Plan includes
+             up to{" "}
+             {selectedPlan.supplementLimit} supplements.
+             Premium products and higher daily
+             quantities may show an additional
+             monthly charge before checkout.
+           </>
+         ) : (
+           <>
+             Buying a bottle does not require a
+             VidaPouch plan. Select a plan only
+             when you would like your supplements
+             organized and delivered in personalized
+             daily pouches.
+           </>
+         )}
        </p>
      </div>
 
@@ -1216,7 +1928,7 @@ export default function SearchResults({
                ">
 
                <br />
-               (Other Retailers)
+               Other Retailers
              </span>
            </div>
 
@@ -1228,80 +1940,20 @@ export default function SearchResults({
                text-[13px]
                font-semibold
                text-[#8C1D40]
-               underline
-               decoration-[#CDA7B2]
-               underline-offset-4
              ">
 
              Add to VidaPouch Plan
-           </div>
-         </div>
 
-         {/* How-to-buy callout */}
-
-         <div
-           className="
-             flex
-             items-center
-             gap-4
-             border-b
-             border-[#EEE7DF]
-             bg-[#FCF8F3]
-             px-5
-             py-5
-             lg:px-6
-             lg:py-6
-           ">
-
-           <div
-             className="
-               flex
-               h-[58px]
-               w-[58px]
-               flex-none
-               items-center
-               justify-center
-             ">
-
-             <img
-               src="/images/home-v2/icons/scale.PNG"
-               alt=""
-               aria-hidden="true"
+             <span
                className="
-                 h-[54px]
-                 w-[54px]
-                 object-contain
-               "
-             />
-           </div>
-
-           <div>
-             <h3
-               className="
-                 text-[17px]
-                 font-semibold
-                 text-[#081620]
+                 block
+                 text-[10px]
+                 font-medium
+                 text-[#6A7174]
                ">
 
-               Choose how you want to buy
-             </h3>
-
-             <p
-               className="
-                 mt-1
-                 max-w-[680px]
-                 text-[13px]
-                 leading-[1.55]
-                 text-[#354044]
-               ">
-
-               Purchase a full bottle from a
-               trusted retailer, or add this
-               supplement to your{" "}
-               {selectedPlan.name} VidaPouch
-               Plan. Exact brands and dosages
-               are supported.
-             </p>
+               Ships in your daily pouch
+             </span>
            </div>
          </div>
 
@@ -1310,8 +1962,6 @@ export default function SearchResults({
          <div>
            {visibleProducts.map(
              (product) => (
-               
-               
                <ProductCard
                  key={`${product.brand}-${product.productName}`}
                  product={
@@ -1329,17 +1979,12 @@ export default function SearchResults({
                        )
                    )
                  }
-
                  selectedPlan={
-                  selectedPlan
+                   selectedPlan
                  }
-                 
                  selectedSupplementCount={
-                  pouchItems.length
+                   pouchItems.length
                  }
-
-
-
                  onAddToPouch={
                    onAddToPouch
                  }
