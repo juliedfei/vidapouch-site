@@ -124,7 +124,9 @@ function parsePrice(
      ""
    );
 
- if (!cleaned) {
+ if (
+   !cleaned
+ ) {
    return fallback;
  }
 
@@ -169,7 +171,9 @@ function matchesTestingFilter(
  filter:
    SearchTestingFilter
 ) {
- switch (filter) {
+ switch (
+   filter
+ ) {
    case "USP Verified":
      return (
        product
@@ -351,7 +355,9 @@ function filterProducts({
            )
        );
 
-     if (!matchesForm) {
+     if (
+       !matchesForm
+     ) {
        return false;
      }
 
@@ -377,7 +383,9 @@ function filterProducts({
            )
        );
 
-     if (!matchesTesting) {
+     if (
+       !matchesTesting
+     ) {
        return false;
      }
 
@@ -389,7 +397,9 @@ function filterProducts({
        ) ===
          selectedBrand;
 
-     if (!matchesBrand) {
+     if (
+       !matchesBrand
+     ) {
        return false;
      }
 
@@ -429,7 +439,9 @@ function sortProducts({
  const sorted =
    [...products];
 
- switch (sort) {
+ switch (
+   sort
+ ) {
    case "quality":
      return sorted.sort(
        (
@@ -447,13 +459,11 @@ function sortProducts({
              -1
            ) ||
          (
-           right.score
-             .overall ??
+           right.score.overall ??
            -1
          ) -
            (
-             left.score
-               .overall ??
+             left.score.overall ??
              -1
            )
      );
@@ -867,7 +877,7 @@ function SearchPlanSelector({
              text-[#71675F]
            ">
 
-           No plan selected
+           Essential starts automatically
          </span>
        )}
      </div>
@@ -1101,7 +1111,9 @@ function VidaPouchPromotion({
  expanded,
  onToggle,
 }: VidaPouchPromotionProps) {
- if (!expanded) {
+ if (
+   !expanded
+ ) {
    return (
      <button
        type="button"
@@ -1386,7 +1398,9 @@ export default function SearchResults({
  const {
    results:
      searchProducts,
+
    loading,
+
    error,
  } =
    useSearch(
@@ -1408,6 +1422,19 @@ export default function SearchResults({
    useState(
      true
    );
+
+ /*
+  * Product cards always receive a usable plan.
+  *
+  * When the customer has not manually selected a
+  * plan, Essential is used only as the prospective
+  * starting tier. SearchWorkspace formally selects
+  * it when the first product is added.
+  */
+ const productCardPlan =
+   selectedPlan ??
+   SEARCH_PLANS[0] ??
+   null;
 
  useEffect(
    () => {
@@ -1583,7 +1610,9 @@ export default function SearchResults({
    );
  }
 
- if (loading) {
+ if (
+   loading
+ ) {
    return (
      <div
        className="
@@ -1623,7 +1652,9 @@ export default function SearchResults({
    );
  }
 
- if (error) {
+ if (
+   error
+ ) {
    return (
      <div
        className="
@@ -1664,8 +1695,6 @@ export default function SearchResults({
 
  return (
    <div className="w-full bg-white">
-     {/* Results heading and sort control */}
-
      <div
        className="
          flex
@@ -1809,69 +1838,6 @@ export default function SearchResults({
        }
      />
 
-     <div
-       className="
-         mb-4
-         flex
-         items-start
-         gap-3
-         rounded-[9px]
-         border
-         border-[#E8DDD3]
-         bg-[#FCF8F3]
-         px-4
-         py-3
-       ">
-
-       <span
-         className="
-           flex
-           h-[19px]
-           w-[19px]
-           shrink-0
-           items-center
-           justify-center
-           rounded-full
-           border
-           border-[#9B8B7C]
-           text-[11px]
-           font-semibold
-           text-[#665B52]
-         "
-         aria-hidden="true">
-
-         i
-       </span>
-
-       <p
-         className="
-           text-[11px]
-           leading-[1.55]
-           text-[#504943]
-         ">
-
-         {selectedPlan ? (
-           <>
-             Choose your exact brand and dosage.
-             Your {selectedPlan.name} Plan includes
-             up to{" "}
-             {selectedPlan.supplementLimit} supplements.
-             Premium products and higher daily
-             quantities may show an additional
-             monthly charge before checkout.
-           </>
-         ) : (
-           <>
-             Buying a bottle does not require a
-             VidaPouch plan. Select a plan only
-             when you would like your supplements
-             organized and delivered in personalized
-             daily pouches.
-           </>
-         )}
-       </p>
-     </div>
-
      {filteredProducts.length >
      0 ? (
        <div
@@ -1882,8 +1848,6 @@ export default function SearchResults({
            border-[#EEE7DF]
            bg-white
          ">
-
-         {/* Desktop column headings */}
 
          <div
            className="
@@ -1942,7 +1906,7 @@ export default function SearchResults({
                text-[#8C1D40]
              ">
 
-             Add to VidaPouch Plan
+             Add to VidaPouch
 
              <span
                className="
@@ -1956,8 +1920,6 @@ export default function SearchResults({
              </span>
            </div>
          </div>
-
-         {/* Product comparison rows */}
 
          <div>
            {visibleProducts.map(
@@ -1980,7 +1942,7 @@ export default function SearchResults({
                    )
                  }
                  selectedPlan={
-                   selectedPlan
+                   productCardPlan
                  }
                  selectedSupplementCount={
                    pouchItems.length
@@ -1992,8 +1954,6 @@ export default function SearchResults({
              )
            )}
          </div>
-
-         {/* Results footer */}
 
          {hiddenResultCount >
            0 && (

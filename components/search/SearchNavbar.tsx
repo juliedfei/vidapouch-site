@@ -15,7 +15,7 @@ export default function SearchNavbar() {
        </Link>
 
        <Link
-         href="/"
+         href="/why-vidapouch"
          className="group hidden items-center gap-2 rounded-full border border-[#D9CCBE] bg-white/70 px-5 py-2 text-[13px] font-medium tracking-[0.06em] text-[#081620] backdrop-blur transition-all duration-200 hover:bg-white hover:shadow-md sm:flex">
 
          <span className="text-[#7A6652]">Explore</span>

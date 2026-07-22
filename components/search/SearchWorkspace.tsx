@@ -203,6 +203,16 @@ export default function SearchWorkspace({
    );
 
  /*
+  * The first listed plan is the lowest available
+  * tier and serves as the automatic starting plan
+  * when a customer adds their first supplement
+  * without manually selecting a plan.
+  */
+ const defaultStartingPlan =
+   SEARCH_PLANS[0] ??
+   null;
+
+ /*
   * Recalculate the complete current pouch whenever:
   *
   * - a product is added;
@@ -400,11 +410,18 @@ export default function SearchWorkspace({
      SearchPouchItem
  ) {
    /*
-    * VidaSearch remains fully usable without
-    * selecting a VidaPouch plan.
+    * A manually selected plan takes precedence.
+    *
+    * When no plan has been selected, clicking
+    * Add to VidaPouch automatically begins with
+    * the lowest available tier, which is Essential.
     */
+   const activePlan =
+     selectedPlan ??
+     defaultStartingPlan;
+
    if (
-     selectedPlan ===
+     activePlan ===
      null
    ) {
      return;
@@ -435,6 +452,7 @@ export default function SearchWorkspace({
         * the custom builder.
         */
        if (
+         !largestPlan ||
          nextSupplementCount >
          largestPlan
            .supplementLimit
@@ -455,21 +473,28 @@ export default function SearchWorkspace({
        }
 
        /*
-        * Essential upgrades automatically to
-        * Complete at supplement four.
-        *
-        * Complete upgrades automatically to
-        * Premier at supplement six.
-        *
-        * Both the new plan and new pouch items are
-        * used by the pooled-pricing hook on the next
-        * render.
+        * If no plan was manually selected, begin
+        * with Essential on the first addition.
         */
        if (
+         selectedPlan ===
+         null
+       ) {
+         setSelectedPlanId(
+           requiredPlan.id
+         );
+       } else if (
          nextSupplementCount >
-         selectedPlan
+         activePlan
            .supplementLimit
        ) {
+         /*
+          * Essential upgrades automatically to
+          * Complete at supplement four.
+          *
+          * Complete upgrades automatically to
+          * Premier at supplement six.
+          */
          setSelectedPlanId(
            requiredPlan.id
          );
@@ -701,21 +726,7 @@ export default function SearchWorkspace({
                border-[#E7DED3]
                bg-[#FBF8F3]
                shadow-[0_2px_10px_rgba(54,38,20,0.025)]
-             "
-             data-pricing-status={
-               pooledPricing
-                 ?.status ??
-               "none"
-             }
-             data-pricing-loading={
-               pooledPricingLoading
-                 ? "true"
-                 : "false"
-             }
-             data-pricing-error={
-               pooledPricingError ??
-               undefined
-             }>
+             ">
 
              {layout.pouchOpen ? (
                <div className="min-w-[340px]">
@@ -757,36 +768,29 @@ export default function SearchWorkspace({
                  </button>
 
                  <div className="p-3">
-                   
-                   
-                   
-                 <PouchSidebar
- items={
-   pouchItems
- }
- selectedPlan={
-   selectedPlan
- }
- pooledPricing={
-   pooledPricing
- }
- pooledPricingLoading={
-   pooledPricingLoading
- }
- pooledPricingError={
-   pooledPricingError
- }
- onRemoveItem={
-   removePouchItem
- }
- onTimingChange={
-   updatePouchItemTiming
- }
-/>
-
-
-
-
+                   <PouchSidebar
+                     items={
+                       pouchItems
+                     }
+                     selectedPlan={
+                       selectedPlan
+                     }
+                     pooledPricing={
+                       pooledPricing
+                     }
+                     pooledPricingLoading={
+                       pooledPricingLoading
+                     }
+                     pooledPricingError={
+                       pooledPricingError
+                     }
+                     onRemoveItem={
+                       removePouchItem
+                     }
+                     onTimingChange={
+                       updatePouchItemTiming
+                     }
+                   />
                  </div>
                </div>
              ) : (
@@ -938,7 +942,12 @@ export default function SearchWorkspace({
                    ">
 
                    Your current pouch contains{" "}
-                   <strong className="font-semibold text-[#302A26]">
+                   <strong
+                     className="
+                       font-semibold
+                       text-[#302A26]
+                     ">
+
                      {pouchItems.length}{" "}
                      {pouchItemLabel}
                    </strong>

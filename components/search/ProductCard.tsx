@@ -23,7 +23,6 @@ import {
 
 import type {
  SearchPouchItem,
- SearchPouchPricing,
 } from "./types/searchPouch";
 
 import {
@@ -342,60 +341,6 @@ function CheckCircleIcon() {
  );
 }
 
-function InfoIcon() {
- return (
-   <svg
-     viewBox="0 0 24 24"
-     fill="none"
-     aria-hidden="true"
-     className="h-[16px] w-[16px]">
-
-     <circle
-       cx="12"
-       cy="12"
-       r="8.5"
-       stroke="currentColor"
-       strokeWidth="1.5"
-     />
-
-     <path
-       d="M12 10.5v5M12 7.5h.01"
-       stroke="currentColor"
-       strokeWidth="1.7"
-       strokeLinecap="round"
-     />
-   </svg>
- );
-}
-
-function PlanIcon() {
- return (
-   <svg
-     viewBox="0 0 24 24"
-     fill="none"
-     aria-hidden="true"
-     className="h-[18px] w-[18px]">
-
-     <rect
-       x="5"
-       y="4"
-       width="14"
-       height="16"
-       rx="2"
-       stroke="currentColor"
-       strokeWidth="1.5"
-     />
-
-     <path
-       d="M9 2.8v3M15 2.8v3M8.5 10h7M8.5 14h5"
-       stroke="currentColor"
-       strokeWidth="1.5"
-       strokeLinecap="round"
-     />
-   </svg>
- );
-}
-
 type PlanDetailRowProps = {
  icon:
    ReactNode;
@@ -432,230 +377,6 @@ function PlanDetailRow({
      <span>
        {children}
      </span>
-   </div>
- );
-}
-
-function PricingStatus({
- pricing,
- planName,
-}: {
- pricing:
-   SearchPouchPricing;
-
- planName:
-   string;
-}) {
- if (
-   pricing.status ===
-   "included"
- ) {
-   return (
-     <div
-       className="
-         mt-4
-         rounded-[8px]
-         border
-         border-[#C8D8C3]
-         bg-[#F1F7EE]
-         px-3
-         py-3
-       ">
-
-       <div
-         className="
-           flex
-           items-center
-           gap-2
-           text-[#35613D]
-         ">
-
-         <CheckCircleIcon />
-
-         <p
-           className="
-             text-[11px]
-             font-semibold
-           ">
-
-           Included in your {planName} Plan
-         </p>
-       </div>
-
-       <p
-         className="
-           mt-1.5
-           text-[10px]
-           leading-[1.5]
-           text-[#58705C]
-         ">
-
-         No additional monthly product charge
-         applies at this quantity.
-       </p>
-     </div>
-   );
- }
-
- if (
-   pricing.status ===
-   "add-on"
- ) {
-   return (
-     <div
-       className="
-         mt-4
-         rounded-[8px]
-         border
-         border-[#DFC9A8]
-         bg-[#FCF5E9]
-         px-3
-         py-3
-       ">
-
-       <div
-         className="
-           flex
-           flex-wrap
-           items-center
-           justify-between
-           gap-2
-         ">
-
-         <p
-           className="
-             text-[11px]
-             font-semibold
-             text-[#725126]
-           ">
-
-           Monthly product add-on
-         </p>
-
-         <p
-           className="
-             text-[14px]
-             font-bold
-             text-[#6B451C]
-           ">
-
-           +
-           {formatCurrency(
-             pricing
-               .totalMonthlyAddOn
-           )}
-           /mo
-         </p>
-       </div>
-
-       {pricing.addOnLines.length >
-         0 && (
-         <div
-           className="
-             mt-2.5
-             space-y-2
-             border-t
-             border-[#EADAC1]
-             pt-2.5
-           ">
-
-           {pricing.addOnLines.map(
-             (
-               line,
-               index
-             ) => (
-               <div
-                 key={`${line.reason}-${index}`}
-                 className="
-                   flex
-                   items-start
-                   justify-between
-                   gap-3
-                   text-[10px]
-                   leading-[1.45]
-                   text-[#705A3C]
-                 ">
-
-                 <span>
-                   {line.label}
-                 </span>
-
-                 <span
-                   className="
-                     shrink-0
-                     font-semibold
-                   ">
-
-                   +
-                   {formatCurrency(
-                     line.monthlyAmount
-                   )}
-                 </span>
-               </div>
-             )
-           )}
-         </div>
-       )}
-
-       <p
-         className="
-           mt-2.5
-           text-[9.5px]
-           leading-[1.45]
-           text-[#806A4D]
-         ">
-
-         This amount is added to the monthly
-         plan price.
-       </p>
-     </div>
-   );
- }
-
- return (
-   <div
-     className="
-       mt-4
-       rounded-[8px]
-       border
-       border-[#DED6CF]
-       bg-[#F8F6F3]
-       px-3
-       py-3
-     ">
-
-     <div
-       className="
-         flex
-         items-center
-         gap-2
-         text-[#68615B]
-       ">
-
-       <InfoIcon />
-
-       <p
-         className="
-           text-[11px]
-           font-semibold
-         ">
-
-         Pricing being confirmed
-       </p>
-     </div>
-
-     <p
-       className="
-         mt-1.5
-         text-[10px]
-         leading-[1.5]
-         text-[#77706A]
-       ">
-
-       This exact product can be added now.
-       Any applicable premium or quantity
-       charge will be confirmed before checkout.
-     </p>
    </div>
  );
 }
@@ -830,7 +551,7 @@ export default function ProductCard({
        ? `Per ${unitLabel}`
        : null;
 
- const canAddToVitaPouch =
+ const canAddToVidaPouch =
    product
      .vitaPouchFormEligible;
 
@@ -843,10 +564,6 @@ export default function ProductCard({
    representative
      .shoppingProductId ??
    `${product.brand}-${product.productName}`;
-
- const hasSelectedPlan =
-   selectedPlan !==
-   null;
 
  const nextPlan =
    selectedPlan
@@ -874,10 +591,9 @@ export default function ProductCard({
      null;
 
  /*
-  * When adding this item will automatically
-  * upgrade the plan, calculate pricing against
-  * the destination plan rather than the old
-  * plan.
+  * When the next addition causes an automatic
+  * upgrade, calculate the product-cost input
+  * against the destination plan.
   */
  const effectivePlan =
    willAutomaticallyUpgrade &&
@@ -885,7 +601,12 @@ export default function ProductCard({
      ? nextPlan
      : selectedPlan;
 
- const vitaPouchPricing =
+ /*
+  * This legacy helper now supplies product-cost
+  * input only. It does not render or determine a
+  * customer-facing individual product surcharge.
+  */
+ const vidaPouchPricing =
    effectivePlan
      ? calculateVitaPouchAddOn({
          product,
@@ -893,19 +614,16 @@ export default function ProductCard({
          selectedPlan:
            effectivePlan,
        })
-     : null;
+     : undefined;
 
  const addButtonDisabled =
    isInPouch ||
-   !hasSelectedPlan ||
    customRoutineRequired;
 
  function handleAddToPouch() {
    if (
-     !canAddToVitaPouch ||
-     addButtonDisabled ||
-     selectedPlan ===
-       null
+     !canAddToVidaPouch ||
+     addButtonDisabled
    ) {
      return;
    }
@@ -956,8 +674,7 @@ export default function ProductCard({
          .displayedMonthlyCost,
 
      pricing:
-       vitaPouchPricing ??
-       undefined,
+       vidaPouchPricing,
 
      bottlePrice:
        representative
@@ -1028,8 +745,8 @@ export default function ProductCard({
    );
 
    /*
-    * Open during the original click so
-    * Safari does not block the new tab.
+    * Open during the original click so Safari
+    * does not block the new tab.
     */
    const vendorWindow =
      window.open(
@@ -1745,7 +1462,7 @@ export default function ProductCard({
        )}
      </div>
 
-     {/* Add to VidaPouch plan */}
+     {/* Add to VidaPouch */}
 
      <div
        className="
@@ -1758,165 +1475,31 @@ export default function ProductCard({
          lg:border-[#EEE7DF]
        ">
 
-       {canAddToVitaPouch ? (
-         selectedPlan ===
-         null ? (
-           <>
-             <div className="min-w-0">
-               <div
-                 className="
-                   flex
-                   items-center
-                   gap-2
-                   text-[#4F5A5E]
-                 ">
-
-                 <CalendarIcon />
-
-                 <p
-                   className="
-                     text-[11px]
-                     font-medium
-                   ">
-
-                   {pouchUnitCount}{" "}
-                   {pouchPluralUnitLabel} monthly
-                 </p>
-               </div>
-
-               <div
-                 className="
-                   mt-4
-                   rounded-[9px]
-                   border
-                   border-[#E6DDD4]
-                   bg-[#FBF8F3]
-                   px-3
-                   py-4
-                 ">
-
-                 <div
-                   className="
-                     flex
-                     items-start
-                     gap-3
-                   ">
-
-                   <span
-                     className="
-                       mt-[1px]
-                       shrink-0
-                       text-[#9B714D]
-                     ">
-
-                     <PlanIcon />
-                   </span>
-
-                   <div>
-                     <p
-                       className="
-                         text-[12px]
-                         font-semibold
-                         text-[#2C3437]
-                       ">
-
-                       Select a VidaPouch plan
-                     </p>
-
-                     <p
-                       className="
-                         mt-1.5
-                         text-[10.5px]
-                         leading-[1.5]
-                         text-[#697276]
-                       ">
-
-                       Plans are optional. Choose one
-                       above to receive this exact
-                       supplement in personalized
-                       daily pouches.
-                     </p>
-                   </div>
-                 </div>
-               </div>
-
-               <div className="mt-4 space-y-3">
-                 <PlanDetailRow
-                   icon={
-                     <CheckCircleIcon />
-                   }>
-
-                   Exact brand and dosage supported
-                 </PlanDetailRow>
-
-                 <PlanDetailRow
-                   icon={
-                     <ShieldIcon />
-                   }>
-
-                   Organized into daily pouches
-                 </PlanDetailRow>
-
-                 <PlanDetailRow
-                   icon={
-                     <InfoIcon />
-                   }>
-
-                   Premium and higher-quantity
-                   add-ons appear before checkout
-                 </PlanDetailRow>
-               </div>
-             </div>
-
-             <button
-               type="button"
-               disabled
+       {canAddToVidaPouch ? (
+         <>
+           <div className="min-w-0">
+             <div
                className="
-                 mt-auto
                  flex
-                 min-h-[42px]
-                 w-full
                  items-center
-                 justify-center
                  gap-2
-                 rounded-[8px]
-                 border
-                 border-[#DDD4CC]
-                 bg-[#EEE9E4]
-                 px-3
-                 text-[11px]
-                 font-semibold
-                 text-[#7A716A]
-                 cursor-not-allowed
+                 text-[#4F5A5E]
                ">
 
-               Select a Plan to Add
-             </button>
-           </>
-         ) : (
-           <>
-             <div className="min-w-0">
-               <div
+               <CalendarIcon />
+
+               <p
                  className="
-                   flex
-                   items-center
-                   gap-2
-                   text-[#4F5A5E]
+                   text-[11px]
+                   font-medium
                  ">
 
-                 <CalendarIcon />
+                 {pouchUnitCount}{" "}
+                 {pouchPluralUnitLabel} monthly
+               </p>
+             </div>
 
-                 <p
-                   className="
-                     text-[11px]
-                     font-medium
-                   ">
-
-                   {pouchUnitCount}{" "}
-                   {pouchPluralUnitLabel} monthly
-                 </p>
-               </div>
-
+             {effectivePlan && (
                <div
                  className="
                    mt-3
@@ -1933,209 +1516,188 @@ export default function ProductCard({
                  ">
 
                  Eligible for{" "}
-                 {effectivePlan?.name ??
-                   selectedPlan.name}
+                 {effectivePlan.name}
                </div>
+             )}
 
-               <div className="mt-4 space-y-3">
+             <div className="mt-4 space-y-3">
+               {effectivePlan && (
                  <PlanDetailRow
                    icon={
                      <PersonIcon />
                    }>
 
                    Uses 1 of{" "}
-                   {effectivePlan
-                     ?.supplementLimit ??
-                     selectedPlan
-                       .supplementLimit} supplement slots
+                   {effectivePlan.supplementLimit} supplement slots
                  </PlanDetailRow>
-
-                 <PlanDetailRow
-                   icon={
-                     <CheckCircleIcon />
-                   }>
-
-                   Exact brand and dosage supported
-                 </PlanDetailRow>
-
-                 <PlanDetailRow
-                   icon={
-                     <ShieldIcon />
-                   }>
-
-                   Ships in your personalized pouch
-                 </PlanDetailRow>
-               </div>
-
-               {vitaPouchPricing && (
-                 <PricingStatus
-                   pricing={
-                     vitaPouchPricing
-                   }
-                   planName={
-                     effectivePlan?.name ??
-                     selectedPlan.name
-                   }
-                 />
                )}
 
-               {willAutomaticallyUpgrade &&
-                 nextPlan && (
-                 <div
-                   className="
-                     mt-4
-                     rounded-[7px]
-                     border
-                     border-[#D8C7B3]
-                     bg-[#FBF5EC]
-                     px-3
-                     py-2.5
-                   ">
+               <PlanDetailRow
+                 icon={
+                   <CheckCircleIcon />
+                 }>
 
-                   <p
-                     className="
-                       text-[10px]
-                       font-semibold
-                       leading-[1.45]
-                       text-[#73542E]
-                     ">
+                 Exact brand and dosage supported
+               </PlanDetailRow>
 
-                     Adding this supplement will
-                     update your plan to{" "}
-                     {nextPlan.name} at{" "}
-                     {formatCurrency(
-                       nextPlan.monthlyPrice
-                     )} per month.
-                   </p>
-                 </div>
-               )}
+               <PlanDetailRow
+                 icon={
+                   <ShieldIcon />
+                 }>
 
-               {customRoutineRequired && (
-                 <div
-                   className="
-                     mt-4
-                     rounded-[7px]
-                     border
-                     border-[#E4C6C6]
-                     bg-[#FCF2F2]
-                     px-3
-                     py-2.5
-                   ">
-
-                   <p
-                     className="
-                       text-[10px]
-                       font-semibold
-                       leading-[1.45]
-                       text-[#9A3030]
-                     ">
-
-                     Premier supports up to eight
-                     supplements. Build a custom
-                     routine on VitaPouch.com for
-                     additional supplements or
-                     pouch times.
-                   </p>
-
-                   <a
-                     href="https://vitapouch.com"
-                     className="
-                       mt-2
-                       inline-flex
-                       text-[10px]
-                       font-bold
-                       text-[#7D0E1C]
-                       underline
-                       underline-offset-2
-                     ">
-
-                     Build a Custom VitaPouch →
-                   </a>
-                 </div>
-               )}
+                 Ships in your personalized pouch
+               </PlanDetailRow>
              </div>
 
-             <button
-               type="button"
-               onClick={
-                 handleAddToPouch
-               }
-               disabled={
-                 addButtonDisabled
-               }
-               className={`
-                 mt-auto
-                 flex
-                 min-h-[42px]
-                 w-full
-                 min-w-0
-                 items-center
-                 justify-center
-                 gap-2
-                 rounded-[8px]
-                 px-3
-                 text-center
-                 text-[11px]
-                 font-semibold
-                 transition
-                 ${
-                   isInPouch
-                     ? `
-                         cursor-default
-                         border
-                         border-[#BCD0B8]
-                         bg-[#EEF5EA]
-                         text-[#35613D]
-                       `
-                     : customRoutineRequired
-                       ? `
-                           cursor-not-allowed
-                           border
-                           border-[#DDD4CC]
-                           bg-[#EEE9E4]
-                           text-[#7A716A]
-                         `
-                       : `
-                           bg-[#8C1D40]
-                           text-white
-                           hover:bg-[#741935]
-                         `
-                 }
-               `}>
-
-               <span
+             {willAutomaticallyUpgrade &&
+               nextPlan && (
+               <div
                  className="
-                   text-[16px]
-                   leading-none
-                 "
-                 aria-hidden="true">
+                   mt-4
+                   rounded-[7px]
+                   border
+                   border-[#D8C7B3]
+                   bg-[#FBF5EC]
+                   px-3
+                   py-2.5
+                 ">
 
-                 {isInPouch
-                   ? "✓"
-                   : customRoutineRequired
-                     ? "!"
-                     : "+"}
-               </span>
+                 <p
+                   className="
+                     text-[10px]
+                     font-semibold
+                     leading-[1.45]
+                     text-[#73542E]
+                   ">
 
-               <span>
-                 {isInPouch
-                   ? `Added to ${selectedPlan.name} Plan`
+                   Adding this supplement will
+                   update your plan to{" "}
+                   {nextPlan.name} at{" "}
+                   {formatCurrency(
+                     nextPlan.monthlyPrice
+                   )} per month.
+                 </p>
+               </div>
+             )}
+
+             {customRoutineRequired && (
+               <div
+                 className="
+                   mt-4
+                   rounded-[7px]
+                   border
+                   border-[#E4C6C6]
+                   bg-[#FCF2F2]
+                   px-3
+                   py-2.5
+                 ">
+
+                 <p
+                   className="
+                     text-[10px]
+                     font-semibold
+                     leading-[1.45]
+                     text-[#9A3030]
+                   ">
+
+                   Premier supports up to eight
+                   supplements. Build a custom
+                   routine for additional
+                   supplements or pouch times.
+                 </p>
+
+                 <a
+                   href="https://vitapouch.com"
+                   className="
+                     mt-2
+                     inline-flex
+                     text-[10px]
+                     font-bold
+                     text-[#7D0E1C]
+                     underline
+                     underline-offset-2
+                   ">
+
+                   Build a Custom VidaPouch →
+                 </a>
+               </div>
+             )}
+           </div>
+
+           <button
+             type="button"
+             onClick={
+               handleAddToPouch
+             }
+             disabled={
+               addButtonDisabled
+             }
+             className={`
+               mt-auto
+               flex
+               min-h-[42px]
+               w-full
+               min-w-0
+               items-center
+               justify-center
+               gap-2
+               rounded-[8px]
+               px-3
+               text-center
+               text-[11px]
+               font-semibold
+               transition
+               ${
+                 isInPouch
+                   ? `
+                       cursor-default
+                       border
+                       border-[#BCD0B8]
+                       bg-[#EEF5EA]
+                       text-[#35613D]
+                     `
                    : customRoutineRequired
-                     ? "Custom Routine Required"
-                     : willAutomaticallyUpgrade &&
-                         nextPlan
-                       ? `Add & Upgrade to ${nextPlan.name}`
-                       : vitaPouchPricing?.status ===
-                           "add-on"
-                         ? `Add for +${formatCurrency(
-                             vitaPouchPricing
-                               .totalMonthlyAddOn
-                           )}/mo`
-                         : `Add to ${selectedPlan.name} Plan`}
-               </span>
-             </button>
-           </>
-         )
+                     ? `
+                         cursor-not-allowed
+                         border
+                         border-[#DDD4CC]
+                         bg-[#EEE9E4]
+                         text-[#7A716A]
+                       `
+                     : `
+                         bg-[#8C1D40]
+                         text-white
+                         hover:bg-[#741935]
+                       `
+               }
+             `}>
+
+             <span
+               className="
+                 text-[16px]
+                 leading-none
+               "
+               aria-hidden="true">
+
+               {isInPouch
+                 ? "✓"
+                 : customRoutineRequired
+                   ? "!"
+                   : "+"}
+             </span>
+
+             <span>
+               {isInPouch
+                 ? "Added to VidaPouch"
+                 : customRoutineRequired
+                   ? "Custom Routine Required"
+                   : willAutomaticallyUpgrade &&
+                       nextPlan
+                     ? `Add & Upgrade to ${nextPlan.name}`
+                     : "Add to VidaPouch"}
+             </span>
+           </button>
+         </>
        ) : (
          <div
            className="
