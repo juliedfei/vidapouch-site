@@ -1,62 +1,112 @@
 "use client";
 
+import VidaSearchAutocomplete from "./VidaSearchAutocomplete";
+
 type SearchBarProps = {
- value: string;
- onChange: (value: string) => void;
- placeholder?: string;
- variant?: "hero" | "compact";
+ value:
+   string;
+
+ onChange:
+   (
+     value:
+       string
+   ) => void;
+
+ /*
+  * When provided, choosing a suggestion submits the
+  * search immediately.
+  *
+  * This is optional so existing SearchBar usages keep
+  * building until their parent components are updated.
+  */
+ onSubmit?:
+   (
+     query:
+       string
+   ) => void;
+
+ placeholder?:
+   string;
+
+ variant?:
+   "hero" |
+   "compact";
+
+ disabled?:
+   boolean;
 };
 
 export default function SearchBar({
  value,
  onChange,
- placeholder = "Search supplements, health goals, brands, or doctors...",
- variant = "hero",
+ onSubmit,
+ placeholder =
+   "Search supplements, health goals, or brands...",
+ variant =
+   "hero",
+ disabled =
+   false,
 }: SearchBarProps) {
- const isHero = variant === "hero";
+ function handleSubmit(
+   query:
+     string
+ ) {
+   const cleanedQuery =
+     query.trim();
 
- const inputHeight = isHero ? "h-16" : "h-12";
- const textSize = isHero ? "text-[17px]" : "text-[15px]";
- const iconLeft = isHero ? "left-5" : "left-4";
- const paddingLeft = isHero ? "pl-14" : "pl-11";
+   if (
+     !cleanedQuery
+   ) {
+     return;
+   }
+
+   /*
+    * Always update the controlled value first.
+    *
+    * Existing parent components that have not yet
+    * supplied onSubmit will still receive the selected
+    * autocomplete value without breaking.
+    */
+   onChange(
+     cleanedQuery
+   );
+
+   onSubmit?.(
+     cleanedQuery
+   );
+ }
+
+ /*
+  * The autocomplete component currently owns the hero
+  * search appearance.
+  *
+  * Compact placement is constrained here so it still
+  * fits naturally inside the post-search workspace.
+  */
+ const containerClassName =
+   variant ===
+     "compact"
+     ? "w-full [&_input]:h-12 [&_button[type='submit']]:h-9 [&_button[type='submit']]:px-5"
+     : "w-full";
 
  return (
-   <div className="relative w-full">
-     <svg
-       className={`pointer-events-none absolute ${iconLeft} top-1/2 h-5 w-5 -translate-y-1/2 text-[#7A8488]`}
-       viewBox="0 0 24 24"
-       fill="none"
-       stroke="currentColor"
-       strokeWidth="2">
+   <div
+     className={
+       containerClassName
+     }>
 
-       <circle cx="11" cy="11" r="7" />
-       <path d="M20 20L16.65 16.65" />
-     </svg>
-
-     <input
-       type="text"
+     <VidaSearchAutocomplete
        value={value}
-       onChange={(e) => onChange(e.target.value)}
-       placeholder={placeholder}
-       className={`
-         ${inputHeight}
-         w-full
-         rounded-[14px]
-         border
-         border-[#DDD5CB]
-         bg-white
-         ${paddingLeft}
-         pr-6
-         ${textSize}
-         text-[#081620]
-         shadow-sm
-         outline-none
-         transition
-         placeholder:text-[#8A9498]
-         focus:border-[#8C1D40]
-         focus:ring-2
-         focus:ring-[#8C1D40]/10
-       `}
+       onChange={onChange}
+       onSubmit={
+         handleSubmit
+       }
+       placeholder={
+         placeholder
+       }
+       disabled={
+         disabled
+       }
      />
    </div>
  );
