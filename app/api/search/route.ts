@@ -15,6 +15,14 @@ import {
   resolveSearchIntent,
  } from "@/lib/search/resolveSearchIntent";
  
+ import {
+  scheduleBrandDiscoveryRecording,
+ } from "@/lib/search/brand/scheduleBrandDiscoveryRecording";
+ 
+ import {
+  scheduleUnknownBrandEnrichment,
+ } from "@/lib/search/brand/scheduleUnknownBrandEnrichment";
+ 
  import type {
   SearchRetailProduct,
  } from "@/lib/search/searchRetailProduct";
@@ -372,8 +380,8 @@ import {
   const uniqueJobs =
     new Map<
       string,
-      SearchJob>
- ();
+      SearchJob
+ >();
  
   for (
     const job of
@@ -819,6 +827,57 @@ import {
           })
       );
  
+    const combinedBrandRequest = {
+      supplement:
+        originalQuery,
+ 
+      brand,
+ 
+      searchMode:
+        "direct-marketplace" as const,
+ 
+      expandAliases:
+        false,
+    };
+ 
+    /*
+     * Schedule exactly one capped OpenAI brand
+     * enrichment job for the complete customer search.
+     *
+     * Known brands are skipped. Recently attempted
+     * unresolved titles are skipped by the configured
+     * cooldown.
+     */
+    scheduleUnknownBrandEnrichment({
+      listings:
+        combinedListings,
+ 
+      request:
+        combinedBrandRequest,
+    });
+ 
+    /*
+     * Record unresolved and parser-only brands once for
+     * the complete customer search.
+     *
+     * This replaces separate discovery runs for each
+     * marketplace expansion such as saffron, SAM-e,
+     * 5-HTP, and L-theanine.
+     */
+    scheduleBrandDiscoveryRecording({
+      listings:
+        combinedListings,
+ 
+      request:
+        combinedBrandRequest,
+ 
+      searchQuery:
+        originalQuery,
+ 
+      sourceProvider:
+        "serpapi-google-shopping-combined",
+    });
+ 
     /*
      * Group, price, score, and load cached research
      * only once for the final combined collection.
@@ -989,4 +1048,3 @@ import {
     );
   }
  }
- 

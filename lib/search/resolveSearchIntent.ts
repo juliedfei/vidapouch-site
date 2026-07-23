@@ -22,12 +22,12 @@ import {
     SEARCH_INTENT_INSTRUCTIONS,
     SEARCH_INTENT_SCHEMA,
     SEARCH_INTENT_VERSION,
-   } from "./searchIntentOpenAiConfig";
+   } from "@/lib/search/searchIntentOpenAiConfig";
    
    import type {
     OpenAiSearchIntentExpansion,
     OpenAiSearchIntentResult,
-   } from "./searchIntentOpenAiConfig";
+   } from "@/lib/search/searchIntentOpenAiConfig";
    
    export type ResolvedSearchExpansion = {
     id:

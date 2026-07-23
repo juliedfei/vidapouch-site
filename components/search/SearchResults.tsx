@@ -910,7 +910,7 @@ function SearchPlanSelector({
              text-[#71675F]
            ">
 
-           Essential starts automatically
+           Choose a VidaPouch Tier
          </span>
        )}
      </div>

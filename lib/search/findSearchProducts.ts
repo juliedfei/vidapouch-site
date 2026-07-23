@@ -9,6 +9,20 @@ import type {
   getSupplementSearchTerms,
  } from "@/lib/pricing/supplementAliases";
  
+
+
+
+
+
+
+
+ import {
+  resolveSearchListingBrands,
+ } from "@/lib/search/brand/resolveSearchListingBrands";
+
+
+
+ 
  import type {
   ProductSearchRequest,
  } from "@/app/api/pricing/providers/providerTypes";
@@ -31,182 +45,27 @@ import type {
  const MAX_INTERNAL_ALIAS_QUERIES =
   4;
  
- /*
- * These are established supplement and wellness
- * brands commonly encountered in shopping results.
- *
- * The list is used only to recognize a brand at the
- * beginning of a product title. It does not control
- * which products may appear in search.
- */
- const KNOWN_BRANDS = [
-  "21st Century",
-  "Advanced Orthomolecular Research",
-  "American Health",
-  "Ancient Nutrition",
-  "Arthur Andrew Medical",
-  "Barlean's",
-  "Best Naturals",
-  "Bluebonnet Nutrition",
-  "Bronson",
-  "Bulletproof",
-  "Carlson Labs",
-  "Centrum",
-  "ChildLife Essentials",
-  "Codeage",
-  "Country Life",
-  "Designs for Health",
-  "Doctor's Best",
-  "Douglas Laboratories",
-  "Dr. Berg",
-  "Dr. Mercola",
-  "Emergen-C",
-  "Enzymedica",
-  "Equate",
-  "Flintstones",
-  "Garden of Life",
-  "Gaia Herbs",
-  "GNC",
-  "Jarrow Formulas",
-  "KAL",
-  "Kirkland Signature",
-  "Klaire Labs",
-  "Life Extension",
-  "LifeSeasons",
-  "MaryRuth Organics",
-  "MegaFood",
-  "Metagenics",
-  "Nature Made",
-  "Nature's Answer",
-  "Nature's Bounty",
-  "Nature's Plus",
-  "Nature's Truth",
-  "Nature's Way",
-  "Nordic Naturals",
-  "NOW Foods",
-  "Nutricost",
-  "NutraBio",
-  "NutraChamps",
-  "OLLY",
-  "One A Day",
-  "Ortho Molecular Products",
-  "Pure Encapsulations",
-  "Qunol",
-  "Rainbow Light",
-  "Renew Life",
-  "Schiff",
-  "Seeking Health",
-  "Solgar",
-  "Spring Valley",
-  "Sports Research",
-  "Swanson",
-  "Thorne",
-  "Trace Minerals",
-  "Unisom",
-  "Up&Up",
-  "Vital Proteins",
-  "Vitafusion",
-  "Vitamin Shoppe",
-  "Viva Naturals",
-  "Walgreens",
-  "Webber Naturals",
-  "Wiley's Finest",
-  "Xymogen",
-  "Zahler",
-  "Zarbee's",
-  "Zenwise Health",
- ] as const;
- 
- const BRAND_STOP_PHRASES = [
-  "sleep aid",
-  "sleep aids",
-  "sleep support",
-  "mood support",
-  "mood balance",
-  "stress support",
-  "calm support",
-  "brain support",
-  "focus support",
-  "immune support",
-  "digestive support",
-  "joint support",
-  "heart support",
-  "energy support",
-  "hair skin and nails",
-  "dietary supplement",
-  "vitamin supplement",
-  "mineral supplement",
- ] as const;
- 
- const BRAND_STOP_WORDS = new Set([
-  "supplement",
-  "supplements",
-  "vitamin",
-  "vitamins",
-  "mineral",
-  "minerals",
-  "melatonin",
-  "magnesium",
-  "calcium",
-  "zinc",
-  "iron",
-  "probiotic",
-  "probiotics",
-  "ashwagandha",
-  "elderberry",
-  "collagen",
-  "biotin",
-  "turmeric",
-  "curcumin",
-  "coq10",
-  "omega",
-  "fish",
-  "oil",
-  "gummy",
-  "gummies",
-  "capsule",
-  "capsules",
-  "tablet",
-  "tablets",
-  "caplet",
-  "caplets",
-  "softgel",
-  "softgels",
-  "powder",
-  "liquid",
-  "drops",
-  "sleep",
-  "mood",
-  "stress",
-  "calm",
-  "energy",
-  "focus",
-  "immune",
-  "immunity",
-  "digestive",
-  "joint",
-  "heart",
-  "support",
-  "formula",
-  "complex",
-  "blend",
- ]);
- 
  type SerpApiShoppingResult = {
-  title?: unknown;
-  source?: unknown;
+  title?:
+    unknown;
+ 
+  source?:
+    unknown;
  
   /*
-   * Google Shopping destination links.
-   *
-   * These frequently point to Google rather
-   * than directly to the merchant, so they
-   * must not be treated as merchant URLs.
+   * Google Shopping destination links frequently
+   * point to Google rather than directly to the
+   * merchant, so they must not be treated as
+   * merchant URLs.
    */
-  link?: unknown;
-  product_link?: unknown;
+  link?:
+    unknown;
  
-  product_id?: unknown;
+  product_link?:
+    unknown;
+ 
+  product_id?:
+    unknown;
  
   immersive_product_page_token?:
     unknown;
@@ -214,33 +73,51 @@ import type {
   serpapi_immersive_product_api?:
     unknown;
  
-  multiple_sources?: unknown;
+  multiple_sources?:
+    unknown;
  
-  thumbnail?: unknown;
-  serpapi_thumbnail?: unknown;
+  thumbnail?:
+    unknown;
  
-  price?: unknown;
-  extracted_price?: unknown;
+  serpapi_thumbnail?:
+    unknown;
  
-  rating?: unknown;
-  reviews?: unknown;
+  price?:
+    unknown;
  
-  delivery?: unknown;
-  snippet?: unknown;
-  extensions?: unknown;
+  extracted_price?:
+    unknown;
+ 
+  rating?:
+    unknown;
+ 
+  reviews?:
+    unknown;
+ 
+  delivery?:
+    unknown;
+ 
+  snippet?:
+    unknown;
+ 
+  extensions?:
+    unknown;
  };
  
  type SerpApiPagination = {
-  next?: unknown;
+  next?:
+    unknown;
  };
  
  type SerpApiResponse = {
-  shopping_results?: unknown;
+  shopping_results?:
+    unknown;
  
   serpapi_pagination?:
     SerpApiPagination;
  
-  error?: unknown;
+  error?:
+    unknown;
  };
  
  type ShoppingPageResult = {
@@ -355,7 +232,7 @@ import type {
  
   if (
     typeof value ===
-    "string"
+      "string"
   ) {
     const normalized =
       value
@@ -500,8 +377,8 @@ import type {
     );
  
   /*
-   * A direct marketplace query has already
-   * been expanded by the intent resolver.
+   * Direct marketplace searches have already been
+   * expanded by the search-intent resolver.
    */
   if (
     request.searchMode ===
@@ -704,15 +581,25 @@ import type {
  ): number | null {
   const patterns = [
     /\b(\d{1,4})\s*(?:veg\s+capsules?|veg\s+caps?|veggie\s+capsules?|vegetarian\s+capsules?|vegcaps?)\b/i,
+ 
     /\b(\d{1,4})\s*(?:soft[\s-]?gels?)\b/i,
+ 
     /\b(\d{1,4})\s*(?:caplets?)\b/i,
+ 
     /\b(\d{1,4})\s*(?:capsules?|caps)\b/i,
+ 
     /\b(\d{1,4})\s*(?:tablets?|tabs)\b/i,
+ 
     /\b(\d{1,4})\s*(?:gummies|gummy)\b/i,
+ 
     /\b(\d{1,4})\s*(?:chewables?|chews?)\b/i,
+ 
     /\b(\d{1,4})\s*(?:packets?|sticks?|sachets?)\b/i,
+ 
     /\b(\d{1,4})\s*(?:servings?)\b/i,
+ 
     /\b(\d{1,4})\s*(?:count|ct)\b/i,
+ 
     /\b(?:bottle of|contains)\s*(\d{1,4})\b/i,
   ];
  
@@ -758,9 +645,13 @@ import type {
  ) {
   const patterns = [
     /\bserving size[:\s]+(\d+)\s*(?:capsules?|caps|tablets?|tabs|soft[\s-]?gels?|caplets?|gummies|gummy|chewables?|chews?)\b/i,
+ 
     /\b(\d+)\s*(?:capsules?|caps|tablets?|tabs|soft[\s-]?gels?|caplets?|gummies|gummy|chewables?|chews?)\s+per serving\b/i,
+ 
     /\btake\s+(\d+)\s*(?:capsules?|caps|tablets?|tabs|soft[\s-]?gels?|caplets?|gummies|gummy|chewables?|chews?)\b/i,
+ 
     /\b(?:one|1)\s+scoop\s+per serving\b/i,
+ 
     /\bserving size[:\s]+(\d+)\s*(?:scoops?|packets?|sticks?|teaspoons?|tablespoons?|ml)\b/i,
   ];
  
@@ -850,8 +741,8 @@ import type {
   unit:
     Exclude<
       SearchDosageUnit,
-      null
- >;
+      null>
+ ;
  }) {
   const formattedAmount =
     Number.isInteger(
@@ -1148,6 +1039,11 @@ import type {
   request:
     ProductSearchRequest;
  }) {
+  /*
+   * Direct marketplace mode deliberately preserves
+   * broad, purchasable products associated with a
+   * health goal or commercial search phrase.
+   */
   if (
     request.searchMode ===
       "direct-marketplace"
@@ -1182,457 +1078,6 @@ import type {
       requestedBrand
     )
   );
- }
- 
- function cleanBrandCandidate(
-  value:
-    string
- ) {
-  let cleaned =
-    value
-      .replace(
-        /[®™©]/g,
-        ""
-      )
-      .replace(
-        /^[\s,|:;–—-]+/,
-        ""
-      )
-      .replace(
-        /[\s,|:;–—-]+$/,
-        ""
-      )
-      .replace(
-        /^(?:buy|shop|new|best|official)\s+/i,
-        ""
-      )
-      .replace(
-        /\s+/g,
-        " "
-      )
-      .trim();
- 
-  for (
-    const phrase of
-    BRAND_STOP_PHRASES
-  ) {
-    const normalizedCleaned =
-      normalizeText(
-        cleaned
-      );
- 
-    const normalizedPhrase =
-      normalizeText(
-        phrase
-      );
- 
-    const phraseIndex =
-      normalizedCleaned.indexOf(
-        normalizedPhrase
-      );
- 
-    if (
-      phraseIndex >
-        0
-    ) {
-      const originalWords =
-        cleaned.split(
-          /\s+/
-        );
- 
-      const normalizedWords =
-        normalizedCleaned.split(
-          /\s+/
-        );
- 
-      const phraseWords =
-        normalizedPhrase.split(
-          /\s+/
-        );
- 
-      const firstPhraseWord =
-        phraseWords[0];
- 
-      const stopIndex =
-        normalizedWords.indexOf(
-          firstPhraseWord
-        );
- 
-      if (
-        stopIndex >
-          0
-      ) {
-        cleaned =
-          originalWords
-            .slice(
-              0,
-              stopIndex
-            )
-            .join(
-              " "
-            )
-            .trim();
-      }
-    }
-  }
- 
-  cleaned =
-    cleaned
-      .replace(
-        /\b(?:dietary|supplement|supplements|vitamin|vitamins|mineral|minerals)\b.*$/i,
-        ""
-      )
-      .replace(
-        /\b\d+(?:\.\d+)?\s*(?:mcg|mg|g|iu)\b.*$/i,
-        ""
-      )
-      .replace(
-        /\b(?:capsules?|caps?|tablets?|tabs?|caplets?|soft[\s-]?gels?|gummies|gummy|chewables?|powder|liquid|drops?)\b.*$/i,
-        ""
-      )
-      .replace(
-        /[\s,|:;–—-]+$/,
-        ""
-      )
-      .replace(
-        /\s+/g,
-        " "
-      )
-      .trim();
- 
-  return cleaned;
- }
- 
- function findKnownBrand(
-  title:
-    string
- ) {
-  const normalizedTitle =
-    normalizeText(
-      title
-    );
- 
-  const sortedBrands =
-    [
-      ...KNOWN_BRANDS,
-    ].sort(
-      (
-        left,
-        right
-      ) =>
-        right.length -
-        left.length
-    );
- 
-  for (
-    const brand of
-    sortedBrands
-  ) {
-    const normalizedBrand =
-      normalizeText(
-        brand
-      );
- 
-    if (
-      normalizedTitle ===
-        normalizedBrand ||
-      normalizedTitle.startsWith(
-        `${normalizedBrand} `
-      )
-    ) {
-      return brand;
-    }
-  }
- 
-  return null;
- }
- 
- function extractBrandBeforeKnownProductWord(
-  title:
-    string
- ) {
-  const cleanedTitle =
-    title
-      .replace(
-        /[®™©]/g,
-        ""
-      )
-      .replace(
-        /[|()[\]–—,:;]/g,
-        " "
-      )
-      .replace(
-        /\s+/g,
-        " "
-      )
-      .trim();
- 
-  const originalWords =
-    cleanedTitle.split(
-      /\s+/
-    );
- 
-  const normalizedWords =
-    normalizeText(
-      cleanedTitle
-    ).split(
-      /\s+/
-    );
- 
-  const stopIndex =
-    normalizedWords.findIndex(
-      (word) =>
-        BRAND_STOP_WORDS.has(
-          word
-        ) ||
-        /^\d/.test(
-          word
-        )
-    );
- 
-  if (
-    stopIndex <=
-      0
-  ) {
-    return null;
-  }
- 
-  /*
-   * Most product-title brands contain between one
-   * and four words. Avoid treating a long product
-   * description as the brand.
-   */
-  const candidateWords =
-    originalWords.slice(
-      0,
-      Math.min(
-        stopIndex,
-        4
-      )
-    );
- 
-  const candidate =
-    cleanBrandCandidate(
-      candidateWords.join(
-        " "
-      )
-    );
- 
-  return candidate ||
-    null;
- }
- 
- function extractBrandFromByPhrase(
-  title:
-    string
- ) {
-  const match =
-    title.match(
-      /\bby\s+(.+?)(?:\s*[|,;–—-]|$)/i
-    );
- 
-  if (
-    !match?.[1]
-  ) {
-    return null;
-  }
- 
-  const candidate =
-    cleanBrandCandidate(
-      match[1]
-    );
- 
-  return candidate ||
-    null;
- }
- 
- function extractBrandFromSupplementAlias({
-  title,
-  supplement,
- }: {
-  title:
-    string;
- 
-  supplement:
-    string;
- }) {
-  const aliases =
-    getSupplementAliases(
-      supplement
-    )
-      .map(
-        (alias) =>
-          alias.trim()
-      )
-      .filter(
-        Boolean
-      )
-      .sort(
-        (
-          left,
-          right
-        ) =>
-          right.length -
-          left.length
-      );
- 
-  for (
-    const alias of
-    aliases
-  ) {
-    const escapedAlias =
-      alias
-        .replace(
-          /[.*+?^${}()|[\]\\]/g,
-          "\\$&"
-        )
-        .replace(
-          /\s+/g,
-          "\\s+"
-        );
- 
-    const match =
-      new RegExp(
-        `\\b${escapedAlias}\\b`,
-        "i"
-      ).exec(
-        title
-      );
- 
-    if (
-      !match ||
-      match.index <=
-        0
-    ) {
-      continue;
-    }
- 
-    const candidate =
-      cleanBrandCandidate(
-        title.slice(
-          0,
-          match.index
-        )
-      );
- 
-    if (
-      candidate
-    ) {
-      return candidate;
-    }
-  }
- 
-  return null;
- }
- 
- function extractLikelyBrand(
-  title:
-    string,
- 
-  supplement:
-    string
- ) {
-  /*
-   * First prefer a recognized brand appearing at
-   * the beginning of the product title.
-   *
-   * Examples:
-   * - "Nature Made Melatonin..." -> "Nature Made"
-   * - "Unisom Sleep Aid..." -> "Unisom"
-   */
-  const knownBrand =
-    findKnownBrand(
-      title
-    );
- 
-  if (
-    knownBrand
-  ) {
-    return knownBrand;
-  }
- 
-  const byPhraseBrand =
-    extractBrandFromByPhrase(
-      title
-    );
- 
-  if (
-    byPhraseBrand
-  ) {
-    return byPhraseBrand;
-  }
- 
-  const aliasBrand =
-    extractBrandFromSupplementAlias({
-      title,
-      supplement,
-    });
- 
-  if (
-    aliasBrand
-  ) {
-    return aliasBrand;
-  }
- 
-  /*
-   * Direct health-goal searches may use a broad
-   * query such as "sleep supplements," so the
-   * supplement alias may not appear in the title.
-   *
-   * In that case, stop at the first recognizable
-   * product-category word.
-   */
-  const prefixBrand =
-    extractBrandBeforeKnownProductWord(
-      title
-    );
- 
-  if (
-    prefixBrand
-  ) {
-    return prefixBrand;
-  }
- 
-  const firstDelimitedSection =
-    title
-      .split(
-        /[|,;–—:]/
-      )[0];
- 
-  const cleanedFallback =
-    cleanBrandCandidate(
-      firstDelimitedSection
-    );
- 
-  if (
-    !cleanedFallback ||
-    normalizeCompact(
-      cleanedFallback
-    ) ===
-      normalizeCompact(
-        supplement
-      )
-  ) {
-    return "Unknown Brand";
-  }
- 
-  const fallbackWords =
-    cleanedFallback.split(
-      /\s+/
-    );
- 
-  /*
-   * Prevent the full product title from becoming
-   * the brand when no reliable boundary was found.
-   */
-  if (
-    fallbackWords.length >
-      4
-  ) {
-    return "Unknown Brand";
-  }
- 
-  return cleanedFallback;
  }
  
  function extractListingClaims(
@@ -1684,6 +1129,14 @@ import type {
   };
  }
  
+ /*
+ * This stage converts the SerpApi payload into the
+ * internal product structure but deliberately leaves
+ * the brand unresolved.
+ *
+ * Brand resolution is asynchronous and occurs after
+ * all valid listings have been mapped.
+ */
  function mapShoppingResult(
   result:
     SerpApiShoppingResult,
@@ -1793,14 +1246,6 @@ import type {
     ) ||
     undefined;
  
-  const brand =
-    request.brand
-      ?.trim() ||
-    extractLikelyBrand(
-      title,
-      request.supplement
-    );
- 
   const listingClaims =
     extractListingClaims(
       searchableText
@@ -1853,7 +1298,15 @@ import type {
  
     retailer,
  
-    brand,
+    /*
+     * This temporary value is replaced by the
+     * database-first brand resolver before the
+     * listing is returned.
+     */
+    brand:
+      request.brand
+        ?.trim() ||
+      "Unknown Brand",
  
     supplement:
       request.supplement
@@ -1890,8 +1343,8 @@ import type {
       ),
  
     /*
-     * The merchant URL is resolved only when the
-     * customer selects Buy Bottle.
+     * The direct merchant URL is resolved only when
+     * the customer selects Buy Bottle.
      */
     url:
       undefined,
@@ -1925,16 +1378,13 @@ import type {
   } satisfies SearchRetailProduct;
  
   console.log(
-    "VidaSearch retailer listing mapped:",
+    "VidaSearch raw retailer listing mapped:",
     {
       productTitle:
         product.productTitle,
  
       retailer:
         product.retailer,
- 
-      brand:
-        product.brand,
  
       searchMode:
         request.searchMode ??
@@ -1991,6 +1441,10 @@ import type {
         product
           .multipleSourcesAvailable,
  
+      /*
+       * Diagnostic only. This is deliberately not
+       * assigned to product.url.
+       */
       googleShoppingUrl:
         googleShoppingUrl ??
         null,
@@ -1999,6 +1453,14 @@ import type {
  
   return product;
  }
+ 
+
+
+
+
+
+
+
  
  function getListingTotalPrice(
   product:
@@ -2059,12 +1521,12 @@ import type {
  }
  
  /*
- * Keep one offer for each exact product and
- * retailer combination.
+ * Keep one offer for each exact product and retailer
+ * combination.
  *
- * When the same retailer appears more than once
- * for the same Google Shopping product, retain the
- * least expensive total offer.
+ * When the same retailer appears multiple times for
+ * the same Google Shopping product, retain the least
+ * expensive landed-price offer.
  */
  function deduplicateListings(
   products:
@@ -2090,6 +1552,7 @@ import type {
     const key =
       [
         productIdentity,
+ 
         normalizeRetailer(
           product.retailer
         ),
@@ -2345,6 +1808,7 @@ import type {
         "VidaSearch pagination stopped because SerpApi returned a repeated next-page URL:",
         {
           query,
+ 
           pageNumber,
         }
       );
@@ -2491,6 +1955,10 @@ import type {
     }
   );
  
+  /*
+   * Pages within one query are fetched sequentially.
+   * Distinct search queries may run concurrently.
+   */
   const queryResults =
     await Promise.allSettled(
       queries.map(
@@ -2585,12 +2053,95 @@ import type {
           null
       );
  
-  const uniqueListings =
-    deduplicateListings(
-      mappedListings
-    ).slice(
-      0,
-      maxRetailListings
+  /*
+   * Resolve database-backed canonical brand names
+   * before deduplication and product grouping.
+   *
+   * This ensures aliases such as "NOW Foods" can be
+   * converted to the canonical database name "NOW"
+   * before product identities are constructed.
+   */
+  
+
+
+
+
+/*
+* Remove duplicate retailer listings before any
+* optional live enrichment. This keeps the number
+* of titles sent for enrichment as small as possible.
+*/
+const initiallyUniqueListings =
+ deduplicateListings(
+   mappedListings
+ ).slice(
+   0,
+   maxRetailListings
+ );
+
+/*
+* Apply fast database and parser-based resolution.
+* This does not call OpenAI.
+*/
+const brandResolvedListings =
+ await resolveSearchListingBrands({
+   listings:
+     initiallyUniqueListings,
+
+   request,
+ });
+
+
+
+
+
+
+
+const uniqueListings =
+ deduplicateListings(
+   brandResolvedListings
+ ).slice(
+   0,
+   maxRetailListings
+ );
+
+
+
+
+
+
+
+
+ 
+  const brandSourceCounts =
+    uniqueListings.reduce(
+      (
+        counts:
+          Record<
+            string,
+            number>
+ ,
+ 
+        listing
+      ) => {
+        const brand =
+          listing.brand ||
+          "Unknown Brand";
+ 
+        counts[
+          brand
+        ] =
+          (
+            counts[
+              brand
+            ] ??
+            0
+          ) +
+          1;
+ 
+        return counts;
+      },
+      {}
     );
  
   console.log(
@@ -2608,15 +2159,33 @@ import type {
       mappedResultCount:
         mappedListings.length,
  
-      duplicateListingCount:
+      brandResolvedResultCount:
+        brandResolvedListings.length,
+ 
+
+
+
+        duplicateListingCount:
         Math.max(
           0,
           mappedListings.length -
             uniqueListings.length
         ),
+
+
+
+
+
  
       uniqueRetailerListingCount:
         uniqueListings.length,
+ 
+      unknownBrandCount:
+        uniqueListings.filter(
+          (listing) =>
+            listing.brand ===
+              "Unknown Brand"
+        ).length,
  
       listingsWithImmersiveToken:
         uniqueListings.filter(
@@ -2633,6 +2202,9 @@ import type {
             listing
               .multipleSourcesAvailable
         ).length,
+ 
+      brandCounts:
+        brandSourceCounts,
  
       retailerCounts:
         uniqueListings.reduce(
@@ -2665,3 +2237,4 @@ import type {
  
   return uniqueListings;
  }
+ 

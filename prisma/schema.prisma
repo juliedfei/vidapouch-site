@@ -769,33 +769,64 @@ model DiscoveryRun {
   @@index([startedAt])
 }
 
+
+
+
 model DiscoveryCandidate {
-  id String @id @default(cuid())
+id String @id @default(cuid())
 
-  discoveryRunId String
-  discoveryRun   DiscoveryRun @relation(fields: [discoveryRunId], references: [id], onDelete: Cascade)
+discoveryRunId String
+discoveryRun   DiscoveryRun @relation(fields: [discoveryRunId], references: [id], onDelete: Cascade)
 
-  candidateType     DiscoveryCandidateType
-  rawPayload        Json
-  normalizedPayload Json?
+candidateType     DiscoveryCandidateType
+rawPayload        Json
+normalizedPayload Json?
 
-  confidenceScore Int?
-  status          CandidateReviewStatus @default(PENDING)
+/*
+ * Stable hash/key representing the candidate.
+ *
+ * Brand candidates can use a normalized combination
+ * of the product title, retailer, and shopping
+ * product ID. This prevents repeated searches from
+ * creating duplicate queue entries.
+ */
+fingerprint String @unique
 
-  matchedEntityType String?
-  matchedEntityId   String?
+/*
+ * Number of times the same candidate has appeared.
+ * Repeated observations provide useful evidence for
+ * later automated brand verification.
+ */
+occurrenceCount Int @default(1)
 
-  reviewedAt DateTime?
-  reviewedBy String?
+firstSeenAt DateTime @default(now())
+lastSeenAt  DateTime @default(now())
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+confidenceScore Int?
+status          CandidateReviewStatus @default(PENDING)
 
-  @@index([discoveryRunId])
-  @@index([candidateType])
-  @@index([status])
-  @@index([matchedEntityType, matchedEntityId])
+matchedEntityType String?
+matchedEntityId   String?
+
+reviewedAt DateTime?
+reviewedBy String?
+
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+
+@@index([discoveryRunId])
+@@index([candidateType])
+@@index([status])
+@@index([candidateType, status])
+@@index([lastSeenAt])
+@@index([matchedEntityType, matchedEntityId])
 }
+
+
+
+
+
+
 
 model KnowledgeRefreshJob {
   id String @id @default(cuid())
