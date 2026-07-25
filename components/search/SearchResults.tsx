@@ -1468,11 +1468,11 @@ const {
   );
 
 const [
-  visibleResultCount,
-  setVisibleResultCount,
+  showAllLoadedResults,
+  setShowAllLoadedResults,
 ] =
   useState(
-    INITIAL_VISIBLE_RESULTS
+    false
   );
 
 const [
@@ -1615,8 +1615,8 @@ const filteredProducts =
 
 useEffect(
   () => {
-    setVisibleResultCount(
-      INITIAL_VISIBLE_RESULTS
+    setShowAllLoadedResults(
+      false
     );
   },
   [
@@ -1632,21 +1632,25 @@ const resultLabel =
     : "";
 
 const visibleProducts =
-  filteredProducts.slice(
-    0,
-    visibleResultCount
-  );
+  showAllLoadedResults
+    ? filteredProducts
+    : filteredProducts.slice(
+        0,
+        INITIAL_VISIBLE_RESULTS
+      );
 
 const hiddenResultCount =
-  Math.max(
-    0,
-    filteredProducts.length -
-      visibleProducts.length
-  );
+  showAllLoadedResults
+    ? 0
+    : Math.max(
+        0,
+        filteredProducts.length -
+          visibleProducts.length
+      );
 
 function showAllResults() {
-  setVisibleResultCount(
-    filteredProducts.length
+  setShowAllLoadedResults(
+    true
   );
 }
 
