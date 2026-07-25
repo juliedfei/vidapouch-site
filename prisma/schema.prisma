@@ -769,64 +769,54 @@ model DiscoveryRun {
   @@index([startedAt])
 }
 
-
-
-
 model DiscoveryCandidate {
-id String @id @default(cuid())
+  id String @id @default(cuid())
 
-discoveryRunId String
-discoveryRun   DiscoveryRun @relation(fields: [discoveryRunId], references: [id], onDelete: Cascade)
+  discoveryRunId String
+  discoveryRun   DiscoveryRun @relation(fields: [discoveryRunId], references: [id], onDelete: Cascade)
 
-candidateType     DiscoveryCandidateType
-rawPayload        Json
-normalizedPayload Json?
+  candidateType     DiscoveryCandidateType
+  rawPayload        Json
+  normalizedPayload Json?
 
-/*
- * Stable hash/key representing the candidate.
- *
- * Brand candidates can use a normalized combination
- * of the product title, retailer, and shopping
- * product ID. This prevents repeated searches from
- * creating duplicate queue entries.
- */
-fingerprint String @unique
+  /**
+   * Stable hash/key representing the candidate.
+   * Brand candidates can use a normalized combination
+   * of the product title, retailer, and shopping
+   * product ID. This prevents repeated searches from
+   * creating duplicate queue entries.
+   */
+  fingerprint String @unique
 
-/*
- * Number of times the same candidate has appeared.
- * Repeated observations provide useful evidence for
- * later automated brand verification.
- */
-occurrenceCount Int @default(1)
+  /**
+   * Number of times the same candidate has appeared.
+   * Repeated observations provide useful evidence for
+   * later automated brand verification.
+   */
+  occurrenceCount Int @default(1)
 
-firstSeenAt DateTime @default(now())
-lastSeenAt  DateTime @default(now())
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
 
-confidenceScore Int?
-status          CandidateReviewStatus @default(PENDING)
+  confidenceScore Int?
+  status          CandidateReviewStatus @default(PENDING)
 
-matchedEntityType String?
-matchedEntityId   String?
+  matchedEntityType String?
+  matchedEntityId   String?
 
-reviewedAt DateTime?
-reviewedBy String?
+  reviewedAt DateTime?
+  reviewedBy String?
 
-createdAt DateTime @default(now())
-updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-@@index([discoveryRunId])
-@@index([candidateType])
-@@index([status])
-@@index([candidateType, status])
-@@index([lastSeenAt])
-@@index([matchedEntityType, matchedEntityId])
+  @@index([discoveryRunId])
+  @@index([candidateType])
+  @@index([status])
+  @@index([candidateType, status])
+  @@index([lastSeenAt])
+  @@index([matchedEntityType, matchedEntityId])
 }
-
-
-
-
-
-
 
 model KnowledgeRefreshJob {
   id String @id @default(cuid())
@@ -1133,4 +1123,57 @@ model SearchIntentExpansion {
   @@index([expansionKind])
   @@index([supplementId])
   @@index([brandId])
+}
+
+model MarketplaceSearchCache {
+  id String @id @default(cuid())
+
+  /**
+   * Stable identity for one exact external-provider
+   * request.
+   * The application will hash the provider, engine,
+   * normalized query, country, language, page, and
+   * other result-affecting settings.
+   */
+  cacheKey String @unique
+
+  sourceProvider String @default("serpapi")
+  searchEngine   String @default("google_shopping")
+
+  query           String
+  normalizedQuery String
+
+  countryCode String @default("us")
+  language    String @default("en")
+
+  /**
+   * SerpApi pagination URLs may identify subsequent
+   * pages through provider-specific tokens rather
+   * than a simple numeric page.
+   */
+  pageNumber Int @default(1)
+
+  /**
+   * Complete validated SerpApi page response needed
+   * by the existing mapping pipeline.
+   * Prices and availability in this payload represent
+   * the time recorded in fetchedAt.
+   */
+  responsePayload Json
+
+  rawResultCount Int @default(0)
+
+  fetchedAt DateTime @default(now())
+  expiresAt DateTime
+
+  lastAccessedAt DateTime @default(now())
+  accessCount    Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([expiresAt])
+  @@index([normalizedQuery])
+  @@index([sourceProvider, searchEngine])
+  @@index([lastAccessedAt])
 }

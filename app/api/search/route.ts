@@ -37,30 +37,33 @@ import {
  export const dynamic =
   "force-dynamic";
  
- /*
- * The primary marketplace search receives two pages.
- *
- * Related expansion searches receive one page each.
- * This provides broad results without making every
- * search wait for several pages from every expansion.
- */
- const PRIMARY_SEARCH_MAX_PAGES =
-  2;
- 
- const EXPANSION_SEARCH_MAX_PAGES =
+ const INITIAL_SEARCH_MAX_PAGES =
   1;
  
  /*
- * This limits marketplace query expansion, not the
- * number of products returned to the customer.
- *
- * The final product list is not sliced or capped.
+ * The expanded search intentionally explores
+ * multiple product forms and two marketplace pages
+ * per query.
  */
+ const EXPANDED_SEARCH_MAX_PAGES =
+  2;
+ 
  const MAX_SEARCH_JOBS =
   8;
  
+ /*
+ * This is a per-job limit, not a combined limit.
+ *
+ * Eight expanded jobs can therefore collect far
+ * more than 250 retailer listings in total.
+ */
  const MAX_RETAIL_LISTINGS_PER_SEARCH =
-  250;
+  400;
+ 
+ type SearchPhase =
+  | "initial"
+  | "expanded"
+  | "complete";
  
  type SearchJob = {
   id:
@@ -102,6 +105,14 @@ import {
     SearchRetailProduct[];
  };
  
+ type FailedSearchJob = {
+  searchTerm:
+    string;
+ 
+  error:
+    string;
+ };
+ 
  function cleanText(
   value:
     string | null |
@@ -117,6 +128,24 @@ import {
  
   return cleaned ||
     null;
+ }
+ 
+ function normalizeSearchPhase(
+  value:
+    unknown
+ ): SearchPhase {
+  if (
+    value ===
+      "initial" ||
+    value ===
+      "expanded" ||
+    value ===
+      "complete"
+  ) {
+    return value;
+  }
+ 
+  return "complete";
  }
  
  function containsShoppingContext(
@@ -141,6 +170,9 @@ import {
     "tablets",
     "softgel",
     "softgels",
+    "gummy",
+    "gummies",
+    "powder",
   ].some(
     (word) =>
       normalized ===
@@ -195,7 +227,469 @@ import {
   return cleaned;
  }
  
- function buildSearchJobs({
+ function createSearchJob({
+  id,
+  displayName,
+  searchTerm,
+  reason,
+  searchMode,
+  expandAliases,
+  maxPages,
+  priority,
+  kind,
+ }: {
+  id:
+    string;
+ 
+  displayName:
+    string;
+ 
+  searchTerm:
+    string;
+ 
+  reason:
+    string | null;
+ 
+  searchMode:
+    ProductSearchMode;
+ 
+  expandAliases:
+    boolean;
+ 
+  maxPages:
+    number;
+ 
+  priority:
+    number;
+ 
+  kind:
+    string;
+ }): SearchJob {
+  return {
+    id,
+ 
+    displayName,
+ 
+    searchTerm:
+      searchTerm.trim(),
+ 
+    normalizedSearchTerm:
+      normalizeSearchIntentText(
+        searchTerm
+      ),
+ 
+    reason,
+ 
+    searchMode,
+ 
+    expandAliases,
+ 
+    maxPages,
+ 
+    priority,
+ 
+    kind,
+  };
+ }
+ 
+ function buildSupplementExpansionJobs({
+  originalQuery,
+  displayName,
+ }: {
+  originalQuery:
+    string;
+ 
+  displayName:
+    string;
+ }) {
+  const cleanedOriginalQuery =
+    originalQuery.trim();
+ 
+  const canonicalName =
+    displayName.trim() ||
+    cleanedOriginalQuery;
+ 
+  /*
+   * These are deliberately distinct Google
+   * Shopping searches.
+   *
+   * Relying only on resolveSearchIntent.expansions
+   * was the reason the expanded phase could still
+   * return approximately the same 36 products.
+   */
+  const variations = [
+    {
+      id:
+        "supplement-primary",
+ 
+      searchTerm:
+        cleanedOriginalQuery,
+ 
+      reason:
+        "Direct search using the customer’s exact supplement query.",
+ 
+      priority:
+        -1000,
+ 
+      kind:
+        "PRIMARY_SUPPLEMENT",
+ 
+      searchMode:
+        "supplement" as const,
+ 
+      expandAliases:
+        true,
+    },
+    {
+      id:
+        "supplement-general",
+ 
+      searchTerm:
+        `${canonicalName} supplement`,
+ 
+      reason:
+        "General supplement listings for the requested ingredient.",
+ 
+      priority:
+        -900,
+ 
+      kind:
+        "SUPPLEMENT_GENERAL",
+ 
+      searchMode:
+        "direct-marketplace" as const,
+ 
+      expandAliases:
+        false,
+    },
+    {
+      id:
+        "supplement-capsules",
+ 
+      searchTerm:
+        `${canonicalName} capsules`,
+ 
+      reason:
+        "Capsule products containing the requested supplement.",
+ 
+      priority:
+        -800,
+ 
+      kind:
+        "SUPPLEMENT_CAPSULES",
+ 
+      searchMode:
+        "direct-marketplace" as const,
+ 
+      expandAliases:
+        false,
+    },
+    {
+      id:
+        "supplement-tablets",
+ 
+      searchTerm:
+        `${canonicalName} tablets`,
+ 
+      reason:
+        "Tablet products containing the requested supplement.",
+ 
+      priority:
+        -700,
+ 
+      kind:
+        "SUPPLEMENT_TABLETS",
+ 
+      searchMode:
+        "direct-marketplace" as const,
+ 
+      expandAliases:
+        false,
+    },
+    {
+      id:
+        "supplement-softgels",
+ 
+      searchTerm:
+        `${canonicalName} softgels`,
+ 
+      reason:
+        "Softgel products containing the requested supplement.",
+ 
+      priority:
+        -600,
+ 
+      kind:
+        "SUPPLEMENT_SOFTGELS",
+ 
+      searchMode:
+        "direct-marketplace" as const,
+ 
+      expandAliases:
+        false,
+    },
+    {
+      id:
+        "supplement-powder",
+ 
+      searchTerm:
+        `${canonicalName} powder supplement`,
+ 
+      reason:
+        "Powder products containing the requested supplement.",
+ 
+      priority:
+        -500,
+ 
+      kind:
+        "SUPPLEMENT_POWDER",
+ 
+      searchMode:
+        "direct-marketplace" as const,
+ 
+      expandAliases:
+        false,
+    },
+    {
+      id:
+        "supplement-gummies",
+ 
+      searchTerm:
+        `${canonicalName} gummies`,
+ 
+      reason:
+        "Gummy products containing the requested supplement.",
+ 
+      priority:
+        -400,
+ 
+      kind:
+        "SUPPLEMENT_GUMMIES",
+ 
+      searchMode:
+        "direct-marketplace" as const,
+ 
+      expandAliases:
+        false,
+    },
+    {
+      id:
+        "supplement-vitamin-shop",
+ 
+      searchTerm:
+        `${canonicalName} vitamins supplements`,
+ 
+      reason:
+        "Broader vitamin and supplement marketplace listings.",
+ 
+      priority:
+        -300,
+ 
+      kind:
+        "SUPPLEMENT_BROAD",
+ 
+      searchMode:
+        "direct-marketplace" as const,
+ 
+      expandAliases:
+        false,
+    },
+  ];
+ 
+  return variations.map(
+    (
+      variation
+    ) =>
+      createSearchJob({
+        id:
+          variation.id,
+ 
+        displayName:
+          canonicalName,
+ 
+        searchTerm:
+          variation.searchTerm,
+ 
+        reason:
+          variation.reason,
+ 
+        searchMode:
+          variation.searchMode,
+ 
+        expandAliases:
+          variation.expandAliases,
+ 
+        maxPages:
+          EXPANDED_SEARCH_MAX_PAGES,
+ 
+        priority:
+          variation.priority,
+ 
+        kind:
+          variation.kind,
+      })
+  );
+ }
+ 
+ function buildResolvedExpansionJobs({
+  expansions,
+ }: {
+  expansions:
+    Awaited<
+      ReturnType<
+        typeof resolveSearchIntent
+ >
+ >["expansions"];
+ }) {
+  return expansions.flatMap(
+    (
+      expansion,
+      index
+    ) => {
+      const searchTerm =
+        expansion.searchTerm
+          .trim();
+ 
+      if (
+        !searchTerm
+      ) {
+        return [];
+      }
+ 
+      return [
+        createSearchJob({
+          id:
+            expansion.id ??
+            [
+              expansion.kind,
+              index,
+            ].join(
+              ":"
+            ),
+ 
+          displayName:
+            cleanText(
+              expansion.displayName
+            ) ??
+            searchTerm,
+ 
+          searchTerm,
+ 
+          reason:
+            cleanText(
+              expansion.reason
+            ),
+ 
+          searchMode:
+            "direct-marketplace",
+ 
+          expandAliases:
+            false,
+ 
+          maxPages:
+            EXPANDED_SEARCH_MAX_PAGES,
+ 
+          priority:
+            expansion.priority,
+ 
+          kind:
+            expansion.kind,
+        }),
+      ];
+    }
+  );
+ }
+ 
+ function deduplicateSearchJobs(
+  jobs:
+    SearchJob[]
+ ) {
+  const uniqueJobs =
+    new Map<
+      string,
+      SearchJob
+ >();
+ 
+  for (
+    const job of
+    [...jobs].sort(
+      (
+        left,
+        right
+      ) =>
+        left.priority -
+        right.priority
+    )
+  ) {
+    const key =
+      normalizeSearchIntentText(
+        job.searchTerm
+      );
+ 
+    if (
+      !key
+    ) {
+      continue;
+    }
+ 
+    const existing =
+      uniqueJobs.get(
+        key
+      );
+ 
+    if (
+      !existing
+    ) {
+      uniqueJobs.set(
+        key,
+        job
+      );
+ 
+      continue;
+    }
+ 
+    uniqueJobs.set(
+      key,
+      {
+        ...existing,
+ 
+        maxPages:
+          Math.max(
+            existing.maxPages,
+            job.maxPages
+          ),
+ 
+        expandAliases:
+          existing.expandAliases ||
+          job.expandAliases,
+ 
+        priority:
+          Math.min(
+            existing.priority,
+            job.priority
+          ),
+      }
+    );
+  }
+ 
+  return Array.from(
+    uniqueJobs.values()
+  )
+    .sort(
+      (
+        left,
+        right
+      ) =>
+        left.priority -
+        right.priority
+    )
+    .slice(
+      0,
+      MAX_SEARCH_JOBS
+    );
+ }
+ 
+ function buildCompleteSearchJobs({
   originalQuery,
   intentType,
   displayName,
@@ -217,97 +711,60 @@ import {
  >
  >["expansions"];
  }) {
-  const jobs:
-    SearchJob[] = [];
+  const resolvedExpansionJobs =
+    buildResolvedExpansionJobs({
+      expansions,
+    });
  
-  /*
-   * A direct supplement search keeps strict
-   * supplement validation and controlled aliases.
-   */
   if (
     intentType ===
       "SUPPLEMENT"
   ) {
-    const searchTerm =
-      originalQuery.trim();
+    /*
+     * Supplement searches always receive the full
+     * marketplace variation set, even when the
+     * intent resolver returns no expansions.
+     */
+    return deduplicateSearchJobs([
+      ...buildSupplementExpansionJobs({
+        originalQuery,
  
-    jobs.push({
+        displayName,
+      }),
+ 
+      ...resolvedExpansionJobs,
+    ]);
+  }
+ 
+  const jobs:
+    SearchJob[] = [
+      ...resolvedExpansionJobs,
+    ];
+ 
+  /*
+   * Health-goal searches retain their resolver
+   * categories. Add the original broad query as a
+   * fallback so the search is never empty.
+   */
+  const fallbackSearchTerm =
+    buildFallbackMarketplaceQuery({
+      originalQuery,
+ 
+      intentType,
+    });
+ 
+  jobs.push(
+    createSearchJob({
       id:
-        "primary-supplement",
+        "fallback-direct-query",
  
       displayName,
  
-      searchTerm,
- 
-      normalizedSearchTerm:
-        normalizeSearchIntentText(
-          searchTerm
-        ),
+      searchTerm:
+        fallbackSearchTerm,
  
       reason:
-        "Direct supplement search matching the customer’s request.",
- 
-      searchMode:
-        "supplement",
- 
-      expandAliases:
-        true,
- 
-      maxPages:
-        PRIMARY_SEARCH_MAX_PAGES,
- 
-      priority:
-        0,
- 
-      kind:
-        "PRIMARY_SUPPLEMENT",
-    });
-  }
- 
-  for (
-    const expansion of
-    expansions
-  ) {
-    const searchTerm =
-      expansion.searchTerm
-        .trim();
- 
-    if (
-      !searchTerm
-    ) {
-      continue;
-    }
- 
-    jobs.push({
-      id:
-        expansion.id ??
-        [
-          expansion.kind,
-          expansion
-            .normalizedSearchTerm,
-        ].join(
-          ":"
-        ),
- 
-      displayName:
-        cleanText(
-          expansion.displayName
-        ) ??
-        searchTerm,
- 
-      searchTerm,
- 
-      normalizedSearchTerm:
-        expansion
-          .normalizedSearchTerm ||
-        normalizeSearchIntentText(
-          searchTerm
-        ),
- 
-      reason:
-        cleanText(
-          expansion.reason
-        ),
+        "Broad marketplace search matching the customer’s request.",
  
       searchMode:
         "direct-marketplace",
@@ -316,117 +773,96 @@ import {
         false,
  
       maxPages:
-        expansion.kind ===
-          "DIRECT_QUERY"
-          ? PRIMARY_SEARCH_MAX_PAGES
-          : EXPANSION_SEARCH_MAX_PAGES,
+        EXPANDED_SEARCH_MAX_PAGES,
  
       priority:
-        expansion.priority,
- 
-      kind:
-        expansion.kind,
-    });
-  }
- 
-  if (
-    jobs.length ===
-      0
-  ) {
-    const searchTerm =
-      buildFallbackMarketplaceQuery({
-        originalQuery,
- 
-        intentType,
-      });
- 
-    jobs.push({
-      id:
-        "fallback-direct-query",
- 
-      displayName,
- 
-      searchTerm,
- 
-      normalizedSearchTerm:
-        normalizeSearchIntentText(
-          searchTerm
-        ),
- 
-      reason:
-        "Direct marketplace search matching the customer’s request.",
- 
-      searchMode:
-        intentType ===
-          "SUPPLEMENT"
-          ? "supplement"
-          : "direct-marketplace",
- 
-      expandAliases:
-        intentType ===
-          "SUPPLEMENT",
- 
-      maxPages:
-        PRIMARY_SEARCH_MAX_PAGES,
- 
-      priority:
-        0,
+        -1000,
  
       kind:
         "DIRECT_QUERY",
-    });
-  }
- 
-  const uniqueJobs =
-    new Map<
-      string,
-      SearchJob
- >();
- 
-  for (
-    const job of
-    jobs.sort(
-      (
-        left,
-        right
-      ) =>
-        left.priority -
-        right.priority
-    )
-  ) {
-    const key =
-      normalizeSearchIntentText(
-        job.searchTerm
-      );
- 
-    const existing =
-      uniqueJobs.get(
-        key
-      );
- 
-    if (
-      !existing ||
-      job.maxPages >
-        existing.maxPages
-    ) {
-      uniqueJobs.set(
-        key,
-        job
-      );
-    }
-  }
- 
-  /*
-   * This limits external provider calls only.
-   * It does not limit the number of products
-   * eventually returned from those searches.
-   */
-  return Array.from(
-    uniqueJobs.values()
-  ).slice(
-    0,
-    MAX_SEARCH_JOBS
+    })
   );
+ 
+  return deduplicateSearchJobs(
+    jobs
+  );
+ }
+ 
+ function buildInitialSearchJob({
+  originalQuery,
+  intentType,
+  displayName,
+ }: {
+  originalQuery:
+    string;
+ 
+  intentType:
+    string;
+ 
+  displayName:
+    string;
+ }): SearchJob {
+  const searchTerm =
+    originalQuery.trim();
+ 
+  return createSearchJob({
+    id:
+      "initial-fast-search",
+ 
+    displayName,
+ 
+    searchTerm,
+ 
+    reason:
+      "Fast initial marketplace results matching the customer’s request.",
+ 
+    searchMode:
+      intentType ===
+        "SUPPLEMENT"
+        ? "supplement"
+        : "direct-marketplace",
+ 
+    /*
+     * The initial request must remain fast.
+     */
+    expandAliases:
+      false,
+ 
+    maxPages:
+      INITIAL_SEARCH_MAX_PAGES,
+ 
+    priority:
+      -1000,
+ 
+    kind:
+      "INITIAL_QUERY",
+  });
+ }
+ 
+ function selectSearchJobsForPhase({
+  phase,
+  initialJob,
+  completeJobs,
+ }: {
+  phase:
+    SearchPhase;
+ 
+  initialJob:
+    SearchJob;
+ 
+  completeJobs:
+    SearchJob[];
+ }) {
+  if (
+    phase ===
+      "initial"
+  ) {
+    return [
+      initialJob,
+    ];
+  }
+ 
+  return completeJobs;
  }
  
  function normalizeListingsForCombinedGrouping({
@@ -440,7 +876,9 @@ import {
     string;
  }) {
   return listings.map(
-    (listing) => ({
+    (
+      listing
+    ) => ({
       ...listing,
  
       supplement:
@@ -461,6 +899,9 @@ import {
  }): Promise<
   CompletedSearchJob
  >{
+  const startedAt =
+    Date.now();
+ 
   const listings =
     await findSearchProducts({
       supplement:
@@ -482,7 +923,7 @@ import {
     });
  
   console.log(
-    "VidaSearch intent expansion completed:",
+    "VidaSearch marketplace job completed:",
     {
       searchTerm:
         job.searchTerm,
@@ -493,26 +934,97 @@ import {
       searchMode:
         job.searchMode,
  
+      expandAliases:
+        job.expandAliases,
+ 
       maxPages:
         job.maxPages,
  
       retailerListingCount:
         listings.length,
+ 
+      durationMs:
+        Date.now() -
+        startedAt,
     }
   );
  
-  /*
-   * Do not build product cards here.
-   *
-   * Previously each expansion built its own product
-   * collection and the entire combined collection
-   * was then built again. That repeated grouping,
-   * pricing, research-cache reads, and scoring.
-   */
   return {
     job,
  
     listings,
+  };
+ }
+ 
+ async function runSearchJobs({
+  jobs,
+  brand,
+ }: {
+  jobs:
+    SearchJob[];
+ 
+  brand:
+    string | undefined;
+ }) {
+  const settledJobs =
+    await Promise.allSettled(
+      jobs.map(
+        (
+          job
+        ) =>
+          runSearchJob({
+            job,
+ 
+            brand,
+          })
+      )
+    );
+ 
+  const completedJobs:
+    CompletedSearchJob[] =
+    [];
+ 
+  const failedJobs:
+    FailedSearchJob[] =
+    [];
+ 
+  settledJobs.forEach(
+    (
+      result,
+      index
+    ) => {
+      if (
+        result.status ===
+          "fulfilled"
+      ) {
+        completedJobs.push(
+          result.value
+        );
+ 
+        return;
+      }
+ 
+      failedJobs.push({
+        searchTerm:
+          jobs[index]
+            ?.searchTerm ??
+          "Unknown search",
+ 
+        error:
+          result.reason instanceof
+            Error
+            ? result.reason.message
+            : String(
+                result.reason
+              ),
+      });
+    }
+  );
+ 
+  return {
+    completedJobs,
+ 
+    failedJobs,
   };
  }
  
@@ -534,6 +1046,9 @@ import {
   request:
     Request
  ) {
+  const routeStartedAt =
+    Date.now();
+ 
   try {
     const body =
       (await request.json()) as {
@@ -545,6 +1060,9 @@ import {
  
         capsulesPerDay?:
           number;
+ 
+        phase?:
+          SearchPhase;
       };
  
     const originalQuery =
@@ -569,6 +1087,14 @@ import {
       );
     }
  
+    const phase =
+      normalizeSearchPhase(
+        body.phase
+      );
+ 
+    const intentStartedAt =
+      Date.now();
+ 
     const resolvedIntent =
       await resolveSearchIntent(
         originalQuery
@@ -579,6 +1105,8 @@ import {
       {
         query:
           originalQuery,
+ 
+        phase,
  
         normalizedKey:
           resolvedIntent
@@ -603,6 +1131,10 @@ import {
           resolvedIntent
             .expansions
             .length,
+ 
+        durationMs:
+          Date.now() -
+          intentStartedAt,
       }
     );
  
@@ -681,8 +1213,8 @@ import {
         ?.trim() ||
       undefined;
  
-    const searchJobs =
-      buildSearchJobs({
+    const completeJobs =
+      buildCompleteSearchJobs({
         originalQuery,
  
         intentType:
@@ -698,11 +1230,35 @@ import {
             .expansions,
       });
  
+    const initialJob =
+      buildInitialSearchJob({
+        originalQuery,
+ 
+        intentType:
+          resolvedIntent
+            .intentType,
+ 
+        displayName:
+          resolvedIntent
+            .displayName,
+      });
+ 
+    const searchJobs =
+      selectSearchJobsForPhase({
+        phase,
+ 
+        initialJob,
+ 
+        completeJobs,
+      });
+ 
     console.log(
       "VidaSearch marketplace jobs prepared:",
       {
         query:
           originalQuery,
+ 
+        phase,
  
         intentType:
           resolvedIntent
@@ -713,7 +1269,9 @@ import {
  
         jobs:
           searchJobs.map(
-            (job) => ({
+            (
+              job
+            ) => ({
               searchTerm:
                 job.searchTerm,
  
@@ -723,70 +1281,32 @@ import {
               searchMode:
                 job.searchMode,
  
+              expandAliases:
+                job.expandAliases,
+ 
               maxPages:
                 job.maxPages,
+ 
+              priority:
+                job.priority,
             })
           ),
       }
     );
  
-    const settledJobs =
-      await Promise.allSettled(
-        searchJobs.map(
-          (job) =>
-            runSearchJob({
-              job,
+    const marketplaceStartedAt =
+      Date.now();
  
-              brand,
-            })
-        )
-      );
+    const {
+      completedJobs,
+      failedJobs,
+    } =
+      await runSearchJobs({
+        jobs:
+          searchJobs,
  
-    const completedJobs:
-      CompletedSearchJob[] =
-      [];
- 
-    const failedJobs:
-      Array<{
-        searchTerm:
-          string;
- 
-        error:
-          string;
-      }> = [];
- 
-    settledJobs.forEach(
-      (
-        result,
-        index
-      ) => {
-        if (
-          result.status ===
-            "fulfilled"
-        ) {
-          completedJobs.push(
-            result.value
-          );
- 
-          return;
-        }
- 
-        failedJobs.push({
-          searchTerm:
-            searchJobs[index]
-              ?.searchTerm ??
-            "Unknown search",
- 
-          error:
-            result.reason instanceof
-              Error
-              ? result.reason.message
-              : String(
-                  result.reason
-                ),
-        });
-      }
-    );
+        brand,
+      });
  
     if (
       failedJobs.length >
@@ -794,7 +1314,14 @@ import {
     ) {
       console.error(
         "VidaSearch marketplace jobs failed:",
-        failedJobs
+        {
+          query:
+            originalQuery,
+ 
+          phase,
+ 
+          failedJobs,
+        }
       );
     }
  
@@ -815,9 +1342,15 @@ import {
         .trim() ||
       originalQuery;
  
+    /*
+     * There is deliberately no combined listing
+     * cap here.
+     */
     const combinedListings =
       completedJobs.flatMap(
-        (completedJob) =>
+        (
+          completedJob
+        ) =>
           normalizeListingsForCombinedGrouping({
             listings:
               completedJob
@@ -840,14 +1373,6 @@ import {
         false,
     };
  
-    /*
-     * Schedule exactly one capped OpenAI brand
-     * enrichment job for the complete customer search.
-     *
-     * Known brands are skipped. Recently attempted
-     * unresolved titles are skipped by the configured
-     * cooldown.
-     */
     scheduleUnknownBrandEnrichment({
       listings:
         combinedListings,
@@ -856,14 +1381,6 @@ import {
         combinedBrandRequest,
     });
  
-    /*
-     * Record unresolved and parser-only brands once for
-     * the complete customer search.
-     *
-     * This replaces separate discovery runs for each
-     * marketplace expansion such as saffron, SAM-e,
-     * 5-HTP, and L-theanine.
-     */
     scheduleBrandDiscoveryRecording({
       listings:
         combinedListings,
@@ -875,13 +1392,15 @@ import {
         originalQuery,
  
       sourceProvider:
-        "serpapi-google-shopping-combined",
+        phase ===
+          "initial"
+          ? "serpapi-google-shopping-initial"
+          : "serpapi-google-shopping-expanded",
     });
  
-    /*
-     * Group, price, score, and load cached research
-     * only once for the final combined collection.
-     */
+    const productBuildStartedAt =
+      Date.now();
+ 
     const products =
       await buildSearchProductOptions(
         combinedListings,
@@ -928,6 +1447,8 @@ import {
         query:
           originalQuery,
  
+        phase,
+ 
         intentType:
           resolvedIntent
             .intentType,
@@ -943,6 +1464,18 @@ import {
  
         combinedProductCount:
           products.length,
+ 
+        marketplaceDurationMs:
+          Date.now() -
+          marketplaceStartedAt,
+ 
+        productBuildDurationMs:
+          Date.now() -
+          productBuildStartedAt,
+ 
+        totalDurationMs:
+          Date.now() -
+          routeStartedAt,
       }
     );
  
@@ -980,6 +1513,8 @@ import {
       products,
  
       metadata: {
+        phase,
+ 
         intentId:
           resolvedIntent.id,
  
@@ -1020,6 +1555,10 @@ import {
  
         productCount:
           products.length,
+ 
+        durationMs:
+          Date.now() -
+          routeStartedAt,
       },
     });
   } catch (
@@ -1048,3 +1587,4 @@ import {
     );
   }
  }
+ 

@@ -1,4 +1,16 @@
-import type {
+import {
+  createHash,
+ } from "node:crypto";
+ 
+ import {
+  Prisma,
+ } from "@/lib/generated/prisma/client";
+ 
+ import {
+  prisma,
+ } from "@/lib/db";
+ 
+ import type {
   SearchDosageUnit,
   SearchProductForm,
   SearchRetailProduct,
@@ -9,19 +21,9 @@ import type {
   getSupplementSearchTerms,
  } from "@/lib/pricing/supplementAliases";
  
-
-
-
-
-
-
-
  import {
   resolveSearchListingBrands,
  } from "@/lib/search/brand/resolveSearchListingBrands";
-
-
-
  
  import type {
   ProductSearchRequest,
@@ -29,6 +31,37 @@ import type {
  
  const SERP_API_ENDPOINT =
   "https://serpapi.com/search.json";
+ 
+ const SERP_API_SOURCE_PROVIDER =
+  "serpapi";
+ 
+ const SERP_API_SEARCH_ENGINE =
+  "google_shopping";
+ 
+ const SERP_API_COUNTRY_CODE =
+  "us";
+ 
+ const SERP_API_LANGUAGE =
+  "en";
+ 
+ const SERP_API_CACHE_VERSION =
+  "serpapi-google-shopping-page-v1";
+ 
+ /*
+ * Search browsing results are reused briefly to
+ * reduce paid SerpApi usage.
+ *
+ * Checkout must still revalidate the selected offer
+ * before creating the final customer charge.
+ */
+ const DEFAULT_CACHE_TTL_MINUTES =
+  15;
+ 
+ const MIN_CACHE_TTL_MINUTES =
+  1;
+ 
+ const MAX_CACHE_TTL_MINUTES =
+  1440;
  
  const DEFAULT_MAX_PAGES =
   3;
@@ -126,6 +159,29 @@ import type {
  
   nextUrl:
     string | null;
+ 
+  cacheStatus:
+    "HIT" | "MISS" | "BYPASS";
+ };
+ 
+ type ShoppingQueryResult = {
+  results:
+    SerpApiShoppingResult[];
+ 
+  cacheHits:
+    number;
+ 
+  cacheMisses:
+    number;
+ 
+  cacheBypasses:
+    number;
+ 
+  serpApiRequests:
+    number;
+ 
+  pagesFetched:
+    number;
  };
  
  function normalizeText(
@@ -224,7 +280,7 @@ import type {
  
   if (
     typeof value ===
-    "number"
+      "number"
   ) {
     return value >
       0;
@@ -297,6 +353,72 @@ import type {
         value
       )
     )
+  );
+ }
+ 
+ function parsePositiveInteger(
+  value:
+    string | undefined
+ ) {
+  if (
+    !value
+  ) {
+    return undefined;
+  }
+ 
+  const parsed =
+    Number(
+      value
+    );
+ 
+  if (
+    !Number.isFinite(
+      parsed
+    ) ||
+    parsed <=
+      0
+  ) {
+    return undefined;
+  }
+ 
+  return Math.round(
+    parsed
+  );
+ }
+ 
+ function getCacheTtlMinutes() {
+  return clampInteger({
+    value:
+      parsePositiveInteger(
+        process.env
+          .SERPAPI_SEARCH_CACHE_TTL_MINUTES
+      ),
+ 
+    fallback:
+      DEFAULT_CACHE_TTL_MINUTES,
+ 
+    minimum:
+      MIN_CACHE_TTL_MINUTES,
+ 
+    maximum:
+      MAX_CACHE_TTL_MINUTES,
+  });
+ }
+ 
+ function isSearchCacheBypassed() {
+  const configuredValue =
+    process.env
+      .SERPAPI_SEARCH_CACHE_BYPASS
+      ?.trim()
+      .toLowerCase();
+ 
+  return (
+    configuredValue ===
+      "true" ||
+    configuredValue ===
+      "1" ||
+    configuredValue ===
+      "yes"
   );
  }
  
@@ -1454,14 +1576,6 @@ import type {
   return product;
  }
  
-
-
-
-
-
-
-
- 
  function getListingTotalPrice(
   product:
     SearchRetailProduct
@@ -1586,6 +1700,47 @@ import type {
   );
  }
  
+ function sanitizeProviderUrl(
+  url:
+    string
+ ) {
+  try {
+    const parsedUrl =
+      new URL(
+        url
+      );
+ 
+    /*
+     * Never place the private SerpApi key inside the
+     * cache key or database response payload.
+     */
+    parsedUrl.searchParams.delete(
+      "api_key"
+    );
+ 
+    parsedUrl.hash =
+      "";
+ 
+    parsedUrl.searchParams.sort();
+ 
+    return parsedUrl.toString();
+  } catch {
+    return url
+      .replace(
+        /([?&])api_key=[^&]*/gi,
+        "$1"
+      )
+      .replace(
+        /\?&/,
+        "?"
+      )
+      .replace(
+        /[?&]$/,
+        ""
+      );
+  }
+ }
+ 
  function ensureApiKeyOnPaginationUrl({
   url,
   apiKey,
@@ -1602,16 +1757,10 @@ import type {
         url
       );
  
-    if (
-      !parsedUrl.searchParams.has(
-        "api_key"
-      )
-    ) {
-      parsedUrl.searchParams.set(
-        "api_key",
-        apiKey
-      );
-    }
+    parsedUrl.searchParams.set(
+      "api_key",
+      apiKey
+    );
  
     return parsedUrl.toString();
   } catch {
@@ -1619,10 +1768,542 @@ import type {
   }
  }
  
+ function buildCacheKey({
+  url,
+  pageNumber,
+ }: {
+  url:
+    string;
+ 
+  pageNumber:
+    number;
+ }) {
+  const sanitizedUrl =
+    sanitizeProviderUrl(
+      url
+    );
+ 
+  const identity =
+    [
+      SERP_API_CACHE_VERSION,
+      SERP_API_SOURCE_PROVIDER,
+      SERP_API_SEARCH_ENGINE,
+      SERP_API_COUNTRY_CODE,
+      SERP_API_LANGUAGE,
+      pageNumber,
+      sanitizedUrl,
+    ].join(
+      "|"
+    );
+ 
+  return createHash(
+    "sha256"
+  )
+    .update(
+      identity
+    )
+    .digest(
+      "hex"
+    );
+ }
+ 
+ function getCacheExpiration(
+  fetchedAt =
+    new Date()
+ ) {
+  const ttlMilliseconds =
+    getCacheTtlMinutes() *
+    60 *
+    1000;
+ 
+  return new Date(
+    fetchedAt.getTime() +
+      ttlMilliseconds
+  );
+ }
+ 
+ function parseCachedShoppingPage(
+  payload:
+    Prisma.JsonValue
+ ): {
+  results:
+    SerpApiShoppingResult[];
+ 
+  nextUrl:
+    string | null;
+ } | null {
+  if (
+    !payload ||
+    typeof payload !==
+      "object" ||
+    Array.isArray(
+      payload
+    )
+  ) {
+    return null;
+  }
+ 
+  const candidate =
+    payload as Record<
+      string,
+      unknown
+ >;
+ 
+  const shoppingResults =
+    candidate
+      .shopping_results;
+ 
+  if (
+    !Array.isArray(
+      shoppingResults
+    )
+  ) {
+    return null;
+  }
+ 
+  const pagination =
+    candidate
+      .serpapi_pagination;
+ 
+  let nextUrl:
+    string | null =
+    null;
+ 
+  if (
+    pagination &&
+    typeof pagination ===
+      "object" &&
+    !Array.isArray(
+      pagination
+    )
+  ) {
+    nextUrl =
+      stringValue(
+        (
+          pagination as Record<
+            string,
+            unknown>
+ 
+        ).next
+      ) ||
+      null;
+  }
+ 
+  return {
+    results:
+      shoppingResults as
+        SerpApiShoppingResult[],
+ 
+    nextUrl:
+      nextUrl
+        ? sanitizeProviderUrl(
+            nextUrl
+          )
+        : null,
+  };
+ }
+ 
+
+
+ function buildCachePayload({
+  results,
+  nextUrl,
+ }: {
+  results:
+    SerpApiShoppingResult[];
+ 
+  nextUrl:
+    string | null;
+ }): Prisma.InputJsonObject {
+  /*
+   * SerpApi results originate from parsed JSON, but
+   * their local TypeScript fields are typed as
+   * unknown. Convert them into Prisma's JSON input
+   * type before writing them to PostgreSQL.
+   */
+  const jsonResults =
+    results as unknown as
+      Prisma.InputJsonArray;
+ 
+  return {
+    shopping_results:
+      jsonResults,
+ 
+    serpapi_pagination:
+      nextUrl
+        ? {
+            next:
+              sanitizeProviderUrl(
+                nextUrl
+              ),
+          }
+        : {},
+  };
+ }
+ 
+
+
+
+ 
+ async function readCachedShoppingPage({
+  cacheKey,
+  query,
+  pageNumber,
+ }: {
+  cacheKey:
+    string;
+ 
+  query:
+    string;
+ 
+  pageNumber:
+    number;
+ }): Promise<
+  ShoppingPageResult | null
+ >{
+  try {
+    const cachedPage =
+      await prisma
+        .marketplaceSearchCache
+        .findUnique({
+          where: {
+            cacheKey,
+          },
+        });
+ 
+    if (
+      !cachedPage
+    ) {
+      return null;
+    }
+ 
+    const now =
+      new Date();
+ 
+    if (
+      cachedPage
+        .expiresAt <=
+      now
+    ) {
+      console.log(
+        "VidaSearch SerpApi cache entry expired:",
+        {
+          query,
+ 
+          pageNumber,
+ 
+          fetchedAt:
+            cachedPage
+              .fetchedAt,
+ 
+          expiresAt:
+            cachedPage
+              .expiresAt,
+        }
+      );
+ 
+      return null;
+    }
+ 
+    const parsedPayload =
+      parseCachedShoppingPage(
+        cachedPage
+          .responsePayload
+      );
+ 
+    if (
+      !parsedPayload
+    ) {
+      console.warn(
+        "VidaSearch SerpApi cache payload was invalid:",
+        {
+          query,
+ 
+          pageNumber,
+ 
+          cacheKey,
+        }
+      );
+ 
+      return null;
+    }
+ 
+    /*
+     * Cache access accounting is useful for measuring
+     * actual SerpApi savings. It must never block or
+     * fail the customer search.
+     */
+    void prisma
+      .marketplaceSearchCache
+      .update({
+        where: {
+          cacheKey,
+        },
+ 
+        data: {
+          lastAccessedAt:
+            now,
+ 
+          accessCount: {
+            increment:
+              1,
+          },
+        },
+      })
+      .catch(
+        (error) => {
+          console.warn(
+            "VidaSearch SerpApi cache access update failed:",
+            {
+              query,
+ 
+              pageNumber,
+ 
+              error:
+                error instanceof
+                  Error
+                  ? error.message
+                  : String(
+                      error
+                    ),
+            }
+          );
+        }
+      );
+ 
+    console.log(
+      "VidaSearch SerpApi cache hit:",
+      {
+        query,
+ 
+        pageNumber,
+ 
+        rawResultCount:
+          parsedPayload
+            .results
+            .length,
+ 
+        hasNextPage:
+          Boolean(
+            parsedPayload
+              .nextUrl
+          ),
+ 
+        fetchedAt:
+          cachedPage
+            .fetchedAt,
+ 
+        expiresAt:
+          cachedPage
+            .expiresAt,
+ 
+        previousAccessCount:
+          cachedPage
+            .accessCount,
+      }
+    );
+ 
+    return {
+      results:
+        parsedPayload
+          .results,
+ 
+      nextUrl:
+        parsedPayload
+          .nextUrl,
+ 
+      cacheStatus:
+        "HIT",
+    };
+  } catch (
+    error
+  ) {
+    /*
+     * The cache is an optimization only. Database
+     * cache errors must fall through to live SerpApi.
+     */
+    console.error(
+      "VidaSearch SerpApi cache lookup failed:",
+      {
+        query,
+ 
+        pageNumber,
+ 
+        error:
+          error instanceof
+            Error
+            ? error.message
+            : String(
+                error
+              ),
+      }
+    );
+ 
+    return null;
+  }
+ }
+ 
+ async function writeCachedShoppingPage({
+  cacheKey,
+  query,
+  pageNumber,
+  results,
+  nextUrl,
+ }: {
+  cacheKey:
+    string;
+ 
+  query:
+    string;
+ 
+  pageNumber:
+    number;
+ 
+  results:
+    SerpApiShoppingResult[];
+ 
+  nextUrl:
+    string | null;
+ }) {
+  const fetchedAt =
+    new Date();
+ 
+  const expiresAt =
+    getCacheExpiration(
+      fetchedAt
+    );
+ 
+  const responsePayload =
+    buildCachePayload({
+      results,
+ 
+      nextUrl,
+    });
+ 
+  try {
+    await prisma
+      .marketplaceSearchCache
+      .upsert({
+        where: {
+          cacheKey,
+        },
+ 
+        create: {
+          cacheKey,
+ 
+          sourceProvider:
+            SERP_API_SOURCE_PROVIDER,
+ 
+          searchEngine:
+            SERP_API_SEARCH_ENGINE,
+ 
+          query,
+ 
+          normalizedQuery:
+            normalizeText(
+              query
+            ),
+ 
+          countryCode:
+            SERP_API_COUNTRY_CODE,
+ 
+          language:
+            SERP_API_LANGUAGE,
+ 
+          pageNumber,
+ 
+          responsePayload,
+ 
+          rawResultCount:
+            results.length,
+ 
+          fetchedAt,
+ 
+          expiresAt,
+ 
+          lastAccessedAt:
+            fetchedAt,
+ 
+          accessCount:
+            0,
+        },
+ 
+        update: {
+          query,
+ 
+          normalizedQuery:
+            normalizeText(
+              query
+            ),
+ 
+          pageNumber,
+ 
+          responsePayload,
+ 
+          rawResultCount:
+            results.length,
+ 
+          fetchedAt,
+ 
+          expiresAt,
+ 
+          lastAccessedAt:
+            fetchedAt,
+ 
+          accessCount:
+            0,
+        },
+      });
+ 
+    console.log(
+      "VidaSearch SerpApi cache stored:",
+      {
+        query,
+ 
+        pageNumber,
+ 
+        rawResultCount:
+          results.length,
+ 
+        hasNextPage:
+          Boolean(
+            nextUrl
+          ),
+ 
+        expiresAt,
+      }
+    );
+  } catch (
+    error
+  ) {
+    /*
+     * A cache write failure must not discard the live
+     * marketplace response already obtained.
+     */
+    console.error(
+      "VidaSearch SerpApi cache write failed:",
+      {
+        query,
+ 
+        pageNumber,
+ 
+        error:
+          error instanceof
+            Error
+            ? error.message
+            : String(
+                error
+              ),
+      }
+    );
+  }
+ }
+ 
  async function fetchShoppingPage({
   url,
   query,
   pageNumber,
+  apiKey,
  }: {
   url:
     string;
@@ -1632,12 +2313,72 @@ import type {
  
   pageNumber:
     number;
+ 
+  apiKey:
+    string;
  }): Promise<
   ShoppingPageResult
  >{
+  const sanitizedUrl =
+    sanitizeProviderUrl(
+      url
+    );
+ 
+  const cacheKey =
+    buildCacheKey({
+      url:
+        sanitizedUrl,
+ 
+      pageNumber,
+    });
+ 
+  const bypassCache =
+    isSearchCacheBypassed();
+ 
+  if (
+    !bypassCache
+  ) {
+    const cachedPage =
+      await readCachedShoppingPage({
+        cacheKey,
+ 
+        query,
+ 
+        pageNumber,
+      });
+ 
+    if (
+      cachedPage
+    ) {
+      return cachedPage;
+    }
+  }
+ 
+  console.log(
+    bypassCache
+      ? "VidaSearch SerpApi cache bypassed:"
+      : "VidaSearch SerpApi cache miss:",
+    {
+      query,
+ 
+      pageNumber,
+ 
+      cacheTtlMinutes:
+        getCacheTtlMinutes(),
+    }
+  );
+ 
+  const requestUrl =
+    ensureApiKeyOnPaginationUrl({
+      url:
+        sanitizedUrl,
+ 
+      apiKey,
+    });
+ 
   const response =
     await fetch(
-      url,
+      requestUrl,
       {
         method:
           "GET",
@@ -1694,13 +2435,36 @@ import type {
           SerpApiShoppingResult[]
       : [];
  
-  const nextUrl =
+  const rawNextUrl =
     stringValue(
       data
         .serpapi_pagination
         ?.next
     ) ||
     null;
+ 
+  const nextUrl =
+    rawNextUrl
+      ? sanitizeProviderUrl(
+          rawNextUrl
+        )
+      : null;
+ 
+  if (
+    !bypassCache
+  ) {
+    await writeCachedShoppingPage({
+      cacheKey,
+ 
+      query,
+ 
+      pageNumber,
+ 
+      results,
+ 
+      nextUrl,
+    });
+  }
  
   console.log(
     "VidaSearch shopping page completed:",
@@ -1716,6 +2480,11 @@ import type {
         Boolean(
           nextUrl
         ),
+ 
+      cacheStatus:
+        bypassCache
+          ? "BYPASS"
+          : "MISS",
     }
   );
  
@@ -1723,6 +2492,11 @@ import type {
     results,
  
     nextUrl,
+ 
+    cacheStatus:
+      bypassCache
+        ? "BYPASS"
+        : "MISS",
   };
  }
  
@@ -1744,24 +2518,21 @@ import type {
   maxRetailListings:
     number;
  }): Promise<
-  SerpApiShoppingResult[]
+  ShoppingQueryResult
  >{
   const params =
     new URLSearchParams({
       engine:
-        "google_shopping",
+        SERP_API_SEARCH_ENGINE,
  
       q:
         query,
  
-      api_key:
-        apiKey,
- 
       gl:
-        "us",
+        SERP_API_COUNTRY_CODE,
  
       hl:
-        "en",
+        SERP_API_LANGUAGE,
  
       direct_link:
         "true",
@@ -1784,6 +2555,18 @@ import type {
   let pagesFetched =
     0;
  
+  let cacheHits =
+    0;
+ 
+  let cacheMisses =
+    0;
+ 
+  let cacheBypasses =
+    0;
+ 
+  let serpApiRequests =
+    0;
+ 
   while (
     nextUrl &&
     pageNumber <=
@@ -1791,17 +2574,14 @@ import type {
     results.length <
       maxRetailListings
   ) {
-    const requestUrl =
-      ensureApiKeyOnPaginationUrl({
-        url:
-          nextUrl,
- 
-        apiKey,
-      });
+    const sanitizedRequestUrl =
+      sanitizeProviderUrl(
+        nextUrl
+      );
  
     if (
       visitedUrls.has(
-        requestUrl
+        sanitizedRequestUrl
       )
     ) {
       console.warn(
@@ -1817,21 +2597,53 @@ import type {
     }
  
     visitedUrls.add(
-      requestUrl
+      sanitizedRequestUrl
     );
  
     const page =
       await fetchShoppingPage({
         url:
-          requestUrl,
+          sanitizedRequestUrl,
  
         query,
  
         pageNumber,
+ 
+        apiKey,
       });
  
     pagesFetched +=
       1;
+ 
+    if (
+      page.cacheStatus ===
+        "HIT"
+    ) {
+      cacheHits +=
+        1;
+    }
+ 
+    if (
+      page.cacheStatus ===
+        "MISS"
+    ) {
+      cacheMisses +=
+        1;
+ 
+      serpApiRequests +=
+        1;
+    }
+ 
+    if (
+      page.cacheStatus ===
+        "BYPASS"
+    ) {
+      cacheBypasses +=
+        1;
+ 
+      serpApiRequests +=
+        1;
+    }
  
     results.push(
       ...page.results
@@ -1867,12 +2679,33 @@ import type {
  
       pagesFetched,
  
+      cacheHits,
+ 
+      cacheMisses,
+ 
+      cacheBypasses,
+ 
+      serpApiRequests,
+ 
       rawResultCount:
         limitedResults.length,
     }
   );
  
-  return limitedResults;
+  return {
+    results:
+      limitedResults,
+ 
+    cacheHits,
+ 
+    cacheMisses,
+ 
+    cacheBypasses,
+ 
+    serpApiRequests,
+ 
+    pagesFetched,
+  };
  }
  
  export async function findSearchProducts(
@@ -1952,6 +2785,12 @@ import type {
       maxPages,
  
       maxRetailListings,
+ 
+      searchCacheBypassed:
+        isSearchCacheBypassed(),
+ 
+      searchCacheTtlMinutes:
+        getCacheTtlMinutes(),
     }
   );
  
@@ -1975,13 +2814,21 @@ import type {
       )
     );
  
-  const successfulResults =
+  const successfulQueries =
     queryResults.flatMap(
       (result) =>
         result.status ===
           "fulfilled"
-          ? result.value
+          ? [
+              result.value,
+            ]
           : []
+    );
+ 
+  const successfulResults =
+    successfulQueries.flatMap(
+      (result) =>
+        result.results
     );
  
   const failedQueries =
@@ -2033,6 +2880,61 @@ import type {
     );
   }
  
+  const totalCacheHits =
+    successfulQueries.reduce(
+      (
+        total,
+        result
+      ) =>
+        total +
+        result.cacheHits,
+      0
+    );
+ 
+  const totalCacheMisses =
+    successfulQueries.reduce(
+      (
+        total,
+        result
+      ) =>
+        total +
+        result.cacheMisses,
+      0
+    );
+ 
+  const totalCacheBypasses =
+    successfulQueries.reduce(
+      (
+        total,
+        result
+      ) =>
+        total +
+        result.cacheBypasses,
+      0
+    );
+ 
+  const totalSerpApiRequests =
+    successfulQueries.reduce(
+      (
+        total,
+        result
+      ) =>
+        total +
+        result.serpApiRequests,
+      0
+    );
+ 
+  const totalPagesProcessed =
+    successfulQueries.reduce(
+      (
+        total,
+        result
+      ) =>
+        total +
+        result.pagesFetched,
+      0
+    );
+ 
   const rawResults =
     successfulResults;
  
@@ -2054,64 +2956,46 @@ import type {
       );
  
   /*
+   * Remove duplicate retailer listings before any
+   * optional live enrichment. This keeps the number
+   * of titles sent for enrichment as small as
+   * possible.
+   */
+  const initiallyUniqueListings =
+    deduplicateListings(
+      mappedListings
+    ).slice(
+      0,
+      maxRetailListings
+    );
+ 
+  /*
+   * Apply fast database and parser-based resolution.
+   * This does not call OpenAI.
+   */
+  const brandResolvedListings =
+    await resolveSearchListingBrands({
+      listings:
+        initiallyUniqueListings,
+ 
+      request,
+    });
+ 
+  /*
    * Resolve database-backed canonical brand names
-   * before deduplication and product grouping.
+   * before final deduplication and product grouping.
    *
    * This ensures aliases such as "NOW Foods" can be
    * converted to the canonical database name "NOW"
    * before product identities are constructed.
    */
-  
-
-
-
-
-/*
-* Remove duplicate retailer listings before any
-* optional live enrichment. This keeps the number
-* of titles sent for enrichment as small as possible.
-*/
-const initiallyUniqueListings =
- deduplicateListings(
-   mappedListings
- ).slice(
-   0,
-   maxRetailListings
- );
-
-/*
-* Apply fast database and parser-based resolution.
-* This does not call OpenAI.
-*/
-const brandResolvedListings =
- await resolveSearchListingBrands({
-   listings:
-     initiallyUniqueListings,
-
-   request,
- });
-
-
-
-
-
-
-
-const uniqueListings =
- deduplicateListings(
-   brandResolvedListings
- ).slice(
-   0,
-   maxRetailListings
- );
-
-
-
-
-
-
-
-
+  const uniqueListings =
+    deduplicateListings(
+      brandResolvedListings
+    ).slice(
+      0,
+      maxRetailListings
+    );
  
   const brandSourceCounts =
     uniqueListings.reduce(
@@ -2119,8 +3003,8 @@ const uniqueListings =
         counts:
           Record<
             string,
-            number>
- ,
+            number
+ >,
  
         listing
       ) => {
@@ -2162,20 +3046,12 @@ const uniqueListings =
       brandResolvedResultCount:
         brandResolvedListings.length,
  
-
-
-
-        duplicateListingCount:
+      duplicateListingCount:
         Math.max(
           0,
           mappedListings.length -
             uniqueListings.length
         ),
-
-
-
-
-
  
       uniqueRetailerListingCount:
         uniqueListings.length,
@@ -2203,6 +3079,26 @@ const uniqueListings =
               .multipleSourcesAvailable
         ).length,
  
+      cacheSummary: {
+        pagesProcessed:
+          totalPagesProcessed,
+ 
+        cacheHits:
+          totalCacheHits,
+ 
+        cacheMisses:
+          totalCacheMisses,
+ 
+        cacheBypasses:
+          totalCacheBypasses,
+ 
+        serpApiRequests:
+          totalSerpApiRequests,
+ 
+        serpApiRequestsAvoided:
+          totalCacheHits,
+      },
+ 
       brandCounts:
         brandSourceCounts,
  
@@ -2212,8 +3108,8 @@ const uniqueListings =
             counts:
               Record<
                 string,
-                number>
- ,
+                number
+ >,
  
             listing
           ) => {

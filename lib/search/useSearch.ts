@@ -20,13 +20,6 @@ import type {
 const SEARCH_DELAY_MS =
  700;
 
-/*
-* Controlled merchant-page enrichment.
-*
-* Products appear immediately after the main
-* search. Enrichment then updates supported
-* attributes without blocking the result page.
-*/
 const ENABLE_LIVE_ENRICHMENT =
  true;
 
@@ -53,10 +46,6 @@ type SearchErrorDetails = {
    string | null;
 };
 
-/*
-* Supports ordinary Error objects as well as richer
-* errors that searchProducts may expose from the API.
-*/
 type SearchRequestError = Error & {
  code?:
    string;
@@ -85,6 +74,210 @@ type SearchRequestError = Error & {
        };
    };
 };
+
+function normalizeProductIdentityText(
+ value:
+   string | null |
+   undefined
+) {
+ return (
+   value
+     ?.toLowerCase()
+     .replace(
+       /[’']/g,
+       ""
+     )
+     .replace(
+       /[^a-z0-9]+/g,
+       " "
+     )
+     .trim() ??
+   ""
+ );
+}
+
+function buildProductIdentity(
+ product:
+   SearchProductOption
+) {
+ /*
+  * Product options are grouped products rather
+  * than individual retailer listings.
+  *
+  * Brand and normalized product name are therefore
+  * more stable than the selected representative
+  * retailer listing, which can change after the
+  * expanded search compares more sellers.
+  */
+ return [
+   normalizeProductIdentityText(
+     product.brand
+   ),
+
+   normalizeProductIdentityText(
+     product.productName
+   ),
+ ].join(
+   "::"
+ );
+}
+
+function mergeProductVersions({
+ current,
+ incoming,
+}: {
+ current:
+   SearchProductOption;
+
+ incoming:
+   SearchProductOption;
+}): SearchProductOption {
+ /*
+  * Prefer the expanded product's pricing, vendor
+  * comparisons, representative listing, and score.
+  *
+  * Preserve completed merchant research when the
+  * incoming expanded product has not yet been
+  * enriched.
+  */
+ if (
+   current.researchStatus ===
+     "complete" &&
+   incoming.researchStatus !==
+     "complete"
+ ) {
+   return {
+     ...incoming,
+
+     researchStatus:
+       current.researchStatus,
+
+     form:
+       current.form ??
+       incoming.form ??
+       null,
+
+     dietaryPreferences:
+       current.dietaryPreferences,
+
+     thirdPartyTesting:
+       current.thirdPartyTesting,
+
+     certifications:
+       current.certifications,
+
+     qualityClaims:
+       current.qualityClaims,
+
+     verifiedClaims:
+       current.verifiedClaims,
+   };
+ }
+
+ return incoming;
+}
+
+function mergeSearchProducts({
+ currentProducts,
+ incomingProducts,
+}: {
+ currentProducts:
+   SearchProductOption[];
+
+ incomingProducts:
+   SearchProductOption[];
+}) {
+ const productsByIdentity =
+   new Map<
+     string,
+     SearchProductOption
+>();
+
+ const orderedIdentities:
+   string[] =
+   [];
+
+ for (
+   const product of
+   currentProducts
+ ) {
+   const identity =
+     buildProductIdentity(
+       product
+     );
+
+   if (
+     !productsByIdentity.has(
+       identity
+     )
+   ) {
+     orderedIdentities.push(
+       identity
+     );
+   }
+
+   productsByIdentity.set(
+     identity,
+     product
+   );
+ }
+
+ for (
+   const product of
+   incomingProducts
+ ) {
+   const identity =
+     buildProductIdentity(
+       product
+     );
+
+   const existing =
+     productsByIdentity.get(
+       identity
+     );
+
+   if (
+     existing
+   ) {
+     productsByIdentity.set(
+       identity,
+       mergeProductVersions({
+         current:
+           existing,
+
+         incoming:
+           product,
+       })
+     );
+
+     continue;
+   }
+
+   orderedIdentities.push(
+     identity
+   );
+
+   productsByIdentity.set(
+     identity,
+     product
+   );
+ }
+
+ return orderedIdentities.flatMap(
+   (identity) => {
+     const product =
+       productsByIdentity.get(
+         identity
+       );
+
+     return product
+       ? [
+           product,
+         ]
+       : [];
+   }
+ );
+}
 
 function mergeEnrichment({
  product,
@@ -341,7 +534,7 @@ async function enrichProducts({
    AbortSignal;
 
  onProductEnriched: (
-   productName:
+   productIdentity:
      string,
 
    enrichment:
@@ -389,6 +582,11 @@ async function enrichProducts({
      const representativeProduct =
        product
          .representativeProduct;
+
+     const productIdentity =
+       buildProductIdentity(
+         product
+       );
 
      console.log(
        "VidaSearch merchant enrichment worker started product:",
@@ -461,7 +659,7 @@ async function enrichProducts({
        }
 
        onProductEnriched(
-         product.productName,
+         productIdentity,
          enrichment
        );
 
@@ -602,6 +800,39 @@ async function enrichProducts({
  );
 }
 
+function getEnrichmentCandidates(
+ products:
+   SearchProductOption[]
+) {
+ return products
+   .filter(
+     (
+       product
+     ) =>
+       product
+         .researchStatus !==
+         "complete" &&
+       product.brand
+         .trim()
+         .toLowerCase() !==
+         "unknown brand" &&
+       Boolean(
+         product
+           .representativeProduct
+           .shoppingProductId
+       ) &&
+       Boolean(
+         product
+           .representativeProduct
+           .immersiveProductPageToken
+       )
+   )
+   .slice(
+     0,
+     MAX_LIVE_ENRICHMENT_PRODUCTS
+   );
+}
+
 export function useSearch(
  query:
    string
@@ -625,12 +856,20 @@ export function useSearch(
    );
 
  const [
+   loadingMore,
+   setLoadingMore,
+ ] =
+   useState(
+     false
+   );
+
+ const [
    error,
    setError,
  ] =
    useState<
-     string | null>
-(
+     string | null
+>(
      null
    );
 
@@ -639,8 +878,8 @@ export function useSearch(
    setErrorCode,
  ] =
    useState<
-     SearchErrorCode>
-(
+     SearchErrorCode
+>(
      null
    );
 
@@ -649,8 +888,8 @@ export function useSearch(
    setErrorSuggestion,
  ] =
    useState<
-     string | null>
-(
+     string | null
+>(
      null
    );
 
@@ -682,6 +921,10 @@ export function useSearch(
          false
        );
 
+       setLoadingMore(
+         false
+       );
+
        return;
      }
 
@@ -694,9 +937,17 @@ export function useSearch(
      const timeout =
        window.setTimeout(
          async () => {
+           let productsForEnrichment:
+             SearchProductOption[] =
+             [];
+
            try {
              setLoading(
                true
+             );
+
+             setLoadingMore(
+               false
              );
 
              setResults(
@@ -716,17 +967,20 @@ export function useSearch(
              );
 
              console.log(
-               "VidaSearch product search started:",
+               "VidaSearch initial product search started:",
                {
                  query:
                    trimmed,
                }
              );
 
-             const products =
+             const initialProducts =
                await searchProducts({
                  supplement:
                    trimmed,
+
+                 phase:
+                   "initial",
 
                  signal:
                    searchController
@@ -742,67 +996,183 @@ export function useSearch(
              }
 
              console.log(
-               "VidaSearch product search completed:",
+               "VidaSearch initial product search completed:",
                {
                  query:
                    trimmed,
 
                  productCount:
-                   products
+                   initialProducts
                      .length,
-
-                 productNames:
-                   products.map(
-                     (
-                       product
-                     ) =>
-                       product
-                         .productName
-                   ),
                }
              );
 
              /*
-              * Display all products immediately.
-              *
-              * The enrichment queue below does not
-              * filter the visible results.
+              * The first marketplace page becomes
+              * visible immediately.
               */
              setResults(
-               products
+               initialProducts
              );
+
+             setLoading(
+               false
+             );
+
+             productsForEnrichment =
+               initialProducts;
+
+             /*
+              * Keep the initial products on screen
+              * while the full expansion runs.
+              */
+             setLoadingMore(
+               true
+             );
+
+             console.log(
+               "VidaSearch expanded product search started:",
+               {
+                 query:
+                   trimmed,
+
+                 initialProductCount:
+                   initialProducts
+                     .length,
+               }
+             );
+
+             try {
+               const expandedProducts =
+                 await searchProducts({
+                   supplement:
+                     trimmed,
+
+                   phase:
+                     "expanded",
+
+                   signal:
+                     searchController
+                       .signal,
+                 });
+
+               if (
+                 searchController
+                   .signal
+                   .aborted
+               ) {
+                 return;
+               }
+
+               const mergedProducts =
+                 mergeSearchProducts({
+                   currentProducts:
+                     initialProducts,
+
+                   incomingProducts:
+                     expandedProducts,
+                 });
+
+               console.log(
+                 "VidaSearch expanded product search completed:",
+                 {
+                   query:
+                     trimmed,
+
+                   initialProductCount:
+                     initialProducts
+                       .length,
+
+                   expandedProductCount:
+                     expandedProducts
+                       .length,
+
+                   mergedProductCount:
+                     mergedProducts
+                       .length,
+                 }
+               );
+
+               productsForEnrichment =
+                 mergedProducts;
+
+               setResults(
+                 (
+                   currentResults
+                 ) =>
+                   mergeSearchProducts({
+                     currentProducts:
+                       currentResults,
+
+                     incomingProducts:
+                       expandedProducts,
+                   })
+               );
+             } catch (
+               expansionError
+             ) {
+               if (
+                 expansionError instanceof
+                   DOMException &&
+                 expansionError.name ===
+                   "AbortError"
+               ) {
+                 return;
+               }
+
+               /*
+                * Expansion failure is nonfatal.
+                *
+                * The customer keeps the fast initial
+                * product collection rather than seeing
+                * the entire page change to an error.
+                */
+               console.error(
+                 "VidaSearch expanded product search failed:",
+                 {
+                   query:
+                     trimmed,
+
+                   error:
+                     expansionError instanceof
+                       Error
+                       ? {
+                           name:
+                             expansionError.name,
+
+                           message:
+                             expansionError.message,
+                         }
+                       : expansionError,
+                 }
+               );
+             } finally {
+               if (
+                 !searchController
+                   .signal
+                   .aborted
+               ) {
+                 setLoadingMore(
+                   false
+                 );
+               }
+             }
+
+             if (
+               searchController
+                 .signal
+                 .aborted
+             ) {
+               return;
+             }
 
              if (
                ENABLE_LIVE_ENRICHMENT
              ) {
                const enrichmentCandidates =
-                 products
-                   .filter(
-                     (
-                       product
-                     ) =>
-                       product
-                         .researchStatus !==
-                         "complete" &&
-                       product.brand
-                         .trim()
-                         .toLowerCase() !==
-                         "unknown brand" &&
-                       Boolean(
-                         product
-                           .representativeProduct
-                           .shoppingProductId
-                       ) &&
-                       Boolean(
-                         product
-                           .representativeProduct
-                           .immersiveProductPageToken
-                       )
-                   )
-                   .slice(
-                     0,
-                     MAX_LIVE_ENRICHMENT_PRODUCTS
-                   );
+                 getEnrichmentCandidates(
+                   productsForEnrichment
+                 );
 
                console.log(
                  "VidaSearch controlled merchant enrichment candidates:",
@@ -837,7 +1207,7 @@ export function useSearch(
                      .signal,
 
                  onProductEnriched: (
-                   productName,
+                   productIdentity,
                    enrichment
                  ) => {
                    setResults(
@@ -848,9 +1218,10 @@ export function useSearch(
                          (
                            product
                          ) =>
-                           product
-                             .productName ===
-                           productName
+                           buildProductIdentity(
+                             product
+                           ) ===
+                           productIdentity
                              ? mergeEnrichment({
                                  product,
                                  enrichment,
@@ -882,56 +1253,47 @@ export function useSearch(
                  caughtError
                );
 
+             if (
+               details.code ===
+                 "UNSUPPORTED_SEARCH"
+             ) {
+               console.log(
+                 "VidaSearch unsupported search handled:",
+                 {
+                   query:
+                     trimmed,
 
+                   code:
+                     details.code,
+                 }
+               );
+             } else {
+               console.error(
+                 "VidaSearch initial product search failed:",
+                 {
+                   query:
+                     trimmed,
 
+                   code:
+                     details.code,
 
+                   message:
+                     details.message,
 
-               if (
-                details.code ===
-                "UNSUPPORTED_SEARCH"
-               ) {
-                console.log(
-                  "VidaSearch unsupported search handled:",
-                  {
-                    query:
-                      trimmed,
-               
-                    code:
-                      details.code,
-                  }
-                );
-               } else {
-                console.error(
-                  "VidaSearch product search failed:",
-                  {
-                    query:
-                      trimmed,
-               
-                    code:
-                      details.code,
-               
-                    message:
-                      details.message,
-               
-                    error:
-                      caughtError instanceof
-                        Error
-                        ? {
-                            name:
-                              caughtError.name,
-               
-                            message:
-                              caughtError.message,
-                          }
-                        : caughtError,
-                  }
-                );
-               }
-               
+                   error:
+                     caughtError instanceof
+                       Error
+                       ? {
+                           name:
+                             caughtError.name,
 
-
-
-
+                           message:
+                             caughtError.message,
+                         }
+                       : caughtError,
+                 }
+               );
+             }
 
              setResults(
                []
@@ -991,6 +1353,7 @@ export function useSearch(
  return {
    results,
    loading,
+   loadingMore,
    error,
    errorCode,
    errorSuggestion,

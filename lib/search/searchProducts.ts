@@ -8,6 +8,11 @@ import type {
   | "brand"
   | "invalid";
  
+ export type SearchRequestPhase =
+  | "initial"
+  | "expanded"
+  | "complete";
+ 
  export type SearchProductCategory = {
   id:
     string;
@@ -67,17 +72,6 @@ import type {
     string;
  };
  
- /*
- * The API currently returns a bare product array.
- *
- * The next health-goal implementation may return a
- * structured response containing both real product
- * listings and search-intent metadata.
- *
- * Supporting both shapes lets us add richer goal
- * results without breaking ordinary supplement
- * searches.
- */
  type StructuredSearchApiResponse = {
   products?:
     SearchProductOption[];
@@ -254,13 +248,6 @@ import type {
         )
       : [];
  
-  /*
-   * Prefer the API's top-level product array.
-   *
-   * If only category groups are provided, flatten
-   * their purchasable product listings so the
-   * existing results page continues to work.
-   */
   const products =
     Array.isArray(
       data.products
@@ -310,6 +297,7 @@ import type {
   supplement,
   brand,
   capsulesPerDay = 1,
+  phase = "complete",
   signal,
  }: {
   supplement:
@@ -320,6 +308,9 @@ import type {
  
   capsulesPerDay?:
     number;
+ 
+  phase?:
+    SearchRequestPhase;
  
   signal?:
     AbortSignal;
@@ -341,6 +332,7 @@ import type {
             supplement,
             brand,
             capsulesPerDay,
+            phase,
           }),
  
         signal,
@@ -395,14 +387,6 @@ import type {
     });
   }
  
-  /*
-   * Current API response:
-   *
-   * [
-   *   SearchProductOption,
-   *   SearchProductOption
-   * ]
-   */
   if (
     isSearchProductArray(
       responseBody
@@ -417,16 +401,6 @@ import type {
     };
   }
  
-  /*
-   * Future health-goal response:
-   *
-   * {
-   *   intent: "health-goal",
-   *   displayName: "Mood Support",
-   *   categories: [...],
-   *   products: [...]
-   * }
-   */
   if (
     responseBody &&
     typeof responseBody ===
@@ -460,18 +434,11 @@ import type {
   });
  }
  
- /*
- * Compatibility function used by the current
- * useSearch hook.
- *
- * It still returns only purchasable product
- * listings, so no existing product-card or vendor
- * functionality changes.
- */
  export async function searchProducts({
   supplement,
   brand,
   capsulesPerDay = 1,
+  phase = "complete",
   signal,
  }: {
   supplement:
@@ -483,6 +450,9 @@ import type {
   capsulesPerDay?:
     number;
  
+  phase?:
+    SearchRequestPhase;
+ 
   signal?:
     AbortSignal;
  }): Promise<SearchProductOption[]> {
@@ -491,6 +461,7 @@ import type {
       supplement,
       brand,
       capsulesPerDay,
+      phase,
       signal,
     });
  
