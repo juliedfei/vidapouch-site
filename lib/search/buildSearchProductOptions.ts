@@ -1,6 +1,8 @@
 import {
-  getCachedProductResearch,
- } from "@/lib/intelligence/productResearch/getCachedProductResearch";
+  getCachedProductResearchBatch,
+ } from "@/lib/intelligence/productResearch/getCachedProductResearchBatch";
+
+
  
  import type {
   SearchRetailProduct,
@@ -1379,10 +1381,13 @@ import {
   };
  }
  
- async function prepareSearchProduct({
+
+
+ function prepareSearchProduct({
   group,
   capsulesPerDay,
   pricingStrategy,
+  research,
  }: {
   group:
     ProductGroup;
@@ -1396,21 +1401,14 @@ import {
         typeof getPricingStrategy
  >
  >;
- }): Promise<
-  PreparedSearchProduct
- >{
+ 
+  research:
+    ProductResearch | null;
+ }): PreparedSearchProduct {
   const representativeProduct =
     chooseRepresentativeListing(
       group.listings
     );
- 
-  const research:
-    ProductResearch | null =
-      await getCachedProductResearch(
-        group.productName,
-        representativeProduct
-          .shoppingProductId
-      );
  
   const pricing =
     calculateDisplayedMonthlyCost(
@@ -1485,6 +1483,10 @@ import {
   };
  }
  
+
+
+
+
  function hasListingClaim(
   listings:
     SearchRetailProduct[],
@@ -1651,19 +1653,51 @@ import {
       listings
     );
  
-  const preparedProducts =
-    await Promise.all(
-      groups.map(
-        (group) =>
-          prepareSearchProduct({
-            group,
- 
-            capsulesPerDay,
- 
-            pricingStrategy,
-          })
-      )
+
+
+
+    const researchByProduct =
+    await getCachedProductResearchBatch(
+      groups.map((group) => {
+        const representative =
+          chooseRepresentativeListing(
+            group.listings
+          );
+   
+        return {
+          key:
+            group.productName,
+   
+          productName:
+            group.productName,
+   
+          shoppingProductId:
+            representative.shoppingProductId,
+        };
+      })
     );
+   
+   const preparedProducts =
+    groups.map((group) =>
+      prepareSearchProduct({
+        group,
+   
+        capsulesPerDay,
+   
+        pricingStrategy,
+   
+        research:
+          researchByProduct.get(
+            group.productName
+          ) ?? null,
+      })
+    );
+   
+
+
+
+
+
  
   if (
     preparedProducts.length ===
