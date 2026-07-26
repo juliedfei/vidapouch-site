@@ -12,7 +12,7 @@ if (posthogToken) {
      posthogHost ??
      "https://us.i.posthog.com",
 
-   capture_pageview: true,
+   capture_pageview: "history_change",
    capture_pageleave: true,
 
    /*
