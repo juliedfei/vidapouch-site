@@ -2453,17 +2453,24 @@ import {
   if (
     !bypassCache
   ) {
-    await writeCachedShoppingPage({
+    
+    
+    
+    void writeCachedShoppingPage({
       cacheKey,
- 
+     
       query,
- 
+     
       pageNumber,
- 
+     
       results,
- 
+     
       nextUrl,
-    });
+     });
+
+
+
+
   }
  
   console.log(
