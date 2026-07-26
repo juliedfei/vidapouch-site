@@ -12,15 +12,20 @@ if (posthogToken) {
      posthogHost ??
      "https://us.i.posthog.com",
 
-   capture_pageview: "history_change",
+   /*
+    * We will send page views explicitly
+    * rather than relying on automatic capture.
+    */
+   capture_pageview: false,
    capture_pageleave: true,
 
-   /*
-    * Protect customer-entered information
-    * in session recordings.
-    */
    session_recording: {
      maskAllInputs: true,
    },
  });
+
+ /*
+  * Explicitly record the initial page load.
+  */
+ posthog.capture("$pageview");
 }
