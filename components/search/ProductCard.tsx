@@ -33,6 +33,12 @@ import type {
  SearchPlan,
 } from "./types/searchPlan";
 
+import {
+  trackEvent,
+ } from "@/lib/analytics/trackEvent";
+
+
+
 type ProductCardProps = {
  product:
    SearchProductOption;
@@ -45,6 +51,8 @@ type ProductCardProps = {
 
  selectedSupplementCount:
    number;
+
+
 
  onAddToPouch: (
    item:
@@ -628,6 +636,47 @@ export default function ProductCard({
      return;
    }
 
+
+   trackEvent(
+    "add_to_pouch_clicked",
+    {
+      product_id:
+        pouchItemId,
+   
+      product_name:
+        product.productName,
+   
+      brand:
+        product.brand,
+   
+      retailer:
+        representative.retailer,
+   
+      dosage:
+        product.dosage,
+   
+      form:
+        product.form,
+   
+      units_per_day:
+        pouchUnitsPerDay,
+   
+      monthly_product_cost:
+        product.displayedMonthlyCost,
+   
+      selected_plan:
+        effectivePlan?.id ??
+        null,
+   
+      automatically_upgrades_plan:
+        willAutomaticallyUpgrade,
+    }
+   );
+
+
+
+
+
    onAddToPouch({
      id:
        pouchItemId,
@@ -721,6 +770,40 @@ export default function ProductCard({
    ) {
      return;
    }
+
+
+   trackEvent(
+    "retailer_link_clicked",
+    {
+      product_id:
+        pouchItemId,
+   
+      product_name:
+        product.productName,
+   
+      brand:
+        product.brand,
+   
+      retailer:
+        representative.retailer,
+   
+      bottle_price:
+        displayedBottlePrice,
+   
+      bottle_unit_count:
+        bottleUnitCount,
+   
+      unit_label:
+        product.unitLabel,
+   
+      vita_pouch_score:
+        vidaPouchScore,
+    }
+   );
+
+
+
+
 
    const immersiveProductPageToken =
      representative
