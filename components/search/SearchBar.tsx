@@ -2,6 +2,12 @@
 
 import VidaSearchAutocomplete from "./VidaSearchAutocomplete";
 
+import {
+  trackEvent,
+ } from "@/lib/analytics/trackEvent";
+
+
+
 type SearchBarProps = {
  value:
    string;
@@ -70,6 +76,22 @@ export default function SearchBar({
    onChange(
      cleanedQuery
    );
+
+
+   trackEvent(
+    "search_submitted",
+    {
+      search_query: cleanedQuery,
+      search_location:
+        variant === "hero"
+          ? "hero_search"
+          : "compact_search",
+    }
+   );
+   
+
+
+
 
    onSubmit?.(
      cleanedQuery
