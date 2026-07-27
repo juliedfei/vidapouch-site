@@ -950,6 +950,46 @@ export default function ProductCard({
        );
      }
 
+
+
+
+     trackEvent(
+      "retailer_link_opened",
+      {
+        product_id:
+          pouchItemId,
+     
+        product_name:
+          product.productName,
+     
+        brand:
+          product.brand,
+     
+        retailer:
+          representative.retailer,
+     
+        resolved_url:
+          data.url,
+     
+        match_type:
+          data.matchType ??
+          null,
+     
+        original_bottle_price:
+          representative.bottlePrice,
+     
+        live_bottle_price:
+          liveBottlePrice,
+     
+        price_changed:
+          data.priceChanged ??
+          false,
+      }
+     );
+     
+
+
+
      if (
        vendorWindow
      ) {
@@ -962,6 +1002,10 @@ export default function ProductCard({
        window.location.href =
          data.url;
      }
+
+
+
+
    } catch (
      error
    ) {
