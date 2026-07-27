@@ -24,6 +24,11 @@ import type {
  SearchPlan,
 } from "./types/searchPlan";
 
+
+import {
+  trackEvent,
+ } from "@/lib/analytics/trackEvent";
+
 type PouchSidebarProps = {
  items:
    SearchPouchItem[];
@@ -1072,6 +1077,48 @@ export default function PouchSidebar({
    );
  }
 
+
+
+ function handleCheckoutReview() {
+  trackEvent(
+    "checkout_review_clicked",
+    {
+      selected_plan:
+        selectedPlan.id,
+ 
+      selected_plan_name:
+        selectedPlan.name,
+ 
+      monthly_plan_price:
+        selectedPlan.monthlyPrice,
+ 
+      supplement_count:
+        items.length,
+ 
+      supplement_limit:
+        selectedPlan.supplementLimit,
+ 
+      pooled_monthly_total:
+        pooledPricing?.totalMonthlyPrice ??
+        null,
+ 
+      has_morning_pouch:
+        morningItems.length >
+        0,
+ 
+      has_evening_pouch:
+        eveningItems.length >
+        0,
+    }
+  );
+ }
+ 
+
+
+
+
+
+
  const morningItems =
    items.filter(
      (item) =>
@@ -1384,6 +1431,13 @@ export default function PouchSidebar({
 
        <button
          type="button"
+
+         onClick={
+          handleCheckoutReview
+         }
+
+
+
          disabled={
            checkoutDisabled
          }
