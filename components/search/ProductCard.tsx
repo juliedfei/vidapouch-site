@@ -984,8 +984,11 @@ export default function ProductCard({
         price_changed:
           data.priceChanged ??
           false,
-      }
-     );
+        },
+        {
+          sendInstantly: true,
+        }
+       );
      
 
 

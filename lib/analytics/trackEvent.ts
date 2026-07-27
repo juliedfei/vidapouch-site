@@ -8,12 +8,24 @@ type AnalyticsProperties =
    string | number | boolean | null | undefined
 >;
 
+type AnalyticsOptions = {
+ sendInstantly?:
+   boolean;
+};
+
 export function trackEvent(
- eventName: string,
- properties: AnalyticsProperties = {}
+ eventName:
+   string,
+
+ properties:
+   AnalyticsProperties = {},
+
+ options:
+   AnalyticsOptions = {}
 ) {
  if (
-   typeof window === "undefined"
+   typeof window ===
+   "undefined"
  ) {
    return;
  }
@@ -21,13 +33,17 @@ export function trackEvent(
  try {
    posthog.capture(
      eventName,
-     properties
+     properties,
+     options.sendInstantly
+       ? {
+           send_instantly:
+             true,
+         }
+       : undefined
    );
- } catch (error) {
-   /*
-    * Analytics should never stop
-    * the website from working.
-    */
+ } catch (
+   error
+ ) {
    console.error(
      "Analytics event failed:",
      eventName,
