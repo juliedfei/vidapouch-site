@@ -406,6 +406,66 @@ async function handleInvoicePaymentFailed(
    });
 }
 
+async function handleSubscriptionUpdated(
+    subscription:
+      Stripe.Subscription
+   ) {
+    const cancellationReason =
+      subscription
+        .cancellation_details
+        ?.reason ??
+      null;
+   
+    const scheduledCancellationAt =
+      subscription.cancel_at
+        ? new Date(
+            subscription.cancel_at *
+              1000
+          )
+        : null;
+   
+    const cancellationScheduledAt =
+      subscription
+        .cancel_at_period_end
+        ? new Date()
+        : null;
+   
+    const result =
+      await prisma
+        .vidaPouchOrder
+        .updateMany({
+          where: {
+            stripeSubscriptionId:
+              subscription.id,
+          },
+   
+          data: {
+            cancelAtPeriodEnd:
+              subscription
+                .cancel_at_period_end,
+   
+            cancellationScheduledAt,
+   
+            scheduledCancellationAt,
+   
+            cancellationReason,
+          },
+        });
+   
+    if (
+      result.count ===
+        0
+    ) {
+      throw new Error(
+        `No VidaPouch order was found for updated subscription ${subscription.id}.`
+      );
+    }
+   }
+   
+
+
+
+
 async function handleSubscriptionDeleted(
  subscription:
    Stripe.Subscription
@@ -470,6 +530,15 @@ export async function handleStripeWebhookEvent(
      );
 
      return;
+
+     case "customer.subscription.updated":
+        await handleSubscriptionUpdated(
+          event.data.object
+        );
+       
+        return;
+
+
 
    case "customer.subscription.deleted":
      await handleSubscriptionDeleted(

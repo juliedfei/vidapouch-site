@@ -1229,9 +1229,18 @@ model VidaPouchOrder {
   shippingName    String?
   shippingAddress Json?
 
-  paidAt     DateTime?
-  canceledAt DateTime?
-  refundedAt DateTime?
+paidAt     DateTime?
+canceledAt DateTime?
+refundedAt DateTime?
+
+cancelAtPeriodEnd       Boolean  @default(false)
+cancellationScheduledAt DateTime?
+scheduledCancellationAt DateTime?
+cancellationReason      String?
+
+
+
+
 
   items         VidaPouchOrderItem[]
   billingCycles VidaPouchBillingCycle[]
