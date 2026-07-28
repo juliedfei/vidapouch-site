@@ -10,13 +10,20 @@ import {
     request:
       Request
    ) {
+    
+    
+    
     const response =
-      NextResponse.redirect(
-        new URL(
-          "/admin/login",
-          request.url
-        )
-      );
+    NextResponse.redirect(
+      new URL(
+        "/admin/login",
+        request.url
+      ),
+      303
+    );
+
+
+
    
     response.cookies.set(
       ADMIN_SESSION_COOKIE,
