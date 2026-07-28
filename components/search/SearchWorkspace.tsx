@@ -17,10 +17,15 @@ import type {
  SearchFilterState,
 } from "./types/searchFilters";
 
+
+
 import type {
- SearchPouchItem,
- SearchPouchTimingPreference,
-} from "./types/searchPouch";
+  SearchPouchItem,
+  SearchPouchPurchaseOption,
+  SearchPouchTimingPreference,
+ } from "./types/searchPouch";
+
+
 
 import {
  DEFAULT_SEARCH_PLAN_ID,
@@ -47,6 +52,10 @@ type SearchWorkspaceProps = {
  query:
    string;
 };
+
+const POUCH_SESSION_STORAGE_KEY =
+ "vidapouch-checkout-state-v1";
+
 
 function PouchIcon() {
  return (
@@ -173,6 +182,8 @@ export default function SearchWorkspace({
      []
    );
 
+
+
  const [
    pouchItems,
    setPouchItems,
@@ -181,6 +192,18 @@ export default function SearchWorkspace({
      []
    );
 
+   const [
+    pouchStateRestored,
+    setPouchStateRestored,
+   ] =
+    useState(
+      false
+    );
+
+
+
+
+
  const [
    selectedPlanId,
    setSelectedPlanId,
@@ -188,6 +211,19 @@ export default function SearchWorkspace({
    useState<SearchPlanSelection>(
      DEFAULT_SEARCH_PLAN_ID
    );
+
+
+   const [
+    purchaseOption,
+    setPurchaseOption,
+   ] =
+    useState<SearchPouchPurchaseOption>(
+      "one-time"
+    );
+
+
+
+
 
  const [
    deselectConfirmationOpen,
@@ -241,11 +277,175 @@ export default function SearchWorkspace({
      pouchItems,
    });
 
+
+
  const largestPlan =
    SEARCH_PLANS[
      SEARCH_PLANS.length -
        1
    ];
+
+
+   useEffect(
+    () => {
+      try {
+        const savedState =
+          window.sessionStorage.getItem(
+            POUCH_SESSION_STORAGE_KEY
+          );
+   
+        if (
+          !savedState
+        ) {
+          setPouchStateRestored(
+            true
+          );
+   
+          return;
+        }
+   
+
+
+        const parsedState =
+        JSON.parse(
+          savedState
+        ) as {
+          pouchItems?:
+            SearchPouchItem[];
+       
+          selectedPlanId?:
+            SearchPlanSelection;
+       
+          purchaseOption?:
+            SearchPouchPurchaseOption;
+        };
+
+
+
+
+   
+        if (
+          Array.isArray(
+            parsedState.pouchItems
+          )
+        ) {
+          setPouchItems(
+            parsedState.pouchItems
+          );
+   
+          if (
+            parsedState.pouchItems.length >
+              0
+          ) {
+            setLayout(
+              (current) => ({
+                ...current,
+   
+                hasPouchItems:
+                  true,
+   
+                pouchOpen:
+                  true,
+              })
+            );
+          }
+        }
+   
+
+
+
+        if (
+          parsedState.selectedPlanId ===
+            null ||
+          typeof parsedState.selectedPlanId ===
+            "string"
+        ) {
+          setSelectedPlanId(
+            parsedState.selectedPlanId
+          );
+        }
+
+        if (
+          parsedState.purchaseOption ===
+            "one-time" ||
+          parsedState.purchaseOption ===
+            "subscription"
+         ) {
+          setPurchaseOption(
+            parsedState.purchaseOption
+          );
+         }
+
+
+
+
+
+      } catch (
+        error
+      ) {
+        console.error(
+          "Unable to restore saved VidaPouch state:",
+          error
+        );
+   
+        window.sessionStorage.removeItem(
+          POUCH_SESSION_STORAGE_KEY
+        );
+      } finally {
+        setPouchStateRestored(
+          true
+        );
+      }
+    },
+    []
+   );
+
+   useEffect(
+    () => {
+      if (
+        !pouchStateRestored
+      ) {
+        return;
+      }
+   
+      try {
+        window.sessionStorage.setItem(
+          POUCH_SESSION_STORAGE_KEY,
+          
+          
+          JSON.stringify({
+            pouchItems,
+           
+            selectedPlanId,
+           
+            purchaseOption,
+           })
+
+
+
+
+        );
+      } catch (
+        error
+      ) {
+        console.error(
+          "Unable to save VidaPouch state:",
+          error
+        );
+      }
+    },
+    [
+      pouchItems,
+      selectedPlanId,
+      purchaseOption,
+      pouchStateRestored,
+    ]
+   );
+
+
+
+
+
 
  useEffect(
    () => {
@@ -768,6 +968,9 @@ export default function SearchWorkspace({
                  </button>
 
                  <div className="p-3">
+                   
+                   
+                   
                    <PouchSidebar
                      items={
                        pouchItems
@@ -784,6 +987,17 @@ export default function SearchWorkspace({
                      pooledPricingError={
                        pooledPricingError
                      }
+
+                     purchaseOption={
+                      purchaseOption
+                     }
+                     onPurchaseOptionChange={
+                      setPurchaseOption
+                     }
+                     
+
+
+
                      onRemoveItem={
                        removePouchItem
                      }
@@ -791,6 +1005,10 @@ export default function SearchWorkspace({
                        updatePouchItemTiming
                      }
                    />
+
+
+
+
                  </div>
                </div>
              ) : (

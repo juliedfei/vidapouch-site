@@ -14,11 +14,20 @@ import Image from "next/image";
 
 import PooledPricingSummary from "./PooledPricingSummary";
 
+
+
 import type {
- SearchPouchItem,
- SearchPouchPooledPricing,
- SearchPouchTimingPreference,
-} from "./types/searchPouch";
+  SearchPouchItem,
+  SearchPouchPooledPricing,
+  SearchPouchPurchaseOption,
+  SearchPouchTimingPreference,
+ } from "./types/searchPouch";
+ 
+
+
+
+
+
 
 import type {
  SearchPlan,
@@ -28,6 +37,8 @@ import type {
 import {
   trackEvent,
  } from "@/lib/analytics/trackEvent";
+
+
 
 type PouchSidebarProps = {
  items:
@@ -48,6 +59,16 @@ type PouchSidebarProps = {
 
  pooledPricingError?:
    string | null;
+
+   purchaseOption:
+   SearchPouchPurchaseOption;
+  
+  onPurchaseOptionChange: (
+   purchaseOption:
+     SearchPouchPurchaseOption
+  ) => void;
+
+
 
  onRemoveItem: (
    itemId:
@@ -896,22 +917,39 @@ function ShippingRow() {
  );
 }
 
+
+
 export default function PouchSidebar({
- items,
- selectedPlan,
- pooledPricing = null,
- pooledPricingLoading = false,
- pooledPricingError = null,
- onRemoveItem,
- onTimingChange,
-}: PouchSidebarProps) {
- const [
+  items,
+  selectedPlan,
+  pooledPricing = null,
+  pooledPricingLoading = false,
+  pooledPricingError = null,
+  purchaseOption,
+  onPurchaseOptionChange,
+  onRemoveItem,
+  onTimingChange,
+ }: PouchSidebarProps) {
+
+
+
+ 
+ 
+  const [
    timingConfirmations,
    setTimingConfirmations,
  ] =
    useState<TimingConfirmationMap>(
      {}
    );
+
+
+
+
+
+
+
+
 
  const confirmationTimers =
    useRef<
@@ -1079,39 +1117,102 @@ export default function PouchSidebar({
 
 
 
- function handleCheckoutReview() {
-  trackEvent(
-    "checkout_review_clicked",
-    {
-      selected_plan:
-        selectedPlan.id,
- 
-      selected_plan_name:
-        selectedPlan.name,
- 
-      monthly_plan_price:
-        selectedPlan.monthlyPrice,
- 
-      supplement_count:
-        items.length,
- 
-      supplement_limit:
-        selectedPlan.supplementLimit,
- 
-      pooled_monthly_total:
-        pooledPricing?.totalMonthlyPrice ??
-        null,
- 
-      has_morning_pouch:
-        morningItems.length >
-        0,
- 
-      has_evening_pouch:
-        eveningItems.length >
-        0,
-    }
-  );
+
+
+async function handleCheckoutReview() {
+ trackEvent(
+   "checkout_review_clicked",
+   {
+     selected_plan:
+       selectedPlan.id,
+
+     selected_plan_name:
+       selectedPlan.name,
+
+     monthly_plan_price:
+       selectedPlan.monthlyPrice,
+
+     supplement_count:
+       items.length,
+
+     supplement_limit:
+       selectedPlan.supplementLimit,
+
+     pooled_monthly_total:
+       pooledPricing?.totalMonthlyPrice ??
+       null,
+
+     has_morning_pouch:
+       morningItems.length >
+       0,
+
+     has_evening_pouch:
+       eveningItems.length >
+       0,
+   }
+ );
+
+ try {
+   const response =
+     await fetch(
+       "/api/checkout",
+       {
+         method:
+           "POST",
+
+         headers: {
+           "Content-Type":
+             "application/json",
+         },
+
+
+
+         body:
+         JSON.stringify({
+          plan:
+            selectedPlan.id,
+         
+          purchaseOption,
+         
+          pouchItems:
+            items,
+         }),
+         
+
+
+
+       }
+     );
+
+   const data =
+     await response.json();
+
+   if (
+     !response.ok ||
+     typeof data.url !==
+       "string"
+   ) {
+     throw new Error(
+       data.error ??
+         "Unable to start checkout."
+     );
+   }
+
+   window.location.href =
+     data.url;
+ } catch (
+   error
+ ) {
+   console.error(
+     "Unable to start Stripe checkout:",
+     error
+   );
+
+   window.alert(
+     "Checkout could not be started. Please try again."
+   );
  }
+}
  
 
 
@@ -1407,6 +1508,8 @@ export default function PouchSidebar({
          py-[15px]
        ">
 
+
+
        <PooledPricingSummary
          pricing={
            pooledPricing
@@ -1419,6 +1522,220 @@ export default function PouchSidebar({
          }
        />
 
+
+<div className="mt-[14px]">
+ <p
+   className="
+     text-[11px]
+     font-semibold
+     text-[#302A26]
+   ">
+
+   Purchase option
+ </p>
+
+ <div
+   className="
+     mt-[8px]
+     grid
+     gap-2
+   ">
+
+   <button
+     type="button"
+     onClick={
+       () =>
+         onPurchaseOptionChange(
+           "one-time"
+         )
+     }
+     aria-pressed={
+       purchaseOption ===
+       "one-time"
+     }
+     className={`
+       w-full
+       rounded-[9px]
+       border
+       px-3
+       py-3
+       text-left
+       transition
+       ${
+         purchaseOption ===
+         "one-time"
+           ? "border-[#7D0E1C] bg-[#FFF8F6]"
+           : "border-[#DED4CA] bg-white hover:border-[#BFA99A]"
+       }
+     `}>
+
+     <div
+       className="
+         flex
+         items-start
+         gap-2.5
+       ">
+
+       <span
+         className={`
+           mt-[1px]
+           flex
+           h-[16px]
+           w-[16px]
+           shrink-0
+           items-center
+           justify-center
+           rounded-full
+           border
+           ${
+             purchaseOption ===
+             "one-time"
+               ? "border-[#7D0E1C]"
+               : "border-[#BEB4AC]"
+           }
+         `}>
+
+         {purchaseOption ===
+           "one-time" && (
+           <span
+             className="
+               h-[8px]
+               w-[8px]
+               rounded-full
+               bg-[#7D0E1C]
+             "
+           />
+         )}
+       </span>
+
+       <span className="min-w-0">
+         <span
+           className="
+             block
+             text-[11px]
+             font-semibold
+             text-[#302A26]
+           ">
+
+           One-time 30-day supply
+         </span>
+
+         <span
+           className="
+             mt-[2px]
+             block
+             text-[9.5px]
+             leading-[14px]
+             text-[#716A63]
+           ">
+
+           Charged once. No automatic renewal.
+         </span>
+       </span>
+     </div>
+   </button>
+
+   <button
+     type="button"
+     onClick={
+       () =>
+         onPurchaseOptionChange(
+           "subscription"
+         )
+     }
+     aria-pressed={
+       purchaseOption ===
+       "subscription"
+     }
+     className={`
+       w-full
+       rounded-[9px]
+       border
+       px-3
+       py-3
+       text-left
+       transition
+       ${
+         purchaseOption ===
+         "subscription"
+           ? "border-[#7D0E1C] bg-[#FFF8F6]"
+           : "border-[#DED4CA] bg-white hover:border-[#BFA99A]"
+       }
+     `}>
+
+     <div
+       className="
+         flex
+         items-start
+         gap-2.5
+       ">
+
+       <span
+         className={`
+           mt-[1px]
+           flex
+           h-[16px]
+           w-[16px]
+           shrink-0
+           items-center
+           justify-center
+           rounded-full
+           border
+           ${
+             purchaseOption ===
+             "subscription"
+               ? "border-[#7D0E1C]"
+               : "border-[#BEB4AC]"
+           }
+         `}>
+
+         {purchaseOption ===
+           "subscription" && (
+           <span
+             className="
+               h-[8px]
+               w-[8px]
+               rounded-full
+               bg-[#7D0E1C]
+             "
+           />
+         )}
+       </span>
+
+       <span className="min-w-0">
+         <span
+           className="
+             block
+             text-[11px]
+             font-semibold
+             text-[#302A26]
+           ">
+
+           Subscribe monthly
+         </span>
+
+         <span
+           className="
+             mt-[2px]
+             block
+             text-[9.5px]
+             leading-[14px]
+             text-[#716A63]
+           ">
+
+           Renews monthly at the same price. Cancel anytime.
+         </span>
+       </span>
+     </div>
+   </button>
+ </div>
+</div>
+
+
+
+
+
+
        <div
          className="
            my-[13px]
@@ -1426,6 +1743,11 @@ export default function PouchSidebar({
            border-[#E5DCD2]
          "
        />
+
+
+
+
+
 
        <ShippingRow />
 

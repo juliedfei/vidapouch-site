@@ -24,6 +24,14 @@ import type {
   | "vidapouch"
   | "morning"
   | "evening";
+
+  export type SearchPouchPurchaseOption =
+  | "one-time"
+  | "subscription";
+
+
+
+
  
  export type SearchPouchPricingStatus =
   | "included"
@@ -136,6 +144,14 @@ import type {
  
   shoppingProductId:
     string | null;
+
+    immersiveProductPageToken:
+    string | null;
+   
+   serpApiImmersiveProductUrl:
+    string | null;
+
+
  
   productName:
     string;
@@ -193,6 +209,13 @@ import type {
  
   bottlePrice:
     number;
+
+
+    bottleUnitCount:
+    number;
+   
+
+    
  
   retailer:
     string;

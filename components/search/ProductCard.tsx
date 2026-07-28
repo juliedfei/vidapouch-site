@@ -681,10 +681,24 @@ export default function ProductCard({
      id:
        pouchItemId,
 
+
+
      shoppingProductId:
        representative
          .shoppingProductId ??
        null,
+
+       immersiveProductPageToken:
+       representative
+         .immersiveProductPageToken ??
+       null,
+      
+      serpApiImmersiveProductUrl:
+       representative
+         .serpApiImmersiveProductUrl ??
+       null,
+
+
 
      productName:
        product.productName,
@@ -725,9 +739,16 @@ export default function ProductCard({
      pricing:
        vidaPouchPricing,
 
+
+
      bottlePrice:
        representative
          .bottlePrice,
+
+         bottleUnitCount:
+         representative
+           .capsulesPerBottle,
+
 
      retailer:
        representative

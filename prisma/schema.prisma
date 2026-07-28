@@ -930,6 +930,25 @@ enum VidaPouchSettingValueType {
   BOOLEAN
 }
 
+enum VidaPouchPurchaseOption {
+  ONE_TIME
+  SUBSCRIPTION
+}
+
+enum VidaPouchOrderStatus {
+  PENDING
+  PAID
+  PAYMENT_FAILED
+  CANCELED
+  REFUNDED
+}
+
+enum VidaPouchWebhookStatus {
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
 model VidaPouchPricingVersion {
   id String @id @default(cuid())
 
@@ -1176,4 +1195,143 @@ model MarketplaceSearchCache {
   @@index([normalizedQuery])
   @@index([sourceProvider, searchEngine])
   @@index([lastAccessedAt])
+}
+
+model VidaPouchOrder {
+  id String @id @default(cuid())
+
+  purchaseOption VidaPouchPurchaseOption
+  status         VidaPouchOrderStatus    @default(PENDING)
+
+  planKey  String
+  planName String
+
+  supplementCount Int
+
+  planPrice      Decimal @db.Decimal(10, 2)
+  planOverageFee Decimal @db.Decimal(10, 2)
+  totalPrice     Decimal @db.Decimal(10, 2)
+
+  currency String @default("usd")
+
+  pricingVersionId    String?
+  pricingCalculatedAt DateTime?
+
+  stripeCheckoutSessionId String? @unique
+  stripePaymentIntentId   String? @unique
+  stripeSubscriptionId    String? @unique
+  stripeCustomerId        String?
+
+  customerEmail String?
+  customerName  String?
+  customerPhone String?
+
+  shippingName    String?
+  shippingAddress Json?
+
+  paidAt     DateTime?
+  canceledAt DateTime?
+  refundedAt DateTime?
+
+  items         VidaPouchOrderItem[]
+  billingCycles VidaPouchBillingCycle[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([purchaseOption])
+  @@index([stripeCustomerId])
+  @@index([customerEmail])
+  @@index([createdAt])
+}
+
+model VidaPouchOrderItem {
+  id String @id @default(cuid())
+
+  orderId String
+  order   VidaPouchOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  pouchItemId String
+
+  productName String
+  brand       String
+  retailer    String
+
+  dosage    String?
+  form      String?
+  unitLabel String
+
+  unitsPerDay      Decimal @db.Decimal(10, 2)
+  monthlyUnitCount Decimal @db.Decimal(10, 2)
+
+  timing           String
+  timingPreference String
+
+  bottlePrice     Decimal @db.Decimal(10, 2)
+  bottleUnitCount Int
+
+  liveProductUrl String?
+
+  shoppingProductId         String?
+  immersiveProductPageToken String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([shoppingProductId])
+}
+
+model VidaPouchWebhookEvent {
+  id String @id @default(cuid())
+
+  stripeEventId String @unique
+  eventType     String
+
+  status VidaPouchWebhookStatus @default(PROCESSING)
+
+  payload Json
+
+  processingAttempts Int @default(1)
+
+  processedAt DateTime?
+  lastError   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([eventType])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model VidaPouchBillingCycle {
+  id String @id @default(cuid())
+
+  orderId String
+  order   VidaPouchOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  stripeInvoiceId       String  @unique
+  stripePaymentIntentId String?
+
+  status VidaPouchOrderStatus
+
+  amountPaid Decimal @db.Decimal(10, 2)
+  currency   String  @default("usd")
+
+  billingReason String?
+
+  periodStart DateTime?
+  periodEnd   DateTime?
+
+  paidAt   DateTime?
+  failedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+  @@index([createdAt])
 }

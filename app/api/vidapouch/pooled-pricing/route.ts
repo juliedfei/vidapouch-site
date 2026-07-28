@@ -5,6 +5,11 @@ import {
    import {
     calculatePooledPouchPricing,
    } from "@/lib/pricing/calculatePooledPouchPricing";
+
+   import {
+    revalidatePouchItemsForCheckout,
+   } from "@/lib/pricing/revalidatePouchItemsForCheckout";
+
    
    import {
     getSearchPlan,
@@ -376,12 +381,23 @@ import {
       !isPositiveNumber(
         value.monthlyUnitCount
       ) ||
+      
+      
       !isNonNegativeNumber(
         value.monthlyPrice
       ) ||
-      !isNonNegativeNumber(
-        value.bottlePrice
-      )
+      
+
+
+!isNonNegativeNumber(
+ value.bottlePrice
+) ||
+!isPositiveNumber(
+ value.bottleUnitCount
+)
+
+
+
     ) {
       return null;
     }
@@ -427,10 +443,26 @@ import {
       id:
         value.id.trim(),
    
+
       shoppingProductId:
         sanitizeOptionalString(
           value.shoppingProductId
         ),
+
+        immersiveProductPageToken:
+        sanitizeOptionalString(
+          value.immersiveProductPageToken
+        ),
+       
+       serpApiImmersiveProductUrl:
+        sanitizeOptionalString(
+          value.serpApiImmersiveProductUrl
+        ),
+       
+
+
+
+
    
       productName:
         value.productName,
@@ -472,6 +504,10 @@ import {
    
       bottlePrice:
         value.bottlePrice,
+
+        bottleUnitCount:
+        value.bottleUnitCount,
+
    
       retailer:
         value.retailer,
@@ -671,12 +707,31 @@ import {
     }
    
     try {
-      const pricing =
+      
+      
+      
+        const {
+            pouchItems:
+              revalidatedPouchItems,
+           } =
+            await revalidatePouchItemsForCheckout(
+              pouchItems
+            );
+
+
+
+       
+       const pricing =
         await calculatePooledPouchPricing({
           selectedPlan,
-   
-          pouchItems,
+       
+          pouchItems:
+            revalidatedPouchItems,
         });
+       
+
+
+
    
       return NextResponse.json(
         pricing,
