@@ -943,6 +943,17 @@ enum VidaPouchOrderStatus {
   REFUNDED
 }
 
+enum VidaPouchFulfillmentStatus {
+NEW
+PREPARING
+PACKED
+SHIPPED
+COMPLETED
+ON_HOLD
+}
+
+
+
 enum VidaPouchWebhookStatus {
   PROCESSING
   PROCESSED
@@ -1200,8 +1211,13 @@ model MarketplaceSearchCache {
 model VidaPouchOrder {
   id String @id @default(cuid())
 
-  purchaseOption VidaPouchPurchaseOption
-  status         VidaPouchOrderStatus    @default(PENDING)
+purchaseOption   VidaPouchPurchaseOption
+status           VidaPouchOrderStatus       @default(PENDING)
+fulfillmentStatus VidaPouchFulfillmentStatus @default(NEW)
+
+
+
+
 
   planKey  String
   planName String
@@ -1233,6 +1249,19 @@ paidAt     DateTime?
 canceledAt DateTime?
 refundedAt DateTime?
 
+preparingAt DateTime?
+packedAt    DateTime?
+shippedAt   DateTime?
+completedAt DateTime?
+onHoldAt    DateTime?
+
+trackingNumber String?
+shippingCarrier String?
+fulfillmentNotes String?
+
+
+
+
 cancelAtPeriodEnd       Boolean  @default(false)
 cancellationScheduledAt DateTime?
 scheduledCancellationAt DateTime?
@@ -1249,6 +1278,9 @@ cancellationReason      String?
   updatedAt DateTime @updatedAt
 
   @@index([status])
+@@index([fulfillmentStatus])
+
+
   @@index([purchaseOption])
   @@index([stripeCustomerId])
   @@index([customerEmail])
