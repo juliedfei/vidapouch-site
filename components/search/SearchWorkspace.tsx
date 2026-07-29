@@ -1,7 +1,12 @@
 "use client";
 
+import type {
+ CSSProperties,
+} from "react";
+
 import {
  useEffect,
+ useMemo,
  useState,
 } from "react";
 
@@ -17,15 +22,11 @@ import type {
  SearchFilterState,
 } from "./types/searchFilters";
 
-
-
 import type {
-  SearchPouchItem,
-  SearchPouchPurchaseOption,
-  SearchPouchTimingPreference,
- } from "./types/searchPouch";
-
-
+ SearchPouchItem,
+ SearchPouchPurchaseOption,
+ SearchPouchTimingPreference,
+} from "./types/searchPouch";
 
 import {
  DEFAULT_SEARCH_PLAN_ID,
@@ -55,7 +56,6 @@ type SearchWorkspaceProps = {
 
 const POUCH_SESSION_STORAGE_KEY =
  "vidapouch-checkout-state-v1";
-
 
 function PouchIcon() {
  return (
@@ -120,6 +120,24 @@ function RightChevronIcon() {
  );
 }
 
+function CloseIcon() {
+ return (
+   <svg
+     viewBox="0 0 24 24"
+     fill="none"
+     aria-hidden="true"
+     className="h-[20px] w-[20px]">
+
+     <path
+       d="m7 7 10 10M17 7 7 17"
+       stroke="currentColor"
+       strokeWidth="1.8"
+       strokeLinecap="round"
+     />
+   </svg>
+ );
+}
+
 function WarningIcon() {
  return (
    <svg
@@ -166,6 +184,23 @@ export default function SearchWorkspace({
        false,
    });
 
+ /*
+  * The desktop pouch uses layout.pouchOpen because
+  * it can expand and collapse within the right-hand
+  * column.
+  *
+  * Mobile uses a separate state because opening a
+  * full-screen sheet is different from expanding a
+  * desktop column.
+  */
+ const [
+   mobilePouchOpen,
+   setMobilePouchOpen,
+ ] =
+   useState(
+     false
+   );
+
  const [
    filters,
    setFilters,
@@ -182,8 +217,6 @@ export default function SearchWorkspace({
      []
    );
 
-
-
  const [
    pouchItems,
    setPouchItems,
@@ -192,17 +225,13 @@ export default function SearchWorkspace({
      []
    );
 
-   const [
-    pouchStateRestored,
-    setPouchStateRestored,
-   ] =
-    useState(
-      false
-    );
-
-
-
-
+ const [
+   pouchStateRestored,
+   setPouchStateRestored,
+ ] =
+   useState(
+     false
+   );
 
  const [
    selectedPlanId,
@@ -212,18 +241,13 @@ export default function SearchWorkspace({
      DEFAULT_SEARCH_PLAN_ID
    );
 
-
-   const [
-    purchaseOption,
-    setPurchaseOption,
-   ] =
-    useState<SearchPouchPurchaseOption>(
-      "one-time"
-    );
-
-
-
-
+ const [
+   purchaseOption,
+   setPurchaseOption,
+ ] =
+   useState<SearchPouchPurchaseOption>(
+     "one-time"
+   );
 
  const [
    deselectConfirmationOpen,
@@ -277,180 +301,200 @@ export default function SearchWorkspace({
      pouchItems,
    });
 
-
-
  const largestPlan =
    SEARCH_PLANS[
      SEARCH_PLANS.length -
        1
    ];
 
+ const pouchTimingCounts =
+   useMemo(
+     () => {
+       return pouchItems.reduce(
+         (
+           counts,
+           item
+         ) => {
+           if (
+             item.timing ===
+             "morning"
+           ) {
+             counts.morning +=
+               1;
+           } else if (
+             item.timing ===
+             "evening"
+           ) {
+             counts.evening +=
+               1;
+           }
 
-   useEffect(
-    () => {
-      try {
-        const savedState =
-          window.sessionStorage.getItem(
-            POUCH_SESSION_STORAGE_KEY
-          );
-   
-        if (
-          !savedState
-        ) {
-          setPouchStateRestored(
-            true
-          );
-   
-          return;
-        }
-   
+           return counts;
+         },
+         {
+           morning:
+             0,
 
-
-        const parsedState =
-        JSON.parse(
-          savedState
-        ) as {
-          pouchItems?:
-            SearchPouchItem[];
-       
-          selectedPlanId?:
-            SearchPlanSelection;
-       
-          purchaseOption?:
-            SearchPouchPurchaseOption;
-        };
-
-
-
-
-   
-        if (
-          Array.isArray(
-            parsedState.pouchItems
-          )
-        ) {
-          setPouchItems(
-            parsedState.pouchItems
-          );
-   
-          if (
-            parsedState.pouchItems.length >
-              0
-          ) {
-            setLayout(
-              (current) => ({
-                ...current,
-   
-                hasPouchItems:
-                  true,
-   
-                pouchOpen:
-                  true,
-              })
-            );
-          }
-        }
-   
-
-
-
-        if (
-          parsedState.selectedPlanId ===
-            null ||
-          typeof parsedState.selectedPlanId ===
-            "string"
-        ) {
-          setSelectedPlanId(
-            parsedState.selectedPlanId
-          );
-        }
-
-        if (
-          parsedState.purchaseOption ===
-            "one-time" ||
-          parsedState.purchaseOption ===
-            "subscription"
-         ) {
-          setPurchaseOption(
-            parsedState.purchaseOption
-          );
+           evening:
+             0,
          }
-
-
-
-
-
-      } catch (
-        error
-      ) {
-        console.error(
-          "Unable to restore saved VidaPouch state:",
-          error
-        );
-   
-        window.sessionStorage.removeItem(
-          POUCH_SESSION_STORAGE_KEY
-        );
-      } finally {
-        setPouchStateRestored(
-          true
-        );
-      }
-    },
-    []
+       );
+     },
+     [
+       pouchItems,
+     ]
    );
 
-   useEffect(
-    () => {
-      if (
-        !pouchStateRestored
-      ) {
-        return;
-      }
-   
-      try {
-        window.sessionStorage.setItem(
-          POUCH_SESSION_STORAGE_KEY,
-          
-          
-          JSON.stringify({
-            pouchItems,
-           
-            selectedPlanId,
-           
-            purchaseOption,
-           })
+ useEffect(
+   () => {
+     try {
+       const savedState =
+         window.sessionStorage.getItem(
+           POUCH_SESSION_STORAGE_KEY
+         );
 
+       if (
+         !savedState
+       ) {
+         setPouchStateRestored(
+           true
+         );
 
+         return;
+       }
 
+       const parsedState =
+         JSON.parse(
+           savedState
+         ) as {
+           pouchItems?:
+             SearchPouchItem[];
 
-        );
-      } catch (
-        error
-      ) {
-        console.error(
-          "Unable to save VidaPouch state:",
-          error
-        );
-      }
-    },
-    [
-      pouchItems,
-      selectedPlanId,
-      purchaseOption,
-      pouchStateRestored,
-    ]
-   );
+           selectedPlanId?:
+             SearchPlanSelection;
 
+           purchaseOption?:
+             SearchPouchPurchaseOption;
+         };
 
+       if (
+         Array.isArray(
+           parsedState.pouchItems
+         )
+       ) {
+         setPouchItems(
+           parsedState.pouchItems
+         );
 
+         if (
+           parsedState.pouchItems.length >
+             0
+         ) {
+           setLayout(
+             (current) => ({
+               ...current,
 
+               hasPouchItems:
+                 true,
 
+               /*
+                * Restore the expanded desktop
+                * pouch. The mobile sheet remains
+                * closed until the customer opens it.
+                */
+               pouchOpen:
+                 true,
+             })
+           );
+         }
+       }
+
+       if (
+         parsedState.selectedPlanId ===
+           null ||
+         typeof parsedState.selectedPlanId ===
+           "string"
+       ) {
+         setSelectedPlanId(
+           parsedState.selectedPlanId
+         );
+       }
+
+       if (
+         parsedState.purchaseOption ===
+           "one-time" ||
+         parsedState.purchaseOption ===
+           "subscription"
+       ) {
+         setPurchaseOption(
+           parsedState.purchaseOption
+         );
+       }
+     } catch (
+       error
+     ) {
+       console.error(
+         "Unable to restore saved VidaPouch state:",
+         error
+       );
+
+       window.sessionStorage.removeItem(
+         POUCH_SESSION_STORAGE_KEY
+       );
+     } finally {
+       setPouchStateRestored(
+         true
+       );
+     }
+   },
+   []
+ );
 
  useEffect(
    () => {
      if (
-       !deselectConfirmationOpen
+       !pouchStateRestored
+     ) {
+       return;
+     }
+
+     try {
+       window.sessionStorage.setItem(
+         POUCH_SESSION_STORAGE_KEY,
+
+         JSON.stringify({
+           pouchItems,
+
+           selectedPlanId,
+
+           purchaseOption,
+         })
+       );
+     } catch (
+       error
+     ) {
+       console.error(
+         "Unable to save VidaPouch state:",
+         error
+       );
+     }
+   },
+   [
+     pouchItems,
+     selectedPlanId,
+     purchaseOption,
+     pouchStateRestored,
+   ]
+ );
+
+ /*
+  * Close either dialog with Escape.
+  */
+ useEffect(
+   () => {
+     if (
+       !deselectConfirmationOpen &&
+       !mobilePouchOpen
      ) {
        return;
      }
@@ -460,13 +504,25 @@ export default function SearchWorkspace({
          KeyboardEvent
      ) {
        if (
-         event.key ===
+         event.key !==
          "Escape"
+       ) {
+         return;
+       }
+
+       if (
+         deselectConfirmationOpen
        ) {
          setDeselectConfirmationOpen(
            false
          );
+
+         return;
        }
+
+       setMobilePouchOpen(
+         false
+       );
      }
 
      window.addEventListener(
@@ -483,6 +539,36 @@ export default function SearchWorkspace({
    },
    [
      deselectConfirmationOpen,
+     mobilePouchOpen,
+   ]
+ );
+
+ /*
+  * Prevent the search results behind the mobile
+  * pouch sheet from scrolling while the sheet is
+  * open.
+  */
+ useEffect(
+   () => {
+     if (
+       !mobilePouchOpen
+     ) {
+       return;
+     }
+
+     const previousOverflow =
+       document.body.style.overflow;
+
+     document.body.style.overflow =
+       "hidden";
+
+     return () => {
+       document.body.style.overflow =
+         previousOverflow;
+     };
+   },
+   [
+     mobilePouchOpen,
    ]
  );
 
@@ -497,7 +583,7 @@ export default function SearchWorkspace({
    );
  }
 
- function togglePouch() {
+ function toggleDesktopPouch() {
    setLayout(
      (current) => ({
        ...current,
@@ -505,6 +591,18 @@ export default function SearchWorkspace({
        pouchOpen:
          !current.pouchOpen,
      })
+   );
+ }
+
+ function openMobilePouch() {
+   setMobilePouchOpen(
+     true
+   );
+ }
+
+ function closeMobilePouch() {
+   setMobilePouchOpen(
+     false
    );
  }
 
@@ -527,6 +625,10 @@ export default function SearchWorkspace({
        pouchOpen:
          false,
      })
+   );
+
+   setMobilePouchOpen(
+     false
    );
 
    setDeselectConfirmationOpen(
@@ -714,6 +816,13 @@ export default function SearchWorkspace({
        hasPouchItems:
          true,
 
+       /*
+        * Keep the desktop column expanded.
+        *
+        * The mobile sheet does not automatically
+        * open because that would interrupt someone
+        * who is continuing to shop.
+        */
        pouchOpen:
          true,
      })
@@ -747,6 +856,10 @@ export default function SearchWorkspace({
              pouchOpen:
                false,
            })
+         );
+
+         setMobilePouchOpen(
+           false
          );
        }
 
@@ -821,16 +934,26 @@ export default function SearchWorkspace({
      ? "340px"
      : "52px";
 
- const gridColumns =
+ const desktopGridColumns =
    layout.hasPouchItems
      ? `${filterWidth} minmax(0, 1fr) ${pouchWidth}`
      : `${filterWidth} minmax(0, 1fr)`;
+
+ const workspaceStyle = {
+   "--workspace-columns":
+     desktopGridColumns,
+ } as CSSProperties;
 
  const pouchItemLabel =
    pouchItems.length ===
    1
      ? "supplement"
      : "supplements";
+
+ const mobilePouchVisible =
+   layout.hasPouchItems &&
+   selectedPlan !==
+     null;
 
  return (
    <>
@@ -851,38 +974,75 @@ export default function SearchWorkspace({
          className="
            mt-6
            grid
+           grid-cols-1
            items-start
            gap-4
            transition-[grid-template-columns]
            duration-300
            ease-in-out
+           lg:[grid-template-columns:var(--workspace-columns)]
          "
-         style={{
-           gridTemplateColumns:
-             gridColumns,
-         }}>
+         style={
+           workspaceStyle
+         }>
 
-         <aside className="min-w-0">
-           <SearchControls
-             open={
-               layout.filtersOpen
-             }
-             onToggle={
-               toggleFilters
-             }
-             filters={
-               filters
-             }
-             onFiltersChange={
-               setFilters
-             }
-             availableBrands={
-               availableBrands
-             }
-           />
-         </aside>
 
-         <section className="min-w-0">
+
+
+
+<aside
+ className="
+   min-w-0
+   w-full
+   self-start
+   lg:sticky
+   lg:top-[96px]
+ ">
+
+ <div
+   className="
+     lg:max-h-[calc(100dvh-112px)]
+     lg:overflow-y-auto
+     lg:overscroll-contain
+   ">
+
+   <SearchControls
+     open={
+       layout.filtersOpen
+     }
+     onToggle={
+       toggleFilters
+     }
+     filters={
+       filters
+     }
+     onFiltersChange={
+       setFilters
+     }
+     availableBrands={
+       availableBrands
+     }
+   />
+ </div>
+</aside>
+
+
+
+
+
+
+
+         <section
+           className={`
+             min-w-0
+             ${
+               mobilePouchVisible
+                 ? "pb-28"
+                 : ""
+             }
+             lg:pb-0
+           `}>
+
            <SearchResults
              query={
                query
@@ -917,159 +1077,538 @@ export default function SearchWorkspace({
          {layout.hasPouchItems &&
            selectedPlan !==
              null && (
-           <aside
+             <aside
+               className="
+                 hidden
+                 min-w-0
+                 self-start
+                 lg:sticky
+                 lg:top-[96px]
+                 lg:block
+               ">
+
+               <div
+                 className="
+                   max-h-[calc(100dvh-112px)]
+                   overflow-hidden
+                   rounded-[12px]
+                   border
+                   border-[#E7DED3]
+                   bg-[#FBF8F3]
+                   shadow-[0_2px_10px_rgba(54,38,20,0.025)]
+                 ">
+
+                 {layout.pouchOpen ? (
+                   <div
+                     className="
+                       flex
+                       max-h-[calc(100dvh-112px)]
+                       min-w-[340px]
+                       flex-col
+                     ">
+
+                     <button
+                       type="button"
+                       onClick={
+                         toggleDesktopPouch
+                       }
+                       aria-expanded="true"
+                       aria-label="Collapse My Pouch"
+                       className="
+                         flex
+                         h-[52px]
+                         w-full
+                         shrink-0
+                         items-center
+                         justify-between
+                         border-b
+                         border-[#E7DED3]
+                         bg-[#FBF8F3]
+                         px-4
+                         text-[#302D29]
+                         transition
+                         hover:bg-[#F5EFE8]
+                       ">
+
+                       <span
+                         className="
+                           flex
+                           items-center
+                           gap-2
+                           text-[13px]
+                           font-semibold
+                         ">
+
+                         <PouchIcon />
+                         My Pouch
+                       </span>
+
+                       <RightChevronIcon />
+                     </button>
+
+                     <div
+                       className="
+                         min-h-0
+                         overflow-y-auto
+                         overscroll-contain
+                         p-3
+                       ">
+
+                       <PouchSidebar
+                         items={
+                           pouchItems
+                         }
+                         selectedPlan={
+                           selectedPlan
+                         }
+                         pooledPricing={
+                           pooledPricing
+                         }
+                         pooledPricingLoading={
+                           pooledPricingLoading
+                         }
+                         pooledPricingError={
+                           pooledPricingError
+                         }
+                         purchaseOption={
+                           purchaseOption
+                         }
+                         onPurchaseOptionChange={
+                           setPurchaseOption
+                         }
+                         onRemoveItem={
+                           removePouchItem
+                         }
+                         onTimingChange={
+                           updatePouchItemTiming
+                         }
+                       />
+                     </div>
+                   </div>
+                 ) : (
+                   <button
+                     type="button"
+                     onClick={
+                       toggleDesktopPouch
+                     }
+                     aria-expanded="false"
+                     aria-label="Open My Pouch"
+                     className="
+                       flex
+                       min-h-[calc(100dvh-112px)]
+                       w-[52px]
+                       flex-col
+                       items-center
+                       gap-3
+                       pt-4
+                       text-[#74101D]
+                       transition
+                       hover:bg-[#F5EFE8]
+                     ">
+
+                     <PouchIcon />
+
+                     <span
+                       className="
+                         flex
+                         h-[23px]
+                         min-w-[23px]
+                         items-center
+                         justify-center
+                         rounded-full
+                         bg-[#7D0E1C]
+                         px-[6px]
+                         text-[10px]
+                         font-bold
+                         text-white
+                       ">
+
+                       {pouchItems.length}
+                     </span>
+
+                     <span
+                       className="
+                         [writing-mode:vertical-rl]
+                         text-[10px]
+                         font-bold
+                         tracking-[0.12em]
+                       ">
+
+                       MY POUCH
+                     </span>
+
+                     <LeftChevronIcon />
+                   </button>
+                 )}
+               </div>
+             </aside>
+           )}
+       </div>
+     </section>
+
+     {/*
+      * Mobile pouch summary bar.
+      *
+      * This replaces the permanent right-hand
+      * column on screens below the lg breakpoint.
+      */}
+     {mobilePouchVisible && (
+       <div
+         className="
+           fixed
+           inset-x-0
+           bottom-0
+           z-[70]
+           border-t
+           border-[#DDD2C7]
+           bg-white/95
+           px-4
+           pt-3
+           pb-[calc(12px+env(safe-area-inset-bottom))]
+           shadow-[0_-10px_30px_rgba(35,25,18,0.12)]
+           backdrop-blur-md
+           lg:hidden
+         ">
+
+         <button
+           type="button"
+           onClick={
+             openMobilePouch
+           }
+           aria-haspopup="dialog"
+           aria-expanded={
+             mobilePouchOpen
+           }
+           className="
+             mx-auto
+             flex
+             min-h-[58px]
+             w-full
+             max-w-[640px]
+             items-center
+             justify-between
+             gap-4
+             rounded-[12px]
+             border
+             border-[#E3D8CD]
+             bg-[#FBF8F3]
+             px-4
+             py-3
+             text-left
+             shadow-[0_4px_18px_rgba(45,30,20,0.08)]
+             transition
+             hover:border-[#D4C2B4]
+             hover:bg-[#F8F2EB]
+             focus:outline-none
+             focus-visible:ring-2
+             focus-visible:ring-[#7D0E1C]
+             focus-visible:ring-offset-2
+           ">
+
+           <span
              className="
+               flex
                min-w-0
-               overflow-hidden
-               rounded-[12px]
-               border
-               border-[#E7DED3]
-               bg-[#FBF8F3]
-               shadow-[0_2px_10px_rgba(54,38,20,0.025)]
+               items-center
+               gap-3
              ">
 
-             {layout.pouchOpen ? (
-               <div className="min-w-[340px]">
-                 <button
-                   type="button"
-                   onClick={
-                     togglePouch
-                   }
-                   aria-expanded="true"
-                   aria-label="Collapse My Pouch"
+             <span
+               className="
+                 relative
+                 flex
+                 h-[38px]
+                 w-[38px]
+                 shrink-0
+                 items-center
+                 justify-center
+                 rounded-full
+                 bg-[#F1E4DE]
+                 text-[#7D0E1C]
+               ">
+
+               <PouchIcon />
+
+               <span
+                 className="
+                   absolute
+                   -right-1.5
+                   -top-1.5
+                   flex
+                   h-[20px]
+                   min-w-[20px]
+                   items-center
+                   justify-center
+                   rounded-full
+                   bg-[#7D0E1C]
+                   px-[5px]
+                   text-[9px]
+                   font-bold
+                   text-white
+                 ">
+
+                 {pouchItems.length}
+               </span>
+             </span>
+
+             <span className="min-w-0">
+               <span
+                 className="
+                   block
+                   truncate
+                   text-[13px]
+                   font-semibold
+                   text-[#302D29]
+                 ">
+
+                 Your VidaPouch ·{" "}
+                 {pouchItems.length}{" "}
+                 {pouchItemLabel}
+               </span>
+
+               <span
+                 className="
+                   mt-0.5
+                   block
+                   truncate
+                   text-[11px]
+                   text-[#6D7476]
+                 ">
+
+                 {pouchTimingCounts.morning} Morning
+                 {" · "}
+                 {pouchTimingCounts.evening} Evening
+               </span>
+             </span>
+           </span>
+
+           <span
+             className="
+               flex
+               shrink-0
+               items-center
+               gap-1
+               text-[12px]
+               font-semibold
+               text-[#7D0E1C]
+             ">
+
+             View
+             <RightChevronIcon />
+           </span>
+         </button>
+       </div>
+     )}
+
+     {/*
+      * Mobile pouch bottom sheet.
+      */}
+     {mobilePouchVisible &&
+       mobilePouchOpen && (
+         <div
+           className="
+             fixed
+             inset-0
+             z-[90]
+             bg-[rgba(16,20,22,0.5)]
+             backdrop-blur-[2px]
+             lg:hidden
+           "
+           role="presentation"
+           onMouseDown={
+             closeMobilePouch
+           }>
+
+           <section
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="mobile-pouch-title"
+             onMouseDown={
+               (event) =>
+                 event.stopPropagation()
+             }
+             className="
+               absolute
+               inset-x-0
+               bottom-0
+               flex
+               max-h-[92dvh]
+               flex-col
+               overflow-hidden
+               rounded-t-[24px]
+               border-t
+               border-[#E3D8CD]
+               bg-[#FBF8F3]
+               shadow-[0_-24px_70px_rgba(24,17,12,0.3)]
+             ">
+
+             <div
+               className="
+                 flex
+                 shrink-0
+                 flex-col
+                 border-b
+                 border-[#E7DED3]
+                 bg-[#FBF8F3]
+                 px-5
+                 pb-4
+                 pt-3
+               ">
+
+               <div
+                 className="
+                   mx-auto
+                   mb-3
+                   h-[5px]
+                   w-[44px]
+                   rounded-full
+                   bg-[#D8CDC3]
+                 "
+                 aria-hidden="true"
+               />
+
+               <div
+                 className="
+                   flex
+                   items-center
+                   justify-between
+                   gap-4
+                 ">
+
+                 <div
                    className="
                      flex
-                     h-[52px]
-                     w-full
+                     min-w-0
                      items-center
-                     justify-between
-                     border-b
-                     border-[#E7DED3]
-                     px-4
-                     text-[#302D29]
-                     transition
-                     hover:bg-[#F5EFE8]
+                     gap-3
                    ">
 
                    <span
                      className="
                        flex
+                       h-[40px]
+                       w-[40px]
+                       shrink-0
                        items-center
-                       gap-2
-                       text-[13px]
-                       font-semibold
+                       justify-center
+                       rounded-full
+                       bg-[#F1E4DE]
+                       text-[#7D0E1C]
                      ">
 
                      <PouchIcon />
-                     My Pouch
                    </span>
 
-                   <RightChevronIcon />
-                 </button>
+                   <div className="min-w-0">
+                     <h2
+                       id="mobile-pouch-title"
+                       className="
+                         truncate
+                         text-[20px]
+                         leading-tight
+                         text-[#281D1A]
+                       "
+                       style={{
+                         fontFamily:
+                           'Georgia, "Times New Roman", serif',
+                       }}>
 
-                 <div className="p-3">
-                   
-                   
-                   
-                   <PouchSidebar
-                     items={
-                       pouchItems
-                     }
-                     selectedPlan={
-                       selectedPlan
-                     }
-                     pooledPricing={
-                       pooledPricing
-                     }
-                     pooledPricingLoading={
-                       pooledPricingLoading
-                     }
-                     pooledPricingError={
-                       pooledPricingError
-                     }
+                       Your VidaPouch
+                     </h2>
 
-                     purchaseOption={
-                      purchaseOption
-                     }
-                     onPurchaseOptionChange={
-                      setPurchaseOption
-                     }
-                     
+                     <p
+                       className="
+                         mt-1
+                         text-[11px]
+                         text-[#6D7476]
+                       ">
 
-
-
-                     onRemoveItem={
-                       removePouchItem
-                     }
-                     onTimingChange={
-                       updatePouchItemTiming
-                     }
-                   />
-
-
-
-
+                       {pouchItems.length}{" "}
+                       {pouchItemLabel}
+                       {" · "}
+                       {pouchTimingCounts.morning} Morning
+                       {" · "}
+                       {pouchTimingCounts.evening} Evening
+                     </p>
+                   </div>
                  </div>
-               </div>
-             ) : (
-               <button
-                 type="button"
-                 onClick={
-                   togglePouch
-                 }
-                 aria-expanded="false"
-                 aria-label="Open My Pouch"
-                 className="
-                   flex
-                   min-h-[520px]
-                   w-[52px]
-                   flex-col
-                   items-center
-                   gap-3
-                   pt-4
-                   text-[#74101D]
-                   transition
-                   hover:bg-[#F5EFE8]
-                 ">
 
-                 <PouchIcon />
-
-                 <span
+                 <button
+                   type="button"
+                   onClick={
+                     closeMobilePouch
+                   }
+                   aria-label="Close Your VidaPouch"
                    className="
                      flex
-                     h-[23px]
-                     min-w-[23px]
+                     h-[40px]
+                     w-[40px]
+                     shrink-0
                      items-center
                      justify-center
                      rounded-full
-                     bg-[#7D0E1C]
-                     px-[6px]
-                     text-[10px]
-                     font-bold
-                     text-white
+                     border
+                     border-[#DED3C9]
+                     bg-white
+                     text-[#413B36]
+                     transition
+                     hover:bg-[#F5EFE8]
+                     focus:outline-none
+                     focus-visible:ring-2
+                     focus-visible:ring-[#7D0E1C]
+                     focus-visible:ring-offset-2
                    ">
 
-                   {pouchItems.length}
-                 </span>
+                   <CloseIcon />
+                 </button>
+               </div>
+             </div>
 
-                 <span
-                   className="
-                     [writing-mode:vertical-rl]
-                     text-[10px]
-                     font-bold
-                     tracking-[0.12em]
-                   ">
+             <div
+               className="
+                 min-h-0
+                 flex-1
+                 overflow-y-auto
+                 overscroll-contain
+                 px-4
+                 py-4
+                 pb-[calc(20px+env(safe-area-inset-bottom))]
+                 sm:px-5
+               ">
 
-                   MY POUCH
-                 </span>
-
-                 <LeftChevronIcon />
-               </button>
-             )}
-           </aside>
-         )}
-       </div>
-     </section>
+               <PouchSidebar
+                 items={
+                   pouchItems
+                 }
+                 selectedPlan={
+                   selectedPlan
+                 }
+                 pooledPricing={
+                   pooledPricing
+                 }
+                 pooledPricingLoading={
+                   pooledPricingLoading
+                 }
+                 pooledPricingError={
+                   pooledPricingError
+                 }
+                 purchaseOption={
+                   purchaseOption
+                 }
+                 onPurchaseOptionChange={
+                   setPurchaseOption
+                 }
+                 onRemoveItem={
+                   removePouchItem
+                 }
+                 onTimingChange={
+                   updatePouchItemTiming
+                 }
+               />
+             </div>
+           </section>
+         </div>
+       )}
 
      {deselectConfirmationOpen && (
        <div
