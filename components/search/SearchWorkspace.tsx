@@ -44,6 +44,7 @@ import TrustBar from "./TrustBar";
 import SearchControls from "./SearchControls";
 import SearchResults from "./SearchResults";
 import PouchSidebar from "./PouchSidebar";
+import MobileFilterSheet from "./MobileFilterSheet";
 
 import {
  usePooledPouchPricing,
@@ -76,6 +77,24 @@ function PouchIcon() {
        d="M7 8h10"
        stroke="currentColor"
        strokeWidth="1.7"
+       strokeLinecap="round"
+     />
+   </svg>
+ );
+}
+
+function FilterIcon() {
+ return (
+   <svg
+     viewBox="0 0 24 24"
+     fill="none"
+     aria-hidden="true"
+     className="h-[18px] w-[18px]">
+
+     <path
+       d="M4 7h16M7 12h10M10 17h4"
+       stroke="currentColor"
+       strokeWidth="1.8"
        strokeLinecap="round"
      />
    </svg>
@@ -184,18 +203,17 @@ export default function SearchWorkspace({
        false,
    });
 
- /*
-  * The desktop pouch uses layout.pouchOpen because
-  * it can expand and collapse within the right-hand
-  * column.
-  *
-  * Mobile uses a separate state because opening a
-  * full-screen sheet is different from expanding a
-  * desktop column.
-  */
  const [
    mobilePouchOpen,
    setMobilePouchOpen,
+ ] =
+   useState(
+     false
+   );
+
+ const [
+   mobileFiltersOpen,
+   setMobileFiltersOpen,
  ] =
    useState(
      false
@@ -262,29 +280,10 @@ export default function SearchWorkspace({
      selectedPlanId
    );
 
- /*
-  * The first listed plan is the lowest available
-  * tier and serves as the automatic starting plan
-  * when a customer adds their first supplement
-  * without manually selecting a plan.
-  */
  const defaultStartingPlan =
    SEARCH_PLANS[0] ??
    null;
 
- /*
-  * Recalculate the complete current pouch whenever:
-  *
-  * - a product is added;
-  * - a product is removed;
-  * - a product quantity changes;
-  * - the selected tier changes;
-  * - an automatic tier upgrade occurs.
-  *
-  * The hook cancels or ignores stale requests, so
-  * a calculation from an earlier tier cannot replace
-  * a newer result.
-  */
  const {
    pricing:
      pooledPricing,
@@ -397,11 +396,6 @@ export default function SearchWorkspace({
                hasPouchItems:
                  true,
 
-               /*
-                * Restore the expanded desktop
-                * pouch. The mobile sheet remains
-                * closed until the customer opens it.
-                */
                pouchOpen:
                  true,
              })
@@ -487,14 +481,12 @@ export default function SearchWorkspace({
    ]
  );
 
- /*
-  * Close either dialog with Escape.
-  */
  useEffect(
    () => {
      if (
        !deselectConfirmationOpen &&
-       !mobilePouchOpen
+       !mobilePouchOpen &&
+       !mobileFiltersOpen
      ) {
        return;
      }
@@ -520,7 +512,17 @@ export default function SearchWorkspace({
          return;
        }
 
-       setMobilePouchOpen(
+       if (
+         mobilePouchOpen
+       ) {
+         setMobilePouchOpen(
+           false
+         );
+
+         return;
+       }
+
+       setMobileFiltersOpen(
          false
        );
      }
@@ -540,18 +542,15 @@ export default function SearchWorkspace({
    [
      deselectConfirmationOpen,
      mobilePouchOpen,
+     mobileFiltersOpen,
    ]
  );
 
- /*
-  * Prevent the search results behind the mobile
-  * pouch sheet from scrolling while the sheet is
-  * open.
-  */
  useEffect(
    () => {
      if (
-       !mobilePouchOpen
+       !mobilePouchOpen &&
+       !mobileFiltersOpen
      ) {
        return;
      }
@@ -569,6 +568,7 @@ export default function SearchWorkspace({
    },
    [
      mobilePouchOpen,
+     mobileFiltersOpen,
    ]
  );
 
@@ -595,6 +595,10 @@ export default function SearchWorkspace({
  }
 
  function openMobilePouch() {
+   setMobileFiltersOpen(
+     false
+   );
+
    setMobilePouchOpen(
      true
    );
@@ -602,6 +606,22 @@ export default function SearchWorkspace({
 
  function closeMobilePouch() {
    setMobilePouchOpen(
+     false
+   );
+ }
+
+ function openMobileFilters() {
+   setMobilePouchOpen(
+     false
+   );
+
+   setMobileFiltersOpen(
+     true
+   );
+ }
+
+ function closeMobileFilters() {
+   setMobileFiltersOpen(
      false
    );
  }
@@ -646,11 +666,6 @@ export default function SearchWorkspace({
    planId:
      SearchPlanId
  ) {
-   /*
-    * Clicking the active plan again means the
-    * customer wants to return to the standalone
-    * VidaSearch experience.
-    */
    if (
      selectedPlanId ===
      planId
@@ -685,10 +700,6 @@ export default function SearchWorkspace({
      return;
    }
 
-   /*
-    * Do not allow a smaller plan that cannot hold
-    * the supplements already selected.
-    */
    if (
      pouchItems.length >
      requestedPlan
@@ -697,11 +708,6 @@ export default function SearchWorkspace({
      return;
    }
 
-   /*
-    * Changing this state triggers an entirely new
-    * pooled calculation using the requested tier.
-    * No result from the previous tier is retained.
-    */
    setSelectedPlanId(
      planId
    );
@@ -711,13 +717,6 @@ export default function SearchWorkspace({
    item:
      SearchPouchItem
  ) {
-   /*
-    * A manually selected plan takes precedence.
-    *
-    * When no plan has been selected, clicking
-    * Add to VidaPouch automatically begins with
-    * the lowest available tier, which is Essential.
-    */
    const activePlan =
      selectedPlan ??
      defaultStartingPlan;
@@ -748,11 +747,6 @@ export default function SearchWorkspace({
          currentItems.length +
          1;
 
-       /*
-        * Premier currently supports up to eight
-        * supplements. More complex routines use
-        * the custom builder.
-        */
        if (
          !largestPlan ||
          nextSupplementCount >
@@ -774,10 +768,6 @@ export default function SearchWorkspace({
          return currentItems;
        }
 
-       /*
-        * If no plan was manually selected, begin
-        * with Essential on the first addition.
-        */
        if (
          selectedPlan ===
          null
@@ -790,13 +780,6 @@ export default function SearchWorkspace({
          activePlan
            .supplementLimit
        ) {
-         /*
-          * Essential upgrades automatically to
-          * Complete at supplement four.
-          *
-          * Complete upgrades automatically to
-          * Premier at supplement six.
-          */
          setSelectedPlanId(
            requiredPlan.id
          );
@@ -816,13 +799,6 @@ export default function SearchWorkspace({
        hasPouchItems:
          true,
 
-       /*
-        * Keep the desktop column expanded.
-        *
-        * The mobile sheet does not automatically
-        * open because that would interrupt someone
-        * who is continuing to shop.
-        */
        pouchOpen:
          true,
      })
@@ -863,14 +839,6 @@ export default function SearchWorkspace({
          );
        }
 
-       /*
-        * Removing a supplement does not
-        * automatically downgrade the plan.
-        *
-        * Pricing is still recalculated using the
-        * remaining products and current selected
-        * tier.
-        */
        return nextItems;
      }
    );
@@ -986,51 +954,43 @@ export default function SearchWorkspace({
            workspaceStyle
          }>
 
+         <aside
+           className="
+             hidden
+             min-w-0
+             w-full
+             self-start
+             lg:sticky
+             lg:top-[96px]
+             lg:block
+           ">
 
+           <div
+             className="
+               lg:max-h-[calc(100dvh-112px)]
+               lg:overflow-y-auto
+               lg:overscroll-contain
+             ">
 
-
-
-<aside
- className="
-   min-w-0
-   w-full
-   self-start
-   lg:sticky
-   lg:top-[96px]
- ">
-
- <div
-   className="
-     lg:max-h-[calc(100dvh-112px)]
-     lg:overflow-y-auto
-     lg:overscroll-contain
-   ">
-
-   <SearchControls
-     open={
-       layout.filtersOpen
-     }
-     onToggle={
-       toggleFilters
-     }
-     filters={
-       filters
-     }
-     onFiltersChange={
-       setFilters
-     }
-     availableBrands={
-       availableBrands
-     }
-   />
- </div>
-</aside>
-
-
-
-
-
-
+             <SearchControls
+               open={
+                 layout.filtersOpen
+               }
+               onToggle={
+                 toggleFilters
+               }
+               filters={
+                 filters
+               }
+               onFiltersChange={
+                 setFilters
+               }
+               availableBrands={
+                 availableBrands
+               }
+             />
+           </div>
+         </aside>
 
          <section
            className={`
@@ -1042,6 +1002,51 @@ export default function SearchWorkspace({
              }
              lg:pb-0
            `}>
+
+           <div
+             className="
+               mb-4
+               lg:hidden
+             ">
+
+             <button
+               type="button"
+               onClick={
+                 openMobileFilters
+               }
+               aria-haspopup="dialog"
+               aria-expanded={
+                 mobileFiltersOpen
+               }
+               className="
+                 flex
+                 min-h-[48px]
+                 w-full
+                 items-center
+                 justify-center
+                 gap-2
+                 rounded-[10px]
+                 border
+                 border-[#DCCFC3]
+                 bg-white
+                 px-4
+                 text-[13px]
+                 font-semibold
+                 text-[#74101D]
+                 shadow-[0_2px_8px_rgba(54,38,20,0.04)]
+                 transition
+                 hover:border-[#CDB9A9]
+                 hover:bg-[#FBF8F3]
+                 focus:outline-none
+                 focus-visible:ring-2
+                 focus-visible:ring-[#7D0E1C]
+                 focus-visible:ring-offset-2
+               ">
+
+               <FilterIcon />
+               Filters
+             </button>
+           </div>
 
            <SearchResults
              query={
@@ -1246,12 +1251,24 @@ export default function SearchWorkspace({
        </div>
      </section>
 
-     {/*
-      * Mobile pouch summary bar.
-      *
-      * This replaces the permanent right-hand
-      * column on screens below the lg breakpoint.
-      */}
+     <MobileFilterSheet
+       open={
+         mobileFiltersOpen
+       }
+       onClose={
+         closeMobileFilters
+       }
+       filters={
+         filters
+       }
+       onFiltersChange={
+         setFilters
+       }
+       availableBrands={
+         availableBrands
+       }
+     />
+
      {mobilePouchVisible && (
        <div
          className="
@@ -1400,9 +1417,6 @@ export default function SearchWorkspace({
        </div>
      )}
 
-     {/*
-      * Mobile pouch bottom sheet.
-      */}
      {mobilePouchVisible &&
        mobilePouchOpen && (
          <div
