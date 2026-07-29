@@ -55,7 +55,7 @@ import {
  * before creating the final customer charge.
  */
  const DEFAULT_CACHE_TTL_MINUTES =
-  15;
+  60;
  
  const MIN_CACHE_TTL_MINUTES =
   1;
@@ -1499,79 +1499,14 @@ import {
     ...listingClaims,
   } satisfies SearchRetailProduct;
  
-  console.log(
-    "VidaSearch raw retailer listing mapped:",
-    {
-      productTitle:
-        product.productTitle,
- 
-      retailer:
-        product.retailer,
- 
-      searchMode:
-        request.searchMode ??
-        "supplement",
- 
-      dosage:
-        product.dosage,
- 
-      dosageAmount:
-        product.dosageAmount,
- 
-      dosageUnit:
-        product.dosageUnit,
- 
-      dosageIsPerServing:
-        product
-          .dosageIsPerServing,
- 
-      form:
-        product.form,
- 
-      unitLabel:
-        product.unitLabel,
- 
-      vitaPouchFormEligible:
-        product
-          .vitaPouchFormEligible,
- 
-      bottlePrice:
-        product.bottlePrice,
- 
-      count:
-        product
-          .capsulesPerBottle,
- 
-      shoppingProductId:
-        product
-          .shoppingProductId ??
-        null,
- 
-      hasImmersiveProductPageToken:
-        Boolean(
-          product
-            .immersiveProductPageToken
-        ),
- 
-      hasSerpApiImmersiveProductUrl:
-        Boolean(
-          product
-            .serpApiImmersiveProductUrl
-        ),
- 
-      multipleSourcesAvailable:
-        product
-          .multipleSourcesAvailable,
- 
-      /*
-       * Diagnostic only. This is deliberately not
-       * assigned to product.url.
-       */
-      googleShoppingUrl:
-        googleShoppingUrl ??
-        null,
-    }
-  );
+
+
+
+
+
+
+
+
  
   return product;
  }

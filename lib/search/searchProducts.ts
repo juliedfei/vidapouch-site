@@ -5,6 +5,8 @@ import type {
  export type SearchIntentType =
   | "supplement"
   | "health-goal"
+  | "health-condition"
+  | "life-stage"
   | "brand"
   | "invalid";
  
@@ -26,8 +28,11 @@ import type {
   reason:
     string | null;
  
-  products:
-    SearchProductOption[];
+  kind:
+    string | null;
+ 
+  retailerListingCount:
+    number;
  };
  
  export type SearchProductsMetadata = {
@@ -45,6 +50,12 @@ import type {
  
   goalId:
     string | null;
+ 
+  topicId:
+    string | null;
+ 
+  requiresMedicalNotice:
+    boolean;
  
   categories:
     SearchProductCategory[];
@@ -91,6 +102,12 @@ import type {
   goalId?:
     string | null;
  
+  topicId?:
+    string | null;
+ 
+  requiresMedicalNotice?:
+    boolean;
+ 
   categories?:
     Array<{
       id?:
@@ -105,8 +122,11 @@ import type {
       reason?:
         string | null;
  
-      products?:
-        SearchProductOption[];
+      kind?:
+        string;
+ 
+      retailerListingCount?:
+        number;
     }>;
  };
  
@@ -178,6 +198,34 @@ import type {
   );
  }
  
+ function normalizeSearchIntentType(
+  value:
+    unknown
+ ): SearchIntentType {
+  switch (
+    value
+  ) {
+    case "health-goal":
+      return "health-goal";
+ 
+    case "health-condition":
+      return "health-condition";
+ 
+    case "life-stage":
+      return "life-stage";
+ 
+    case "brand":
+      return "brand";
+ 
+    case "invalid":
+      return "invalid";
+ 
+    case "supplement":
+    default:
+      return "supplement";
+  }
+ }
+ 
  function normalizeCategory(
   category:
     NonNullable<
@@ -201,6 +249,23 @@ import type {
       ?.trim() ||
     `Supplement ${index + 1}`;
  
+  const retailerListingCount =
+    typeof category
+      .retailerListingCount ===
+      "number" &&
+    Number.isFinite(
+      category
+        .retailerListingCount
+    )
+      ? Math.max(
+          0,
+          Math.round(
+            category
+              .retailerListingCount
+          )
+        )
+      : 0;
+ 
   return {
     id:
       category
@@ -220,12 +285,13 @@ import type {
       category.reason ??
       null,
  
-    products:
-      Array.isArray(
-        category.products
-      )
-        ? category.products
-        : [],
+    kind:
+      category
+        .kind
+        ?.trim() ||
+      null,
+ 
+    retailerListingCount,
   };
  }
  
@@ -253,18 +319,16 @@ import type {
       data.products
     )
       ? data.products
-      : categories.flatMap(
-          (category) =>
-            category.products
-        );
+      : [];
  
   return {
     products,
  
     metadata: {
       intent:
-        data.intent ??
-        "supplement",
+        normalizeSearchIntentType(
+          data.intent
+        ),
  
       originalQuery:
         data
@@ -287,6 +351,16 @@ import type {
       goalId:
         data.goalId ??
         null,
+ 
+      topicId:
+        data.topicId ??
+        data.goalId ??
+        null,
+ 
+      requiresMedicalNotice:
+        data
+          .requiresMedicalNotice ===
+        true,
  
       categories,
     },

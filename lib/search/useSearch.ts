@@ -6,7 +6,11 @@ import {
 } from "react";
 
 import {
- searchProducts,
+ searchProductsWithMetadata,
+} from "./searchProducts";
+
+import type {
+ SearchProductsMetadata,
 } from "./searchProducts";
 
 import {
@@ -18,7 +22,11 @@ import type {
 } from "./searchProductOption";
 
 const SEARCH_DELAY_MS =
- 700;
+ 250;
+
+ const INITIAL_SEARCH_TIMEOUT_MS =
+ 10_000;
+
 
 const ENABLE_LIVE_ENRICHMENT =
  true;
@@ -32,6 +40,7 @@ const ENRICHMENT_CONCURRENCY =
 type SearchErrorCode =
  | "UNSUPPORTED_SEARCH"
  | "MISSING_SEARCH_QUERY"
+ | "NO_APPROVED_SUPPLEMENT_EXPANSIONS"
  | "SEARCH_FAILED"
  | null;
 
@@ -279,6 +288,75 @@ function mergeSearchProducts({
  );
 }
 
+function mergeSearchMetadata({
+ currentMetadata,
+ incomingMetadata,
+}: {
+ currentMetadata:
+   SearchProductsMetadata | null;
+
+ incomingMetadata:
+   SearchProductsMetadata | null;
+}) {
+ if (
+   !incomingMetadata
+ ) {
+   return currentMetadata;
+ }
+
+ if (
+   !currentMetadata
+ ) {
+   return incomingMetadata;
+ }
+
+ /*
+  * Expanded search metadata is more complete,
+  * particularly its category list.
+  *
+  * Retain a prior non-null topic or display value
+  * if a later response unexpectedly omits it.
+  */
+ return {
+   ...currentMetadata,
+   ...incomingMetadata,
+
+   displayName:
+     incomingMetadata
+       .displayName ??
+     currentMetadata
+       .displayName,
+
+   goalId:
+     incomingMetadata
+       .goalId ??
+     currentMetadata
+       .goalId,
+
+   topicId:
+     incomingMetadata
+       .topicId ??
+     currentMetadata
+       .topicId,
+
+   requiresMedicalNotice:
+     currentMetadata
+       .requiresMedicalNotice ||
+     incomingMetadata
+       .requiresMedicalNotice,
+
+   categories:
+     incomingMetadata
+       .categories
+       .length >
+       0
+       ? incomingMetadata
+           .categories
+       : currentMetadata
+           .categories,
+ };
+}
+
 function mergeEnrichment({
  product,
  enrichment,
@@ -451,13 +529,36 @@ function getSearchErrorDetails(
      rawMessage
    );
 
+ if (
+   rawCode ===
+     "NO_APPROVED_SUPPLEMENT_EXPANSIONS"
+ ) {
+   return {
+     code:
+       "NO_APPROVED_SUPPLEMENT_EXPANSIONS",
+
+     message:
+       rawMessage ||
+       "VidaSearch recognized this health topic but could not identify sufficiently specific supplement categories.",
+
+     suggestion:
+       responseData
+         ?.suggestion ??
+       requestError
+         .suggestion ??
+       "Try searching for a specific supplement or nutrient.",
+   };
+ }
+
  const unsupportedByCode =
    rawCode ===
    "UNSUPPORTED_SEARCH";
 
  const unsupportedByStatus =
    status ===
-   422;
+     422 &&
+   rawCode !==
+     "NO_APPROVED_SUPPLEMENT_EXPANSIONS";
 
  const unsupportedByMessage =
    normalizedMessage.includes(
@@ -483,14 +584,15 @@ function getSearchErrorDetails(
        "UNSUPPORTED_SEARCH",
 
      message:
-       "We couldn’t identify this as a supplement or health goal.",
+       rawMessage ||
+       "We couldn’t identify this as a supported VidaSearch topic.",
 
      suggestion:
        responseData
          ?.suggestion ??
        requestError
          .suggestion ??
-       "Try searching for Magnesium, Mood Support, Sleep, or Vitamin D.",
+       "Try searching for Magnesium, Mood Support, Sleep, Ataxia, Pregnancy, or Vitamin D.",
    };
  }
 
@@ -503,10 +605,10 @@ function getSearchErrorDetails(
        "MISSING_SEARCH_QUERY",
 
      message:
-       "Enter a supplement or health goal to search.",
+       "Enter a supplement or health topic to search.",
 
      suggestion:
-       "Try Magnesium, Sleep, Energy, or Vitamin D.",
+       "Try Magnesium, Sleep, Energy, Ataxia, Pregnancy, or Vitamin D.",
    };
  }
 
@@ -848,6 +950,16 @@ export function useSearch(
    );
 
  const [
+   metadata,
+   setMetadata,
+ ] =
+   useState<
+     SearchProductsMetadata | null
+>(
+     null
+   );
+
+ const [
    loading,
    setLoading,
  ] =
@@ -905,6 +1017,10 @@ export function useSearch(
          []
        );
 
+       setMetadata(
+         null
+       );
+
        setError(
          null
        );
@@ -928,11 +1044,29 @@ export function useSearch(
        return;
      }
 
-     const searchController =
-       new AbortController();
 
-     const enrichmentController =
-       new AbortController();
+
+     const searchController =
+     new AbortController();
+    
+    const initialSearchController =
+     new AbortController();
+    
+    const enrichmentController =
+     new AbortController();
+    
+    function abortInitialSearch() {
+     initialSearchController
+       .abort();
+    }
+    
+    searchController.signal.addEventListener(
+     "abort",
+     abortInitialSearch
+    );
+
+
+
 
      const timeout =
        window.setTimeout(
@@ -952,6 +1086,10 @@ export function useSearch(
 
              setResults(
                []
+             );
+
+             setMetadata(
+               null
              );
 
              setError(
@@ -974,18 +1112,43 @@ export function useSearch(
                }
              );
 
-             const initialProducts =
-               await searchProducts({
+
+
+
+             const initialSearchTimeout =
+             window.setTimeout(
+               () => {
+                 initialSearchController
+                   .abort();
+               },
+               INITIAL_SEARCH_TIMEOUT_MS
+             );
+            
+            let initialResult;
+            
+            try {
+             initialResult =
+               await searchProductsWithMetadata({
                  supplement:
                    trimmed,
-
+            
                  phase:
                    "initial",
-
+            
                  signal:
-                   searchController
+                   initialSearchController
                      .signal,
                });
+            } finally {
+             window.clearTimeout(
+               initialSearchTimeout
+             );
+            }
+            
+
+
+
+
 
              if (
                searchController
@@ -994,6 +1157,9 @@ export function useSearch(
              ) {
                return;
              }
+
+             const initialProducts =
+               initialResult.products;
 
              console.log(
                "VidaSearch initial product search completed:",
@@ -1004,6 +1170,18 @@ export function useSearch(
                  productCount:
                    initialProducts
                      .length,
+
+                 intent:
+                   initialResult
+                     .metadata
+                     ?.intent ??
+                   null,
+
+                 requiresMedicalNotice:
+                   initialResult
+                     .metadata
+                     ?.requiresMedicalNotice ??
+                   false,
                }
              );
 
@@ -1013,6 +1191,10 @@ export function useSearch(
               */
              setResults(
                initialProducts
+             );
+
+             setMetadata(
+               initialResult.metadata
              );
 
              setLoading(
@@ -1043,8 +1225,8 @@ export function useSearch(
              );
 
              try {
-               const expandedProducts =
-                 await searchProducts({
+               const expandedResult =
+                 await searchProductsWithMetadata({
                    supplement:
                      trimmed,
 
@@ -1063,6 +1245,9 @@ export function useSearch(
                ) {
                  return;
                }
+
+               const expandedProducts =
+                 expandedResult.products;
 
                const mergedProducts =
                  mergeSearchProducts({
@@ -1090,6 +1275,13 @@ export function useSearch(
                    mergedProductCount:
                      mergedProducts
                        .length,
+
+                   categoryCount:
+                     expandedResult
+                       .metadata
+                       ?.categories
+                       .length ??
+                     0,
                  }
                );
 
@@ -1106,6 +1298,19 @@ export function useSearch(
 
                      incomingProducts:
                        expandedProducts,
+                   })
+               );
+
+               setMetadata(
+                 (
+                   currentMetadata
+                 ) =>
+                   mergeSearchMetadata({
+                     currentMetadata,
+
+                     incomingMetadata:
+                       expandedResult
+                         .metadata,
                    })
                );
              } catch (
@@ -1236,17 +1441,59 @@ export function useSearch(
                  "VidaSearch live merchant enrichment is disabled."
                );
              }
-           } catch (
-             caughtError
-           ) {
-             if (
-               caughtError instanceof
-                 DOMException &&
-               caughtError.name ===
-                 "AbortError"
+           
+           
+           
+            } catch (
+              caughtError
              ) {
-               return;
-             }
+              const wasCancelledByNewSearch =
+                searchController
+                  .signal
+                  .aborted;
+             
+              const wasInitialTimeout =
+                initialSearchController
+                  .signal
+                  .aborted &&
+                !wasCancelledByNewSearch;
+             
+              if (
+                wasCancelledByNewSearch
+              ) {
+                return;
+              }
+             
+              if (
+                wasInitialTimeout
+              ) {
+                setResults(
+                  []
+                );
+             
+                setMetadata(
+                  null
+                );
+             
+                setError(
+                  "This search is taking longer than expected."
+                );
+             
+                setErrorCode(
+                  "SEARCH_FAILED"
+                );
+             
+                setErrorSuggestion(
+                  "Please try again. Frequently searched topics will become faster as VidaSearch builds its search cache."
+                );
+             
+                return;
+              }
+
+
+
+
+
 
              const details =
                getSearchErrorDetails(
@@ -1255,10 +1502,12 @@ export function useSearch(
 
              if (
                details.code ===
-                 "UNSUPPORTED_SEARCH"
+                 "UNSUPPORTED_SEARCH" ||
+               details.code ===
+                 "NO_APPROVED_SUPPLEMENT_EXPANSIONS"
              ) {
                console.log(
-                 "VidaSearch unsupported search handled:",
+                 "VidaSearch controlled search response handled:",
                  {
                    query:
                      trimmed,
@@ -1299,6 +1548,10 @@ export function useSearch(
                []
              );
 
+             setMetadata(
+               null
+             );
+
              setError(
                details.message
              );
@@ -1330,11 +1583,24 @@ export function useSearch(
          timeout
        );
 
-       searchController
-         .abort();
 
+
+       searchController.signal.removeEventListener(
+        "abort",
+        abortInitialSearch
+       );
+       
+       searchController
+        .abort();
+       
+       initialSearchController
+        .abort();
+       
        enrichmentController
-         .abort();
+        .abort();
+
+
+
 
        console.log(
          "VidaSearch search and enrichment cancelled:",
@@ -1352,6 +1618,7 @@ export function useSearch(
 
  return {
    results,
+   metadata,
    loading,
    loadingMore,
    error,
@@ -1361,5 +1628,10 @@ export function useSearch(
    isUnsupportedSearch:
      errorCode ===
      "UNSUPPORTED_SEARCH",
+
+   hasNoApprovedSupplementExpansions:
+     errorCode ===
+     "NO_APPROVED_SUPPLEMENT_EXPANSIONS",
  };
 }
+

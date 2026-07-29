@@ -1629,15 +1629,27 @@ import {
   };
  }
  
+
+
+
  export async function buildSearchProductOptions(
   listings:
     SearchRetailProduct[],
  
   capsulesPerDay:
-    number
+    number,
+ 
+  options?: {
+    includeCachedResearch?:
+      boolean;
+  }
  ): Promise<
   SearchProductOption[]
  >{
+
+
+
+
   if (
     listings.length ===
     0
@@ -1656,26 +1668,43 @@ import {
 
 
 
-    const researchByProduct =
-    await getCachedProductResearchBatch(
-      groups.map((group) => {
-        const representative =
-          chooseRepresentativeListing(
-            group.listings
-          );
+
+    const includeCachedResearch =
+    options
+      ?.includeCachedResearch !==
+    false;
    
-        return {
-          key:
-            group.productName,
+   const researchByProduct =
+    includeCachedResearch
+      ? await getCachedProductResearchBatch(
+          groups.map((group) => {
+            const representative =
+              chooseRepresentativeListing(
+                group.listings
+              );
    
-          productName:
-            group.productName,
+            return {
+              key:
+                group.productName,
    
-          shoppingProductId:
-            representative.shoppingProductId,
-        };
-      })
-    );
+              productName:
+                group.productName,
+   
+              shoppingProductId:
+                representative
+                  .shoppingProductId,
+            };
+          })
+        )
+      : new Map<
+          string,
+          ProductResearch
+   >();
+
+
+
+
+
    
    const preparedProducts =
     groups.map((group) =>
@@ -1861,68 +1890,10 @@ import {
               : representative.form
           );
  
-        console.log(
-          "VidaSearch product prepared:",
-          {
-            productName:
-              prepared.productName,
- 
-            brand:
-              prepared.brand,
- 
-            dosage:
-              representative.dosage,
- 
-            dosageAmount:
-              representative
-                .dosageAmount,
- 
-            dosageUnit:
-              representative
-                .dosageUnit,
- 
-            dosageIsPerServing:
-              representative
-                .dosageIsPerServing,
- 
-            form,
- 
-            unitLabel:
-              representative
-                .unitLabel,
- 
-            vitaPouchFormEligible:
-              representative
-                .vitaPouchFormEligible,
- 
-            vendorsCompared:
-              prepared
-                .vendorsCompared,
- 
-            vendorOffers:
-              prepared.listings.map(
-                (listing) => ({
-                  retailer:
-                    listing.retailer,
- 
-                  bottlePrice:
-                    listing.bottlePrice,
- 
-                  shipping:
-                    listing
-                      .estimatedShipping,
- 
-                  url:
-                    listing.url,
-                })
-              ),
- 
-            researchFound:
-              Boolean(
-                prepared.research
-              ),
-          }
-        );
+
+
+
+
  
         return {
           productName:

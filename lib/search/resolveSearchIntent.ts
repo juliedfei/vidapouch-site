@@ -28,6 +28,18 @@ import {
     OpenAiSearchIntentExpansion,
     OpenAiSearchIntentResult,
    } from "@/lib/search/searchIntentOpenAiConfig";
+
+
+   import {
+    getSearchIntentMarketplacePolicy,
+   } from "@/lib/search/getSearchIntentMarketplacePolicy";
+   
+
+   import {
+    filterSearchIntentExpansions,
+   } from "@/lib/search/filterSearchIntentExpansions";
+   
+
    
    export type ResolvedSearchExpansion = {
     id:
@@ -80,6 +92,8 @@ import {
     confidence:
       number | null;
    
+
+      
     includeOriginalMarketplaceQuery:
       boolean;
    
@@ -356,6 +370,10 @@ import {
     );
    }
    
+
+
+
+
    function mapIntentType(
     value:
       OpenAiSearchIntentResult[
@@ -368,6 +386,14 @@ import {
       case "HEALTH_GOAL":
         return SearchIntentType
           .HEALTH_GOAL;
+   
+      case "HEALTH_CONDITION":
+        return SearchIntentType
+          .HEALTH_CONDITION;
+   
+      case "LIFE_STAGE":
+        return SearchIntentType
+          .LIFE_STAGE;
    
       case "BRAND":
         return SearchIntentType
@@ -387,6 +413,11 @@ import {
           .SUPPLEMENT;
     }
    }
+
+
+
+
+
    
    function mapExpansionKind(
     value:
@@ -625,6 +656,10 @@ import {
     );
    }
    
+
+
+
+
    function buildRequiredDirectQuery(
     originalQuery:
       string,
@@ -632,6 +667,24 @@ import {
     intentType:
       SearchIntentType
    ) {
+    const policy =
+      getSearchIntentMarketplacePolicy(
+        intentType
+      );
+   
+    /*
+     * Conditions and sensitive life stages must be
+     * translated into specific supplement expansions.
+     * Their original wording must never become a
+     * marketplace query.
+     */
+    if (
+      !policy
+        .allowOriginalMarketplaceQuery
+    ) {
+      return null;
+    }
+   
     const cleaned =
       cleanText(
         originalQuery
@@ -675,6 +728,15 @@ import {
     return cleaned;
    }
    
+
+
+
+
+
+
+
+
+   
    function ensureOriginalDirectQuery({
     originalQuery,
     intentType,
@@ -695,10 +757,15 @@ import {
         typeof cleanOpenAiExpansions
    >;
    }) {
+    const policy =
+      getSearchIntentMarketplacePolicy(
+        intentType
+      );
+   
     if (
       !includeOriginalMarketplaceQuery ||
-      intentType ===
-        SearchIntentType.INVALID
+      !policy
+        .allowOriginalMarketplaceQuery
     ) {
       return expansions;
     }
@@ -767,6 +834,14 @@ import {
     ];
    }
    
+   
+
+
+
+
+
+
+
    async function loadIntentByNormalizedKey(
     normalizedQuery:
       string
@@ -906,6 +981,9 @@ import {
    >
    >;
    
+
+
+
    function mapCachedIntent({
     cachedIntent,
     originalQuery,
@@ -916,7 +994,16 @@ import {
     originalQuery:
       string;
    }): ResolvedSearchIntent {
+    const marketplacePolicy =
+      getSearchIntentMarketplacePolicy(
+        cachedIntent.intentType
+      );
+   
     return {
+
+
+
+
       id:
         cachedIntent.id,
    
@@ -951,9 +1038,19 @@ import {
                 .confidence
             ),
    
-      includeOriginalMarketplaceQuery:
-        cachedIntent
-          .includeOriginalMarketplaceQuery,
+
+
+
+            includeOriginalMarketplaceQuery:
+            marketplacePolicy
+              .allowOriginalMarketplaceQuery &&
+            cachedIntent
+              .includeOriginalMarketplaceQuery,
+           
+
+
+
+
    
       expansions:
         cachedIntent
@@ -1194,6 +1291,8 @@ import {
     }
    }
    
+
+
    async function saveResolvedIntent({
     originalQuery,
     aiResult,
@@ -1234,12 +1333,23 @@ import {
         1
       );
    
-    const includeOriginalMarketplaceQuery =
-      intentType ===
-        SearchIntentType.INVALID
-        ? false
-        : aiResult
-            .includeOriginalMarketplaceQuery;
+
+
+
+      const marketplacePolicy =
+      getSearchIntentMarketplacePolicy(
+        intentType
+      );
+     
+     const includeOriginalMarketplaceQuery =
+      marketplacePolicy
+        .allowOriginalMarketplaceQuery &&
+      aiResult
+        .includeOriginalMarketplaceQuery;
+
+
+
+
    
     const deterministicAliases =
       buildSearchIntentLookupKeys(
@@ -1262,27 +1372,63 @@ import {
           normalizedKey
       );
    
-    const cleanedExpansions =
+
+
+
+
+      const cleanedAiExpansions =
+      cleanOpenAiExpansions(
+        aiResult.expansions
+      );
+     
+     const policyFilteredExpansions =
+      filterSearchIntentExpansions({
+        intentType,
+     
+        originalQuery,
+     
+        expansions:
+          cleanedAiExpansions,
+      });
+     
+     const cleanedExpansions =
       ensureOriginalDirectQuery({
         originalQuery,
-   
+     
         intentType,
-   
+     
         includeOriginalMarketplaceQuery,
-   
+     
         expansions:
-          cleanOpenAiExpansions(
-            aiResult.expansions
-          ),
+          policyFilteredExpansions,
       });
+
+
    
-    const reviewStatus =
-      confidence >=
+
+
+
+      const requiresClinicalReview =
+      intentType ===
+        SearchIntentType
+          .HEALTH_CONDITION ||
+      intentType ===
+        SearchIntentType
+          .LIFE_STAGE;
+     
+     const reviewStatus =
+      requiresClinicalReview ||
+      confidence <
         0.8
         ? SearchIntentReviewStatus
-            .ACTIVE
+            .NEEDS_REVIEW
         : SearchIntentReviewStatus
-            .NEEDS_REVIEW;
+            .ACTIVE;
+     
+
+
+
+
    
     const model =
       getSearchIntentModel();
@@ -1764,6 +1910,11 @@ import {
       }
     );
    
+
+
+
+    
+    
     const savedIntent =
       await getOrCreateInFlightIntent(
         originalQuery

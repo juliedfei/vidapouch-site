@@ -3,12 +3,25 @@ import {
  } from "next/server";
  
  import {
-  findSearchProducts,
- } from "@/lib/search/findSearchProducts";
+  SearchExpansionKind,
+  SearchIntentType,
+ } from "@/lib/generated/prisma/client";
+ 
+ import type {
+  ProductSearchMode,
+ } from "@/app/api/pricing/providers/providerTypes";
  
  import {
   buildSearchProductOptions,
  } from "@/lib/search/buildSearchProductOptions";
+ 
+ import {
+  findSearchProducts,
+ } from "@/lib/search/findSearchProducts";
+ 
+ import {
+  getSearchIntentMarketplacePolicy,
+ } from "@/lib/search/getSearchIntentMarketplacePolicy";
  
  import {
   normalizeSearchIntentText,
@@ -27,10 +40,6 @@ import {
   SearchRetailProduct,
  } from "@/lib/search/searchRetailProduct";
  
- import type {
-  ProductSearchMode,
- } from "@/app/api/pricing/providers/providerTypes";
- 
  export const runtime =
   "nodejs";
  
@@ -40,6 +49,9 @@ import {
  const INITIAL_SEARCH_MAX_PAGES =
   1;
  
+ const INITIAL_MAX_RETAIL_LISTINGS =
+  40;
+ 
  /*
  * The expanded search intentionally explores
  * multiple product forms and two marketplace pages
@@ -48,22 +60,30 @@ import {
  const EXPANDED_SEARCH_MAX_PAGES =
   2;
  
+ const EXPANDED_MAX_RETAIL_LISTINGS_PER_SEARCH =
+  400;
+ 
  const MAX_SEARCH_JOBS =
   8;
- 
- /*
- * This is a per-job limit, not a combined limit.
- *
- * Eight expanded jobs can therefore collect far
- * more than 250 retailer listings in total.
- */
- const MAX_RETAIL_LISTINGS_PER_SEARCH =
-  400;
  
  type SearchPhase =
   | "initial"
   | "expanded"
   | "complete";
+ 
+ type ResolvedIntentType =
+  Awaited<
+    ReturnType<
+      typeof resolveSearchIntent
+ >
+ >["intentType"];
+ 
+ type ResolvedIntentExpansions =
+  Awaited<
+    ReturnType<
+      typeof resolveSearchIntent
+ >
+ >["expansions"];
  
  type SearchJob = {
   id:
@@ -88,6 +108,9 @@ import {
     boolean;
  
   maxPages:
+    number;
+ 
+  maxRetailListings:
     number;
  
   priority:
@@ -197,7 +220,7 @@ import {
     string;
  
   intentType:
-    string;
+    ResolvedIntentType;
  }) {
   const cleaned =
     originalQuery.trim();
@@ -212,14 +235,16 @@ import {
  
   if (
     intentType ===
-      "HEALTH_GOAL"
+      SearchIntentType
+        .HEALTH_GOAL
   ) {
     return `${cleaned} supplements`;
   }
  
   if (
     intentType ===
-      "SUPPLEMENT"
+      SearchIntentType
+        .SUPPLEMENT
   ) {
     return `${cleaned} supplement`;
   }
@@ -235,6 +260,7 @@ import {
   searchMode,
   expandAliases,
   maxPages,
+  maxRetailListings,
   priority,
   kind,
  }: {
@@ -257,6 +283,9 @@ import {
     boolean;
  
   maxPages:
+    number;
+ 
+  maxRetailListings:
     number;
  
   priority:
@@ -286,6 +315,8 @@ import {
  
     maxPages,
  
+    maxRetailListings,
+ 
     priority,
  
     kind,
@@ -309,14 +340,6 @@ import {
     displayName.trim() ||
     cleanedOriginalQuery;
  
-  /*
-   * These are deliberately distinct Google
-   * Shopping searches.
-   *
-   * Relying only on resolveSearchIntent.expansions
-   * was the reason the expanded phase could still
-   * return approximately the same 36 products.
-   */
   const variations = [
     {
       id:
@@ -522,6 +545,9 @@ import {
         maxPages:
           EXPANDED_SEARCH_MAX_PAGES,
  
+        maxRetailListings:
+          EXPANDED_MAX_RETAIL_LISTINGS_PER_SEARCH,
+ 
         priority:
           variation.priority,
  
@@ -535,11 +561,7 @@ import {
   expansions,
  }: {
   expansions:
-    Awaited<
-      ReturnType<
-        typeof resolveSearchIntent
- >
- >["expansions"];
+    ResolvedIntentExpansions;
  }) {
   return expansions.flatMap(
     (
@@ -588,6 +610,9 @@ import {
  
           maxPages:
             EXPANDED_SEARCH_MAX_PAGES,
+ 
+          maxRetailListings:
+            EXPANDED_MAX_RETAIL_LISTINGS_PER_SEARCH,
  
           priority:
             expansion.priority,
@@ -659,6 +684,12 @@ import {
             job.maxPages
           ),
  
+        maxRetailListings:
+          Math.max(
+            existing.maxRetailListings,
+            job.maxRetailListings
+          ),
+ 
         expandAliases:
           existing.expandAliases ||
           job.expandAliases,
@@ -699,17 +730,13 @@ import {
     string;
  
   intentType:
-    string;
+    ResolvedIntentType;
  
   displayName:
     string;
  
   expansions:
-    Awaited<
-      ReturnType<
-        typeof resolveSearchIntent
- >
- >["expansions"];
+    ResolvedIntentExpansions;
  }) {
   const resolvedExpansionJobs =
     buildResolvedExpansionJobs({
@@ -718,13 +745,9 @@ import {
  
   if (
     intentType ===
-      "SUPPLEMENT"
+      SearchIntentType
+        .SUPPLEMENT
   ) {
-    /*
-     * Supplement searches always receive the full
-     * marketplace variation set, even when the
-     * intent resolver returns no expansions.
-     */
     return deduplicateSearchJobs([
       ...buildSupplementExpansionJobs({
         originalQuery,
@@ -741,11 +764,20 @@ import {
       ...resolvedExpansionJobs,
     ];
  
-  /*
-   * Health-goal searches retain their resolver
-   * categories. Add the original broad query as a
-   * fallback so the search is never empty.
-   */
+  const marketplacePolicy =
+    getSearchIntentMarketplacePolicy(
+      intentType
+    );
+ 
+  if (
+    !marketplacePolicy
+      .allowOriginalMarketplaceQuery
+  ) {
+    return deduplicateSearchJobs(
+      jobs
+    );
+  }
+ 
   const fallbackSearchTerm =
     buildFallbackMarketplaceQuery({
       originalQuery,
@@ -775,6 +807,9 @@ import {
       maxPages:
         EXPANDED_SEARCH_MAX_PAGES,
  
+      maxRetailListings:
+        EXPANDED_MAX_RETAIL_LISTINGS_PER_SEARCH,
+ 
       priority:
         -1000,
  
@@ -792,18 +827,99 @@ import {
   originalQuery,
   intentType,
   displayName,
+  expansions,
  }: {
   originalQuery:
     string;
  
   intentType:
-    string;
+    ResolvedIntentType;
  
   displayName:
     string;
- }): SearchJob {
-  const searchTerm =
-    originalQuery.trim();
+ 
+  expansions:
+    ResolvedIntentExpansions;
+ }): SearchJob | null {
+  const policy =
+    getSearchIntentMarketplacePolicy(
+      intentType
+    );
+ 
+  if (
+    !policy
+      .allowOriginalMarketplaceQuery
+  ) {
+    const firstSupplementExpansion =
+      [...expansions]
+        .sort(
+          (
+            left,
+            right
+          ) =>
+            left.priority -
+            right.priority
+        )
+        .find(
+          (expansion) =>
+            expansion.kind ===
+              SearchExpansionKind
+                .RELATED_SUPPLEMENT &&
+            expansion.searchTerm
+              .trim()
+              .length >
+              0
+        );
+ 
+    if (
+      !firstSupplementExpansion
+    ) {
+      return null;
+    }
+ 
+    return createSearchJob({
+      id:
+        firstSupplementExpansion.id ??
+        "initial-sensitive-supplement",
+ 
+      displayName:
+        cleanText(
+          firstSupplementExpansion
+            .displayName
+        ) ??
+        firstSupplementExpansion
+          .searchTerm,
+ 
+      searchTerm:
+        firstSupplementExpansion
+          .searchTerm,
+ 
+      reason:
+        cleanText(
+          firstSupplementExpansion
+            .reason
+        ),
+ 
+      searchMode:
+        "direct-marketplace",
+ 
+      expandAliases:
+        false,
+ 
+      maxPages:
+        INITIAL_SEARCH_MAX_PAGES,
+ 
+      maxRetailListings:
+        INITIAL_MAX_RETAIL_LISTINGS,
+ 
+      priority:
+        firstSupplementExpansion
+          .priority,
+ 
+      kind:
+        "INITIAL_RELATED_SUPPLEMENT",
+    });
+  }
  
   return createSearchJob({
     id:
@@ -811,25 +927,27 @@ import {
  
     displayName,
  
-    searchTerm,
+    searchTerm:
+      originalQuery.trim(),
  
     reason:
       "Fast initial marketplace results matching the customer’s request.",
  
     searchMode:
       intentType ===
-        "SUPPLEMENT"
+        SearchIntentType
+          .SUPPLEMENT
         ? "supplement"
         : "direct-marketplace",
  
-    /*
-     * The initial request must remain fast.
-     */
     expandAliases:
       false,
  
     maxPages:
       INITIAL_SEARCH_MAX_PAGES,
+ 
+    maxRetailListings:
+      INITIAL_MAX_RETAIL_LISTINGS,
  
     priority:
       -1000,
@@ -848,7 +966,7 @@ import {
     SearchPhase;
  
   initialJob:
-    SearchJob;
+    SearchJob | null;
  
   completeJobs:
     SearchJob[];
@@ -857,9 +975,32 @@ import {
     phase ===
       "initial"
   ) {
-    return [
-      initialJob,
-    ];
+    if (
+      initialJob
+    ) {
+      return [
+        initialJob,
+      ];
+    }
+ 
+    return completeJobs
+      .slice(
+        0,
+        1
+      )
+      .map(
+        (
+          job
+        ) => ({
+          ...job,
+ 
+          maxPages:
+            INITIAL_SEARCH_MAX_PAGES,
+ 
+          maxRetailListings:
+            INITIAL_MAX_RETAIL_LISTINGS,
+        })
+      );
   }
  
   return completeJobs;
@@ -919,7 +1060,7 @@ import {
         job.maxPages,
  
       maxRetailListings:
-        MAX_RETAIL_LISTINGS_PER_SEARCH,
+        job.maxRetailListings,
     });
  
   console.log(
@@ -939,6 +1080,9 @@ import {
  
       maxPages:
         job.maxPages,
+ 
+      maxRetailListings:
+        job.maxRetailListings,
  
       retailerListingCount:
         listings.length,
@@ -1030,16 +1174,47 @@ import {
  
  function getSearchSuggestion(
   intentType:
-    string
+    ResolvedIntentType
  ) {
   if (
     intentType ===
-      "DOCTOR_TYPE"
+      SearchIntentType
+        .DOCTOR_TYPE
   ) {
     return "Practitioner search is not available yet. Try searching for Magnesium, Mood Support, Sleep, or Vitamin D.";
   }
  
   return "Try searching for Magnesium, Mood Support, Sleep, or Vitamin D.";
+ }
+ 
+ function mapPublicIntentType(
+  intentType:
+    ResolvedIntentType
+ ) {
+  switch (
+    intentType
+  ) {
+    case SearchIntentType
+      .HEALTH_GOAL:
+      return "health-goal";
+ 
+    case SearchIntentType
+      .HEALTH_CONDITION:
+      return "health-condition";
+ 
+    case SearchIntentType
+      .LIFE_STAGE:
+      return "life-stage";
+ 
+    case SearchIntentType
+      .BRAND:
+      return "brand";
+ 
+    case SearchIntentType
+      .SUPPLEMENT:
+    default:
+      return "supplement";
+  }
  }
  
  export async function POST(
@@ -1075,7 +1250,7 @@ import {
       return NextResponse.json(
         {
           error:
-            "Supplement or health goal is required.",
+            "Supplement, health goal, health condition, or life stage is required.",
  
           code:
             "MISSING_SEARCH_QUERY",
@@ -1141,24 +1316,28 @@ import {
     if (
       resolvedIntent
         .intentType ===
-        "INVALID" ||
+        SearchIntentType
+          .INVALID ||
       resolvedIntent
         .intentType ===
-        "DOCTOR_TYPE"
+        SearchIntentType
+          .DOCTOR_TYPE
     ) {
       return NextResponse.json(
         {
           error:
             resolvedIntent
               .intentType ===
-              "DOCTOR_TYPE"
+              SearchIntentType
+                .DOCTOR_TYPE
               ? "Practitioner search is not available yet."
-              : "We couldn’t identify this as a supplement or health goal.",
+              : "We couldn’t identify this as a supplement, health goal, health condition, or life stage.",
  
           code:
             resolvedIntent
               .intentType ===
-              "DOCTOR_TYPE"
+              SearchIntentType
+                .DOCTOR_TYPE
               ? "PRACTITIONER_SEARCH_UNAVAILABLE"
               : "UNSUPPORTED_SEARCH",
  
@@ -1241,6 +1420,10 @@ import {
         displayName:
           resolvedIntent
             .displayName,
+ 
+        expansions:
+          resolvedIntent
+            .expansions,
       });
  
     const searchJobs =
@@ -1251,6 +1434,49 @@ import {
  
         completeJobs,
       });
+ 
+    if (
+      searchJobs.length ===
+        0
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "VidaSearch recognized this health topic but could not identify sufficiently specific supplement categories.",
+ 
+          code:
+            "NO_APPROVED_SUPPLEMENT_EXPANSIONS",
+ 
+          query:
+            originalQuery,
+ 
+          suggestion:
+            "Try a specific supplement name or review supplement options for this condition with a qualified healthcare professional.",
+ 
+          intent: {
+            type:
+              resolvedIntent
+                .intentType,
+ 
+            normalizedKey:
+              resolvedIntent
+                .normalizedKey,
+ 
+            displayName:
+              resolvedIntent
+                .displayName,
+ 
+            cacheStatus:
+              resolvedIntent
+                .cacheStatus,
+          },
+        },
+        {
+          status:
+            422,
+        }
+      );
+    }
  
     console.log(
       "VidaSearch marketplace jobs prepared:",
@@ -1286,6 +1512,9 @@ import {
  
               maxPages:
                 job.maxPages,
+ 
+              maxRetailListings:
+                job.maxRetailListings,
  
               priority:
                 job.priority,
@@ -1342,10 +1571,6 @@ import {
         .trim() ||
       originalQuery;
  
-    /*
-     * There is deliberately no combined listing
-     * cap here.
-     */
     const combinedListings =
       completedJobs.flatMap(
         (
@@ -1401,11 +1626,28 @@ import {
     const productBuildStartedAt =
       Date.now();
  
-    const products =
-      await buildSearchProductOptions(
-        combinedListings,
-        capsulesPerDay
-      );
+
+
+
+const products =
+ await buildSearchProductOptions(
+   combinedListings,
+   capsulesPerDay,
+   {
+     /*
+      * Initial cards should appear as quickly as
+      * possible. Detailed cached research and
+      * scoring are added by the expanded request.
+      */
+     includeCachedResearch:
+       phase !==
+       "initial",
+   }
+ );
+
+
+
+
  
     const categories =
       completedJobs.map(
@@ -1439,6 +1681,11 @@ import {
               .listings
               .length,
         })
+      );
+ 
+    const marketplacePolicy =
+      getSearchIntentMarketplacePolicy(
+        resolvedIntent.intentType
       );
  
     console.log(
@@ -1481,15 +1728,10 @@ import {
  
     return NextResponse.json({
       intent:
-        resolvedIntent
-          .intentType ===
-          "HEALTH_GOAL"
-          ? "health-goal"
-          : resolvedIntent
-              .intentType ===
-              "BRAND"
-            ? "brand"
-            : "supplement",
+        mapPublicIntentType(
+          resolvedIntent
+            .intentType
+        ),
  
       originalQuery,
  
@@ -1504,9 +1746,30 @@ import {
       goalId:
         resolvedIntent
           .intentType ===
-          "HEALTH_GOAL"
+          SearchIntentType
+            .HEALTH_GOAL
           ? resolvedIntent.id
           : null,
+ 
+      topicId:
+        resolvedIntent
+          .intentType ===
+          SearchIntentType
+            .HEALTH_GOAL ||
+        resolvedIntent
+          .intentType ===
+          SearchIntentType
+            .HEALTH_CONDITION ||
+        resolvedIntent
+          .intentType ===
+          SearchIntentType
+            .LIFE_STAGE
+          ? resolvedIntent.id
+          : null,
+ 
+      requiresMedicalNotice:
+        marketplacePolicy
+          .requiresMedicalNotice,
  
       categories,
  
@@ -1540,6 +1803,14 @@ import {
         includeOriginalMarketplaceQuery:
           resolvedIntent
             .includeOriginalMarketplaceQuery,
+ 
+        requiresMedicalNotice:
+          marketplacePolicy
+            .requiresMedicalNotice,
+ 
+        requireSupplementExpansions:
+          marketplacePolicy
+            .requireSupplementExpansions,
  
         searchCount:
           searchJobs.length,
