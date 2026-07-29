@@ -16,6 +16,10 @@ import {
    } from "@/lib/admin/adminSession";
    
    import FulfillmentBoard from "@/components/admin/FulfillmentBoard";
+
+   import AdminNavigation from "@/components/admin/AdminNavigation";
+
+
    
    export const dynamic =
     "force-dynamic";
@@ -137,29 +141,38 @@ import {
     return (
       <main className="min-h-screen bg-[#F7F3EE] px-4 py-10 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-[1600px]">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#8B6F58]">
-                VidaPouch Admin
-              </p>
+          
+          
+          
+          
+          
+        <div className="flex flex-col gap-5">
+ <div>
+   <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#8B6F58]">
+     VidaPouch Admin
+   </p>
+
+   <h1 className="mt-2 text-3xl font-semibold text-[#26211D]">
+     Fulfillment
+   </h1>
+
+   <p className="mt-2 text-[#665C54]">
+     Track orders from preparation through shipment and completion.
+   </p>
+ </div>
+
+ <AdminNavigation
+   currentPage="fulfillment"
+ />
+</div>
+
    
-              <h1 className="mt-2 text-3xl font-semibold text-[#26211D]">
-                Fulfillment
-              </h1>
-   
-              <p className="mt-2 text-[#665C54]">
-                Track orders from preparation through shipment and completion.
-              </p>
-            </div>
-   
-            <a
-              href="/admin/orders"
-              className="rounded-full border border-[#CFC3B7] bg-white px-5 py-2.5 text-center text-sm font-semibold text-[#302A25] transition hover:bg-[#F2ECE6]">
-   
-              View printable orders
-            </a>
-          </div>
-   
+
+
+
+
+
+
           <div className="mt-8">
             <FulfillmentBoard
               initialOrders={

@@ -14,6 +14,10 @@ import {
     ADMIN_SESSION_COOKIE,
     verifyAdminSessionToken,
    } from "@/lib/admin/adminSession";
+
+   import AdminNavigation from "@/components/admin/AdminNavigation";
+
+
    
    export const dynamic =
     "force-dynamic";
@@ -173,40 +177,40 @@ import {
           
           
           
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
- <div>
-   <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#8B6F58]">
-     VidaPouch Admin
-   </p>
 
-   <h1 className="mt-2 text-3xl font-semibold text-[#26211D]">
-     Orders
-   </h1>
 
-   <p className="mt-2 text-[#665C54]">
-     Signed in as{" "}
-     {session.email}
-   </p>
- </div>
+        <div className="flex flex-col gap-5">
+ <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+   <div>
+     <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#8B6F58]">
+       VidaPouch Admin
+     </p>
 
- <div className="flex flex-col gap-3 sm:items-end">
+     <h1 className="mt-2 text-3xl font-semibold text-[#26211D]">
+       Orders
+     </h1>
+
+     <p className="mt-2 text-[#665C54]">
+       Signed in as{" "}
+       {session.email}
+     </p>
+   </div>
+
    <p className="text-sm text-[#665C54]">
      {orders.length} total orders
    </p>
-
-   <form
-     action="/api/admin/logout"
-     method="post">
-
-     <button
-       type="submit"
-       className="rounded-full border border-[#CFC3B7] bg-white px-5 py-2 text-sm font-semibold text-[#302A25] transition hover:bg-[#F2ECE6]">
-
-       Sign out
-     </button>
-   </form>
  </div>
+
+ <AdminNavigation
+   currentPage="orders"
+ />
 </div>
+
+
+
+
+
+
 
 
 
