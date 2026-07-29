@@ -693,7 +693,9 @@ import {
     form ===
       "Caplet" ||
     form ===
-      "Gummy"
+      "Softgel"
+
+
   );
  }
  
