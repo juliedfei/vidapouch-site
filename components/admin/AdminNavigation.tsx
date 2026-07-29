@@ -3,7 +3,9 @@ import Link from "next/link";
 type Props = {
  currentPage:
    | "orders"
-   | "fulfillment";
+   | "fulfillment"
+   | "waitlist"
+   | "settings";
 };
 
 function getLinkClasses(
@@ -33,6 +35,9 @@ export default function AdminNavigation({
        Printable orders
      </Link>
 
+
+
+
      <Link
        href="/admin/fulfillment"
        className={getLinkClasses(
@@ -42,6 +47,34 @@ export default function AdminNavigation({
 
        Fulfillment board
      </Link>
+
+
+     <Link
+ href="/admin/waitlist"
+ className={getLinkClasses(
+   currentPage ===
+     "waitlist"
+ )}>
+
+ Waitlist
+</Link>
+
+
+
+
+     <Link
+ href="/admin/settings"
+ className={getLinkClasses(
+   currentPage ===
+     "settings"
+ )}>
+
+ Settings
+</Link>
+
+
+
+
 
      <form
        action="/api/admin/logout"

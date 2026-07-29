@@ -10,10 +10,17 @@ import type {
  SearchPouchPurchaseOption,
 } from "@/components/search/types/searchPouch";
 
+
+
 import {
   VidaPouchOrderStatus,
   VidaPouchPurchaseOption,
+  VidaPouchSalesMode,
  } from "@/lib/generated/prisma/client";
+ 
+
+
+
 
 
  import {
@@ -34,10 +41,16 @@ import {
   revalidatePouchItemsForCheckout,
  } from "@/lib/pricing/revalidatePouchItemsForCheckout";
  
+
+
  import {
   stripe,
  } from "@/lib/stripe";
 
+
+ import {
+  getVidaPouchSalesMode,
+ } from "@/lib/commerce/getVidaPouchSalesMode";
 
 
 
@@ -293,13 +306,49 @@ import {
   );
  }
  
+
+
  export async function POST(
   request:
     NextRequest
  ) {
   try {
+    const salesMode =
+      await getVidaPouchSalesMode();
+ 
+    if (
+      salesMode !==
+        VidaPouchSalesMode.STRIPE
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            salesMode ===
+              VidaPouchSalesMode.WAITLIST
+              ? "VidaPouch is currently accepting waitlist reservations instead of payments."
+              : "New VidaPouch purchases are temporarily paused.",
+ 
+          salesMode,
+        },
+        {
+          status:
+            409,
+ 
+          headers: {
+            "Cache-Control":
+              "private, no-store, max-age=0",
+          },
+        }
+      );
+    }
+ 
     let body:
       CheckoutRequestBody;
+
+
+
+
+
  
     try {
       body =

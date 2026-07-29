@@ -84,6 +84,13 @@ type PouchSidebarProps = {
  ) => void;
 };
 
+type VidaPouchSalesMode =
+ | "STRIPE"
+ | "WAITLIST"
+ | "PAUSED";
+
+
+
 type TimingConfirmationMap =
  Record<
    string,
@@ -944,9 +951,79 @@ export default function PouchSidebar({
    );
 
 
+   const [
+    salesMode,
+    setSalesMode,
+   ] = useState<VidaPouchSalesMode | null>(
+    null
+   );
+   
+   const [
+    salesModeLoading,
+    setSalesModeLoading,
+   ] = useState(
+    true
+   );
+   
 
 
 
+   const [
+    salesModeError,
+    setSalesModeError,
+   ] = useState<string | null>(
+    null
+   );
+
+
+   const [
+    waitlistFormOpen,
+    setWaitlistFormOpen,
+   ] = useState(
+    false
+   );
+   
+   const [
+    waitlistName,
+    setWaitlistName,
+   ] = useState(
+    ""
+   );
+   
+   const [
+    waitlistEmail,
+    setWaitlistEmail,
+   ] = useState(
+    ""
+   );
+   
+   const [
+    waitlistPhone,
+    setWaitlistPhone,
+   ] = useState(
+    ""
+   );
+   
+   const [
+    waitlistSubmitting,
+    setWaitlistSubmitting,
+   ] = useState(
+    false
+   );
+   
+   const [
+    waitlistSuccess,
+    setWaitlistSuccess,
+   ] = useState(
+    false
+   );
+   
+   const [
+    waitlistError,
+    setWaitlistError,
+   ] = useState<string | null>(
+    null
+   );
 
 
 
@@ -960,6 +1037,9 @@ export default function PouchSidebar({
 >
 >
 >({});
+
+
+
 
  useEffect(
    () => {
@@ -979,6 +1059,92 @@ export default function PouchSidebar({
    },
    []
  );
+
+
+ useEffect(
+  () => {
+    let isActive =
+      true;
+ 
+    async function loadSalesMode() {
+      try {
+        const response =
+          await fetch(
+            "/api/commerce-mode",
+            {
+              method:
+                "GET",
+ 
+              cache:
+                "no-store",
+            }
+          );
+ 
+        const data =
+          await response.json() as {
+            salesMode?:
+              VidaPouchSalesMode;
+ 
+            error?:
+              string;
+          };
+ 
+        if (
+          !response.ok ||
+          !data.salesMode
+        ) {
+          throw new Error(
+            data.error ??
+            "Unable to load the current sales mode."
+          );
+        }
+ 
+        if (
+          isActive
+        ) {
+          setSalesMode(
+            data.salesMode
+          );
+ 
+          setSalesModeError(
+            null
+          );
+        }
+      } catch (
+        error
+      ) {
+        if (
+          isActive
+        ) {
+          setSalesModeError(
+            error instanceof Error
+              ? error.message
+              : "Unable to load the current sales mode."
+          );
+        }
+      } finally {
+        if (
+          isActive
+        ) {
+          setSalesModeLoading(
+            false
+          );
+        }
+      }
+    }
+ 
+    void loadSalesMode();
+ 
+    return () => {
+      isActive =
+        false;
+    };
+  },
+  []
+ );
+
+
+
 
  function showTimingConfirmation(
    itemId:
@@ -1215,6 +1381,107 @@ async function handleCheckoutReview() {
 }
  
 
+async function handleWaitlistSubmit() {
+  setWaitlistError(
+    null
+  );
+ 
+  if (
+    waitlistEmail
+      .trim()
+      .length ===
+      0
+  ) {
+    setWaitlistError(
+      "Please enter your email address."
+    );
+ 
+    return;
+  }
+ 
+  setWaitlistSubmitting(
+    true
+  );
+ 
+  try {
+    const response =
+      await fetch(
+        "/api/waitlist",
+        {
+          method:
+            "POST",
+ 
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+ 
+          body:
+            JSON.stringify({
+              plan:
+                selectedPlan.id,
+ 
+              purchaseOption,
+ 
+              pouchItems:
+                items,
+ 
+              customerName:
+                waitlistName,
+ 
+              customerEmail:
+                waitlistEmail,
+ 
+              customerPhone:
+                waitlistPhone,
+            }),
+        }
+      );
+ 
+    const data =
+      await response.json() as {
+        success?:
+          boolean;
+ 
+        waitlistEntryId?:
+          string;
+ 
+        error?:
+          string;
+      };
+ 
+    if (
+      !response.ok ||
+      !data.success
+    ) {
+      throw new Error(
+        data.error ??
+        "Unable to join the VidaPouch waitlist."
+      );
+    }
+ 
+    setWaitlistSuccess(
+      true
+    );
+ 
+    setWaitlistFormOpen(
+      false
+    );
+  } catch (
+    error
+  ) {
+    setWaitlistError(
+      error instanceof Error
+        ? error.message
+        : "Unable to join the VidaPouch waitlist."
+    );
+  } finally {
+    setWaitlistSubmitting(
+      false
+    );
+  }
+ }
+ 
 
 
 
@@ -1751,18 +2018,57 @@ async function handleCheckoutReview() {
 
        <ShippingRow />
 
+
+
        <button
-         type="button"
+ type="button"
+ onClick={() => {
+   if (
+     salesMode ===
+       "STRIPE"
+   ) {
+     void handleCheckoutReview();
 
-         onClick={
-          handleCheckoutReview
-         }
+     return;
+   }
+
+   if (
+     salesMode ===
+       "WAITLIST"
+   ) {
+     setWaitlistFormOpen(
+       true
+     );
+
+     setWaitlistError(
+       null
+     );
+
+     return;
+   }
+ }}
 
 
 
-         disabled={
-           checkoutDisabled
-         }
+
+
+
+
+ disabled={
+  checkoutDisabled ||
+  salesModeLoading ||
+  salesModeError !==
+    null ||
+  salesMode ===
+    null ||
+  salesMode ===
+    "PAUSED"
+ }
+ 
+
+
+
+
          title={
            checkoutDisabled
              ? "Your current monthly total must be available before checkout."
@@ -1792,10 +2098,167 @@ async function handleCheckoutReview() {
            disabled:text-[#F7F3F1]
          ">
 
-         {pooledPricingLoading
-           ? "Updating Monthly Total…"
-           : "Review Pouches & Checkout"}
+
+
+
+{pooledPricingLoading
+ ? "Updating Monthly Total…"
+ : salesModeLoading
+   ? "Loading…"
+   : salesMode ===
+       "WAITLIST"
+     ? "Reserve My VidaPouch"
+     : salesMode ===
+         "PAUSED"
+       ? "Orders Temporarily Paused"
+       : "Review Pouches & Checkout"}
+
        </button>
+
+
+       {waitlistFormOpen && (
+ <div className="mt-[14px] rounded-[10px] border border-[#DED4CA] bg-white p-4">
+   <p className="text-[12px] font-semibold text-[#302A26]">
+     Reserve your VidaPouch
+   </p>
+
+   <p className="mt-1 text-[10px] leading-[15px] text-[#716A63]">
+     Enter your contact information. We will save your selected plan and complete supplement routine without charging you.
+   </p>
+
+   <label
+     htmlFor="waitlist-name"
+     className="mt-4 block text-[10px] font-semibold text-[#302A26]">
+
+     Name
+   </label>
+
+   <input
+     id="waitlist-name"
+     type="text"
+     autoComplete="name"
+     value={
+       waitlistName
+     }
+     onChange={(
+       event
+     ) => {
+       setWaitlistName(
+         event.target.value
+       );
+     }}
+     className="mt-1.5 w-full rounded-[8px] border border-[#CFC3B7] px-3 py-2.5 text-[11px] text-[#302A26] outline-none focus:border-[#7D0E1C]"
+     placeholder="Your name"
+   />
+
+   <label
+     htmlFor="waitlist-email"
+     className="mt-3 block text-[10px] font-semibold text-[#302A26]">
+
+     Email address
+   </label>
+
+   <input
+     id="waitlist-email"
+     type="email"
+     autoComplete="email"
+     required
+     value={
+       waitlistEmail
+     }
+     onChange={(
+       event
+     ) => {
+       setWaitlistEmail(
+         event.target.value
+       );
+     }}
+     className="mt-1.5 w-full rounded-[8px] border border-[#CFC3B7] px-3 py-2.5 text-[11px] text-[#302A26] outline-none focus:border-[#7D0E1C]"
+     placeholder="you@example.com"
+   />
+
+   <label
+     htmlFor="waitlist-phone"
+     className="mt-3 block text-[10px] font-semibold text-[#302A26]">
+
+     Phone number
+   </label>
+
+   <input
+     id="waitlist-phone"
+     type="tel"
+     autoComplete="tel"
+     value={
+       waitlistPhone
+     }
+     onChange={(
+       event
+     ) => {
+       setWaitlistPhone(
+         event.target.value
+       );
+     }}
+     className="mt-1.5 w-full rounded-[8px] border border-[#CFC3B7] px-3 py-2.5 text-[11px] text-[#302A26] outline-none focus:border-[#7D0E1C]"
+     placeholder="Optional"
+   />
+
+   {waitlistError ? (
+     <p className="mt-3 text-[10px] leading-[15px] text-red-700">
+       {waitlistError}
+     </p>
+   ) : null}
+
+   <div className="mt-4 grid grid-cols-2 gap-2">
+     <button
+       type="button"
+       disabled={
+         waitlistSubmitting
+       }
+       onClick={() => {
+         setWaitlistFormOpen(
+           false
+         );
+
+         setWaitlistError(
+           null
+         );
+       }}
+       className="rounded-[8px] border border-[#CFC3B7] bg-white px-3 py-2.5 text-[11px] font-semibold text-[#302A26] disabled:opacity-60">
+
+       Cancel
+     </button>
+
+     <button
+       type="button"
+       disabled={
+         waitlistSubmitting
+       }
+       onClick={() => {
+         void handleWaitlistSubmit();
+       }}
+       className="rounded-[8px] bg-[#7D0E1C] px-3 py-2.5 text-[11px] font-semibold text-white disabled:opacity-60">
+
+       {waitlistSubmitting
+         ? "Saving..."
+         : "Join waitlist"}
+     </button>
+   </div>
+ </div>
+)}
+
+{waitlistSuccess && (
+ <div
+   role="status"
+   className="mt-[12px] rounded-[9px] border border-green-200 bg-green-50 px-3 py-3 text-[10px] leading-[15px] text-green-800">
+
+   Your VidaPouch routine has been saved. We will contact you before any payment is collected.
+ </div>
+)}
+
+
+
+
+
 
        {checkoutDisabled && (
          <div

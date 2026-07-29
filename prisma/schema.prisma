@@ -935,6 +935,24 @@ enum VidaPouchPurchaseOption {
   SUBSCRIPTION
 }
 
+enum VidaPouchSalesMode {
+STRIPE
+WAITLIST
+PAUSED
+}
+
+enum VidaPouchWaitlistStatus {
+NEW
+CONTACTED
+READY_TO_ORDER
+CONVERTED
+DECLINED
+}
+
+
+
+
+
 enum VidaPouchOrderStatus {
   PENDING
   PAID
@@ -959,6 +977,25 @@ enum VidaPouchWebhookStatus {
   PROCESSED
   FAILED
 }
+
+
+model VidaPouchCommerceSetting {
+id String @id @default(cuid())
+
+salesMode VidaPouchSalesMode @default(WAITLIST)
+
+updatedBy String?
+notes     String?
+
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+}
+
+
+
+
+
+
 
 model VidaPouchPricingVersion {
   id String @id @default(cuid())
@@ -1376,3 +1413,87 @@ model VidaPouchBillingCycle {
   @@index([status])
   @@index([createdAt])
 }
+
+
+model VidaPouchWaitlistEntry {
+id String @id @default(cuid())
+
+status VidaPouchWaitlistStatus @default(NEW)
+
+customerEmail String
+customerName  String?
+customerPhone String?
+
+purchaseOption VidaPouchPurchaseOption
+
+planKey  String
+planName String
+
+supplementCount Int
+
+estimatedPlanPrice  Decimal @db.Decimal(10, 2)
+estimatedOverageFee Decimal @db.Decimal(10, 2)
+estimatedTotalPrice Decimal @db.Decimal(10, 2)
+
+currency String @default("usd")
+
+pricingVersionId    String?
+pricingCalculatedAt DateTime?
+
+adminNotes String?
+contactedAt DateTime?
+readyToOrderAt DateTime?
+convertedAt DateTime?
+declinedAt DateTime?
+
+items VidaPouchWaitlistItem[]
+
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+
+@@index([status])
+@@index([customerEmail])
+@@index([createdAt])
+}
+
+model VidaPouchWaitlistItem {
+id String @id @default(cuid())
+
+waitlistEntryId String
+waitlistEntry   VidaPouchWaitlistEntry @relation(fields: [waitlistEntryId], references: [id], onDelete: Cascade)
+
+pouchItemId String
+
+productName String
+brand       String
+retailer    String
+
+dosage    String?
+form      String?
+unitLabel String
+
+unitsPerDay      Decimal @db.Decimal(10, 2)
+monthlyUnitCount Decimal @db.Decimal(10, 2)
+
+timing           String
+timingPreference String
+
+bottlePrice     Decimal @db.Decimal(10, 2)
+bottleUnitCount Int
+
+liveProductUrl String?
+
+shoppingProductId         String?
+immersiveProductPageToken String?
+
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+
+@@index([waitlistEntryId])
+@@index([shoppingProductId])
+}
+
+
+
+
+
