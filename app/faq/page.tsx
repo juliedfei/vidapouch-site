@@ -21,6 +21,7 @@ export default function FAQPage() {
          <nav className="hidden items-center gap-5 min-[1024px]:flex min-[1150px]:gap-7">
            <a href="/product" className="nav-item">PRODUCT</a>
            <a href="/how-it-works" className="nav-item">HOW IT WORKS</a>
+           <a href="/why-vidapouch" className="nav-item">WHY VIDAPOUCH</a>
            <a href="/about" className="nav-item">ABOUT</a>
            <a href="/faq" className="nav-item">FAQ</a>
            <a

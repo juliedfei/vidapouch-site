@@ -20,6 +20,7 @@ export default function AboutPage() {
          <nav className="hidden items-center gap-5 min-[1024px]:flex min-[1150px]:gap-7">
            <a href="/product" className="nav-item">PRODUCT</a>
            <a href="/how-it-works" className="nav-item">HOW IT WORKS</a>
+           <a href="/why-vidapouch" className="nav-item">WHY VIDAPOUCH</a>
            <a href="/about" className="nav-item">ABOUT</a>
            <a href="/faq" className="nav-item">FAQ</a>
            <a
@@ -75,6 +76,7 @@ export default function AboutPage() {
            <nav className="grid gap-6">
              <MobileNavLink href="/product" label="Product" />
              <MobileNavLink href="/how-it-works" label="How It Works" />
+             <MobileNavLink href="/why-vidapouch" label="Why VidaPouch" />
              <MobileNavLink href="/about" label="About" />
              <MobileNavLink href="/faq" label="FAQ" />
            </nav>

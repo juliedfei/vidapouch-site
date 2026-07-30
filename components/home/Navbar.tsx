@@ -27,6 +27,10 @@ export default function Navbar() {
              HOW IT WORKS
            </Link>
 
+           <Link href="/why-vidapouch" className="nav-item">
+             WHY VIDAPOUCH
+           </Link>
+
            <Link href="/about" className="nav-item">
              ABOUT
            </Link>
@@ -98,6 +102,12 @@ export default function Navbar() {
              <MobileNavLink
                href="/how-it-works"
                label="How It Works"
+               closeMenu={() => setMenuOpen(false)}
+             />
+
+<MobileNavLink
+               href="/why-vidapouch"
+               label="Why VidaPouch"
                closeMenu={() => setMenuOpen(false)}
              />
 
