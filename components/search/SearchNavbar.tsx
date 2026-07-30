@@ -42,16 +42,6 @@ export default function SearchNavbar() {
            "VidaSearch navigation"
          className=
            "ml-auto hidden items-center gap-6 md:flex">
-
-         <Link
-           href={
-             WHY_VIDA_POUCH_URL
-           }
-           className=
-             "text-[13px] font-medium tracking-[0.05em] text-[#4F453B] transition-colors duration-200 hover:text-[#081620]">
-
-           Why VidaPouch
-         </Link>
        </nav>
 
        <Link
