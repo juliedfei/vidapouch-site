@@ -19,9 +19,9 @@ export default function ProductOverview() {
          </h2>
 
          <p className="mx-auto mt-4 max-w-[650px] text-[16px] leading-7 text-[#475357] sm:text-[17px]">
-           Whether you already have a supplement routine or want help creating
-           one, VidaPouch uses AI and our Supplement Concierge to organize
-           everything into convenient daily pouches delivered to your door.
+           Use VidaSearch to compare supplements, add them to your VidaPouch, or purchase bottles individually.
+           We'll organize everything you add to your VidaPouch into personalized daily pouches and 
+           deliver them to your door every month.
          </p>
 
        </div>
@@ -37,18 +37,18 @@ export default function ProductOverview() {
        <div className="mt-8 grid gap-4 md:grid-cols-3">
 
          <ClarityCard
-           title="1. Build your routine"
-           text="Import your current supplements or let our AI and Supplement Concierge help create a personalized routine based on your goals."
+           title="1. Discover & Compare"
+           text="Use VidaSearch to compare supplements. Add your favorites to your VidaPouch or purchase bottles individually."
          />
 
          <ClarityCard
            title="2. We organize everything"
-           text="We organize your personalized routine into convenient daily pouches, ready to open whenever you need them."
+           text="We organize everything you add to your VidaPouch into personalized morning and evening daily pouches, ready to open whenever you need them."
          />
 
          <ClarityCard
            title="3. Delivered monthly"
-           text="Your personalized pouches arrive at your door every month, making it simple to stay consistent."
+           text="Your personalized pouches arrive every month, making it simple to stay consistent without managing multiple bottles."
          />
 
        </div>
