@@ -18,15 +18,16 @@ import type {
         ?.split(
           ":"
         )[0]
-        .toLowerCase();
+        .toLowerCase() ??
+      "";
    
     const pathname =
       request.nextUrl.pathname;
    
     /*
-     * Show the existing /v2 experience at
-     * vidasearch.com without displaying /v2
-     * in the browser address.
+     * VidaSearch.com:
+     * Show the existing /v2 page at the root
+     * while keeping vidasearch.com in the browser.
      */
     if (
       hostname ===
@@ -50,6 +51,45 @@ import type {
       }
     }
    
+    /*
+     * VidaPouch.com:
+     * Redirect the old /v2 address to VidaSearch.com.
+     */
+    if (
+      hostname ===
+        "vidapouch.com" ||
+      hostname ===
+        "www.vidapouch.com"
+    ) {
+      if (
+        pathname ===
+          "/v2" ||
+        pathname.startsWith(
+          "/v2/"
+        )
+      ) {
+        const remainingPath =
+          pathname.replace(
+            /^\/v2/,
+            ""
+          );
+   
+        const destination =
+          new URL(
+            remainingPath || "/",
+            "https://vidasearch.com"
+          );
+   
+        destination.search =
+          request.nextUrl.search;
+   
+        return NextResponse.redirect(
+          destination,
+          308
+        );
+      }
+    }
+   
     return NextResponse.next();
    }
    
@@ -57,6 +97,8 @@ import type {
     matcher:
       [
         "/",
+        "/v2",
+        "/v2/:path*",
       ],
    };
    
