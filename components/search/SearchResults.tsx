@@ -426,6 +426,33 @@ return products.filter(
 );
 }
 
+function getBottlePrice(
+  product:
+    SearchProductOption
+ ) {
+  const bottlePrice =
+    Number(
+      product
+        .representativeProduct
+        .bottlePrice
+    );
+ 
+  return Number.isFinite(
+    bottlePrice
+  ) &&
+    bottlePrice >=
+      0
+    ? bottlePrice
+    : Number
+        .POSITIVE_INFINITY;
+ }
+ 
+ 
+
+
+
+
+
 function sortProducts({
 products,
 sort,
@@ -468,17 +495,46 @@ switch (
           )
     );
 
-  case "price-low":
-    return sorted.sort(
-      (
-        left,
-        right
-      ) =>
-        left
-          .displayedMonthlyCost -
-        right
-          .displayedMonthlyCost
-    );
+
+
+    case "price-low":
+      return sorted.sort(
+        (
+          left,
+          right
+        ) =>
+          left
+            .displayedMonthlyCost -
+            right
+              .displayedMonthlyCost ||
+          getBottlePrice(
+            left
+          ) -
+            getBottlePrice(
+              right
+            )
+      );
+     
+     case "bottle-price-low":
+      return sorted.sort(
+        (
+          left,
+          right
+        ) =>
+          getBottlePrice(
+            left
+          ) -
+            getBottlePrice(
+              right
+            ) ||
+          left
+            .displayedMonthlyCost -
+            right
+              .displayedMonthlyCost
+      );
+
+
+
 
   case "value":
     return sorted.sort(
@@ -2091,13 +2147,23 @@ return (
             Highest Quality
           </option>
 
-          <option value="price-low">
-            Lowest Price
-          </option>
+
 
           <option value="value">
-            Best Value
-          </option>
+ Best Value
+</option>
+
+<option value="price-low">
+ Lowest Monthly Cost
+</option>
+
+<option value="bottle-price-low">
+ Lowest Bottle Price
+</option>
+
+
+
+
         </select>
       </label>
     </div>

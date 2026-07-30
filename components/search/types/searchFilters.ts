@@ -27,8 +27,9 @@ export type SearchTestingFilter =
 export type SearchSortOption =
  | "best-match"
  | "quality"
+ | "value"
  | "price-low"
- | "value";
+ | "bottle-price-low";
 
 export type SearchFilterState = {
  /*
