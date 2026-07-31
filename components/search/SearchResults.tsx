@@ -846,6 +846,126 @@ return (
 );
 }
 
+
+
+
+
+
+type SupplementSectionHeaderProps = {
+  name:
+    string;
+ 
+  reason:
+    string | null;
+ 
+  productCount:
+    number;
+ 
+  expanded:
+    boolean;
+ 
+  onToggle:
+    () => void;
+ };
+ 
+ function SupplementSectionHeader({
+  name,
+  reason,
+  productCount,
+  expanded,
+  onToggle,
+ }: SupplementSectionHeaderProps) {
+  return (
+    <button
+      type="button"
+      onClick={
+        onToggle
+      }
+      aria-expanded={
+        expanded
+      }
+      className="
+        flex
+        w-full
+        items-center
+        justify-between
+        gap-4
+        border-b
+        border-[#EEE7DF]
+        bg-[#FCFAF8]
+        px-5
+        py-3
+        text-left
+        transition
+        hover:bg-[#F9F6F2]
+      ">
+ 
+      <div className="min-w-0">
+        <div
+          className="
+            flex
+            items-center
+            gap-2
+          ">
+ 
+          <h3
+            className="
+              text-[15px]
+              font-semibold
+              text-[#172127]
+            ">
+ 
+            {name}
+          </h3>
+ 
+          <span
+            className="
+              text-[10px]
+              font-medium
+              text-[#8A9193]
+            ">
+ 
+            {productCount}{" "}
+            {productCount === 1
+              ? "product"
+              : "products"}
+          </span>
+        </div>
+ 
+        {reason && (
+          <p
+            className="
+              mt-0.5
+              max-w-[760px]
+              text-[10.5px]
+              leading-[1.45]
+              text-[#6B7477]
+            ">
+ 
+            {reason}
+          </p>
+        )}
+      </div>
+ 
+      <span
+        className="
+          shrink-0
+          text-[#6B7477]
+        ">
+ 
+        {expanded
+          ? <ChevronUpIcon />
+          : <ChevronDownIcon />}
+      </span>
+    </button>
+  );
+ }
+ 
+ 
+
+
+
+
 type PromotionDetailProps = {
 icon:
   ReactNode;
@@ -1503,25 +1623,35 @@ selectedPlanId,
 selectedPlan,
 onPlanChange,
 }: SearchResultsProps) {
-const {
-  results:
-    searchProducts,
 
-  loading,
 
-  loadingMore,
 
-  error,
+  const {
+    results:
+      searchProducts,
+   
+    metadata,
+   
+    loading,
+   
+    loadingMore,
+   
+    error,
+   
+    errorCode,
+   
+    errorSuggestion,
+   
+    isUnsupportedSearch,
+   } =
+    useSearch(
+      query
+    );
 
-  errorCode,
 
-  errorSuggestion,
 
-  isUnsupportedSearch,
-} =
-  useSearch(
-    query
-  );
+
+
 
 const [
   showAllLoadedResults,
@@ -1531,6 +1661,9 @@ const [
     false
   );
 
+
+
+
 const [
   promotionExpanded,
   setPromotionExpanded,
@@ -1538,6 +1671,46 @@ const [
   useState(
     true
   );
+
+
+  const [
+    groupBySupplement,
+    setGroupBySupplement,
+   ] =
+    useState(
+      true
+    );
+   
+
+
+
+    const [
+      expandedSupplementSections,
+      setExpandedSupplementSections,
+     ] =
+      useState<
+        Set<string>
+     >(
+        () =>
+          new Set()
+      );
+     
+     const [
+      showAllSupplementResults,
+      setShowAllSupplementResults,
+     ] =
+      useState<
+        Set<string>
+     >(
+        () =>
+          new Set()
+      );
+     
+   
+
+
+
+
 
 /*
  * Product cards always receive a usable plan.
@@ -1620,9 +1793,14 @@ useEffect(
   ]
 );
 
+
+
 const filteredProducts =
   useMemo(
     () => {
+
+
+
       const parsedDailyDose =
         parseSearchDailyDose(
           filters.dailyDose
@@ -1669,6 +1847,97 @@ const filteredProducts =
     ]
   );
 
+
+
+
+
+  const supportsSupplementGrouping =
+  metadata?.intent ===
+    "health-goal" ||
+  metadata?.intent ===
+    "health-condition" ||
+  metadata?.intent ===
+    "life-stage";
+ 
+ const shouldGroupBySupplement =
+  supportsSupplementGrouping &&
+  groupBySupplement;
+ 
+
+
+
+
+ 
+ const groupedProducts =
+  useMemo(
+    () => {
+      if (
+        !shouldGroupBySupplement ||
+        !metadata ||
+        metadata.categories.length ===
+          0
+      ) {
+        return [];
+      }
+ 
+
+
+      return metadata.categories.flatMap(
+        (
+          category
+        ) => {
+          
+          if (
+            category.kind !==
+              "RELATED_SUPPLEMENT" &&
+            category.kind !==
+              "INITIAL_RELATED_SUPPLEMENT"
+           ) {
+            return [];
+           }
+          
+          
+          
+          const products =
+            filteredProducts.filter(
+              (
+                product
+              ) =>
+                product.searchCategoryId ===
+                category.id
+            );
+
+
+
+
+ 
+          if (
+            products.length ===
+            0
+          ) {
+            return [];
+          }
+ 
+          return [
+            {
+              category,
+              products,
+            },
+          ];
+        }
+      );
+    },
+    [
+      filteredProducts,
+      metadata,
+      shouldGroupBySupplement,
+    ]
+  );
+ 
+
+
+
+
 useEffect(
   () => {
     setShowAllLoadedResults(
@@ -1687,6 +1956,9 @@ const resultLabel =
     ? query.trim()
     : "";
 
+
+
+
 const visibleProducts =
   showAllLoadedResults
     ? filteredProducts
@@ -1694,6 +1966,61 @@ const visibleProducts =
         0,
         INITIAL_VISIBLE_RESULTS
       );
+
+
+      const visibleGroupedProducts =
+      useMemo(
+        () => {
+          if (
+            !shouldGroupBySupplement
+          ) {
+            return [];
+          }
+     
+          const visibleProductSet =
+            new Set(
+              visibleProducts
+            );
+     
+          return groupedProducts.flatMap(
+            (
+              group
+            ) => {
+              const products =
+                group.products.filter(
+                  (
+                    product
+                  ) =>
+                    visibleProductSet.has(
+                      product
+                    )
+                );
+     
+              if (
+                products.length ===
+                0
+              ) {
+                return [];
+              }
+     
+              return [
+                {
+                  ...group,
+                  products,
+                },
+              ];
+            }
+          );
+        },
+        [
+          groupedProducts,
+          shouldGroupBySupplement,
+          visibleProducts,
+        ]
+      );
+
+
+
 
 const hiddenResultCount =
   showAllLoadedResults
@@ -1703,6 +2030,12 @@ const hiddenResultCount =
         filteredProducts.length -
           visibleProducts.length
       );
+
+
+
+
+
+
 
 function showAllResults() {
   setShowAllLoadedResults(
@@ -2039,24 +2372,30 @@ return (
         </h2>
 
         <div className="mt-2">
-          <p
-            className="
-              text-[13px]
-              text-[#667074]
-            ">
+          
+          
+          
+        <p
+ className="
+   text-[13px]
+   text-[#667074]
+ ">
 
-            Showing{" "}
-            {visibleProducts.length} of{" "}
-            {filteredProducts.length}{" "}
-            {loadingMore
-              ? "products loaded"
-              : `result${
-                  filteredProducts.length !==
-                  1
-                    ? "s"
-                    : ""
-                } found`}
-          </p>
+ {filteredProducts.length}{" "}
+ {loadingMore
+   ? "products loaded"
+   : `result${
+       filteredProducts.length !==
+       1
+         ? "s"
+         : ""
+     } found`}
+</p>
+
+
+
+
+
 
           {loadingMore && (
             <div
@@ -2083,89 +2422,170 @@ return (
         </div>
       </div>
 
-      <label
-        className="
-          flex
-          h-[44px]
-          items-center
-          gap-2
-          rounded-[8px]
-          border
-          border-[#E7DFD6]
-          bg-white
-          px-4
-          text-[13px]
-          text-[#667074]
-          shadow-[0_1px_4px_rgba(36,49,53,0.03)]
-        ">
-
-        <span>
-          Sort by:
-        </span>
-
-        <select
-          value={
-            filters.sort
-          }
-          onChange={
-            (event) =>
-              changeSort(
-                event.target
-                  .value as
-                  SearchSortOption
-              )
-          }
-          aria-label="Sort products"
-          className="
-            cursor-pointer
-            appearance-none
-            bg-transparent
-            pr-6
-            font-semibold
-            text-[#081620]
-            outline-none
-          "
-          style={{
-            backgroundImage:
-              "linear-gradient(45deg, transparent 50%, #667074 50%), linear-gradient(135deg, #667074 50%, transparent 50%)",
-
-            backgroundPosition:
-              "calc(100% - 8px) 50%, calc(100% - 3px) 50%",
-
-            backgroundSize:
-              "5px 5px, 5px 5px",
-
-            backgroundRepeat:
-              "no-repeat",
-          }}>
-
-          <option value="best-match">
-            Best Match
-          </option>
-
-          <option value="quality">
-            Highest Quality
-          </option>
 
 
 
-          <option value="value">
- Best Value
-</option>
+      <div
+ className="
+   flex
+   flex-wrap
+   items-center
+   gap-2
+ ">
 
-<option value="price-low">
- Lowest Monthly Cost
-</option>
+ {supportsSupplementGrouping && (
+   <label
+     className="
+       flex
+       h-[44px]
+       items-center
+       gap-2
+       rounded-[8px]
+       border
+       border-[#E7DFD6]
+       bg-white
+       px-4
+       text-[13px]
+       text-[#667074]
+       shadow-[0_1px_4px_rgba(36,49,53,0.03)]
+     ">
 
-<option value="bottle-price-low">
- Lowest Bottle Price
-</option>
+     <span>
+       Group by:
+     </span>
+
+     <select
+       value={
+         groupBySupplement
+           ? "supplement"
+           : "all"
+       }
+       onChange={
+         (event) =>
+           setGroupBySupplement(
+             event.target.value ===
+               "supplement"
+           )
+       }
+       aria-label="Group search results"
+       className="
+         cursor-pointer
+         appearance-none
+         bg-transparent
+         pr-6
+         font-semibold
+         text-[#081620]
+         outline-none
+       "
+       style={{
+         backgroundImage:
+           "linear-gradient(45deg, transparent 50%, #667074 50%), linear-gradient(135deg, #667074 50%, transparent 50%)",
+
+         backgroundPosition:
+           "calc(100% - 8px) 50%, calc(100% - 3px) 50%",
+
+         backgroundSize:
+           "5px 5px, 5px 5px",
+
+         backgroundRepeat:
+           "no-repeat",
+       }}>
+
+       <option value="supplement">
+         Supplement
+       </option>
+
+       <option value="all">
+         All Products
+       </option>
+     </select>
+   </label>
+ )}
+
+ <label
+   className="
+     flex
+     h-[44px]
+     items-center
+     gap-2
+     rounded-[8px]
+     border
+     border-[#E7DFD6]
+     bg-white
+     px-4
+     text-[13px]
+     text-[#667074]
+     shadow-[0_1px_4px_rgba(36,49,53,0.03)]
+   ">
+
+   <span>
+     Sort by:
+   </span>
+
+   <select
+     value={
+       filters.sort
+     }
+     onChange={
+       (event) =>
+         changeSort(
+           event.target
+             .value as
+             SearchSortOption
+         )
+     }
+     aria-label="Sort products"
+     className="
+       cursor-pointer
+       appearance-none
+       bg-transparent
+       pr-6
+       font-semibold
+       text-[#081620]
+       outline-none
+     "
+     style={{
+       backgroundImage:
+         "linear-gradient(45deg, transparent 50%, #667074 50%), linear-gradient(135deg, #667074 50%, transparent 50%)",
+
+       backgroundPosition:
+         "calc(100% - 8px) 50%, calc(100% - 3px) 50%",
+
+       backgroundSize:
+         "5px 5px, 5px 5px",
+
+       backgroundRepeat:
+         "no-repeat",
+     }}>
+
+     <option value="best-match">
+       Best Match
+     </option>
+
+     <option value="quality">
+       Highest Quality
+     </option>
+
+     <option value="value">
+       Best Value
+     </option>
+
+     <option value="price-low">
+       Lowest Monthly Cost
+     </option>
+
+     <option value="bottle-price-low">
+       Lowest Bottle Price
+     </option>
+   </select>
+ </label>
+</div>
 
 
 
 
-        </select>
-      </label>
+
+
     </div>
 
     <VidaPouchPromotion
@@ -2200,28 +2620,37 @@ return (
           bg-white
         ">
 
-        <div
-          className="
-            hidden
-            min-h-[48px]
-            grid-cols-[minmax(0,1.55fr)_minmax(150px,0.9fr)_minmax(150px,0.9fr)]
-            items-center
-            border-b
-            border-[#EEE7DF]
-            bg-white
-            lg:grid
-          ">
 
-          <div
-            className="
-              px-5
-              text-[13px]
-              font-semibold
-              text-[#081620]
-            ">
 
-            Product &amp; Quality
-          </div>
+
+<div
+ className="
+   hidden
+   min-h-[48px]
+   grid-cols-[minmax(0,1.65fr)_minmax(155px,0.68fr)_minmax(190px,0.82fr)]
+   items-center
+   border-b
+   border-[#EEE7DF]
+   bg-white
+   lg:grid
+ ">
+
+
+
+<div
+ className="
+   pl-[128px]
+   pr-5
+   text-[13px]
+   font-semibold
+   text-[#081620]
+ ">
+
+ Product &amp; Quality
+</div>
+
+
+
 
           <div
             className="
@@ -2272,39 +2701,254 @@ return (
           </div>
         </div>
 
+
+
+
+
         <div>
-          {visibleProducts.map(
-            (product) => (
-              <ProductCard
-                key={`${product.brand}-${product.productName}`}
-                product={
-                  product
-                }
-                isInPouch={
-                  pouchItems.some(
-                    (item) =>
-                      item.id ===
-                      (
-                        product
-                          .representativeProduct
-                          .shoppingProductId ??
-                        `${product.brand}-${product.productName}`
-                      )
-                  )
-                }
-                selectedPlan={
-                  productCardPlan
-                }
-                selectedSupplementCount={
-                  pouchItems.length
-                }
-                onAddToPouch={
-                  onAddToPouch
-                }
-              />
-            )
-          )}
-        </div>
+ 
+ 
+ 
+        {shouldGroupBySupplement &&
+groupedProducts.length >
+  0 ? (
+  groupedProducts.map(
+
+
+
+
+     (
+       group
+     ) => (
+       <div
+         key={
+           group.category.id
+         }>
+
+
+
+
+<SupplementSectionHeader
+ name={
+   group.category
+     .displayName
+ }
+ reason={
+   group.category
+     .reason
+ }
+ productCount={
+   group.products
+     .length
+ }
+ expanded={
+   expandedSupplementSections.has(
+     group.category.id
+   )
+ }
+ onToggle={
+   () => {
+     setExpandedSupplementSections(
+       (
+         current
+       ) => {
+         const next =
+           new Set(
+             current
+           );
+
+         if (
+           next.has(
+             group.category.id
+           )
+         ) {
+           next.delete(
+             group.category.id
+           );
+         } else {
+           next.add(
+             group.category.id
+           );
+         }
+
+         return next;
+       }
+     );
+   }
+ }
+/>
+
+
+
+
+{expandedSupplementSections.has(
+ group.category.id
+) && (
+ <>
+   {(
+     showAllSupplementResults.has(
+       group.category.id
+     )
+       ? group.products
+       : group.products.slice(
+           0,
+           INITIAL_VISIBLE_RESULTS
+         )
+   ).map(
+     (
+       product
+     ) => (
+       <ProductCard
+         key={`${product.brand}-${product.productName}`}
+         product={
+           product
+         }
+         isInPouch={
+           pouchItems.some(
+             (
+               item
+             ) =>
+               item.id ===
+               (
+                 product
+                   .representativeProduct
+                   .shoppingProductId ??
+                 `${product.brand}-${product.productName}`
+               )
+           )
+         }
+         selectedPlan={
+           productCardPlan
+         }
+         selectedSupplementCount={
+           pouchItems.length
+         }
+         onAddToPouch={
+           onAddToPouch
+         }
+       />
+     )
+   )}
+
+   {group.products.length >
+     INITIAL_VISIBLE_RESULTS &&
+     !showAllSupplementResults.has(
+       group.category.id
+     ) && (
+       <div
+         className="
+           border-t
+           border-[#EEE7DF]
+           bg-white
+           px-5
+           py-4
+           text-center
+         ">
+
+         <button
+           type="button"
+           onClick={
+             () => {
+               setShowAllSupplementResults(
+                 (
+                   current
+                 ) => {
+                   const next =
+                     new Set(
+                       current
+                     );
+
+                   next.add(
+                     group.category.id
+                   );
+
+                   return next;
+                 }
+               );
+             }
+           }
+           className="
+             inline-flex
+             items-center
+             gap-2
+             text-[13px]
+             font-semibold
+             text-[#081620]
+             transition
+             hover:text-[#8C1D40]
+           ">
+
+           See{" "}
+           {group.products.length -
+             INITIAL_VISIBLE_RESULTS}{" "}
+           more{" "}
+           {group.category.displayName}{" "}
+           results
+
+           <span
+             aria-hidden="true"
+             className="text-[17px]">
+
+             ↓
+           </span>
+         </button>
+       </div>
+     )}
+ </>
+)}
+
+
+
+
+
+
+       </div>
+     )
+   )
+ ) : (
+   visibleProducts.map(
+     (
+       product
+     ) => (
+       <ProductCard
+         key={`${product.brand}-${product.productName}`}
+         product={
+           product
+         }
+         isInPouch={
+           pouchItems.some(
+             (
+               item
+             ) =>
+               item.id ===
+               (
+                 product
+                   .representativeProduct
+                   .shoppingProductId ??
+                 `${product.brand}-${product.productName}`
+               )
+           )
+         }
+         selectedPlan={
+           productCardPlan
+         }
+         selectedSupplementCount={
+           pouchItems.length
+         }
+         onAddToPouch={
+           onAddToPouch
+         }
+       />
+     )
+   )
+ )}
+</div>
+
+
+
+
+
+
 
         {loadingMore && (
           <div
@@ -2349,63 +2993,75 @@ return (
           </div>
         )}
 
-        {hiddenResultCount >
-          0 && (
-          <div
-            className="
-              border-t
-              border-[#EEE7DF]
-              bg-white
-              px-5
-              py-4
-              text-center
-            ">
 
-            <button
-              type="button"
-              onClick={
-                showAllResults
-              }
-              className="
-                inline-flex
-                items-center
-                gap-2
-                text-[13px]
-                font-semibold
-                text-[#081620]
-                transition
-                hover:text-[#8C1D40]
-              ">
 
-              See all{" "}
-              {filteredProducts.length}{" "}
-              {loadingMore
-                ? "loaded results"
-                : "results"}
 
-              <span
-                aria-hidden="true"
-                className="text-[17px]">
 
-                ↓
-              </span>
-            </button>
+{!shouldGroupBySupplement &&
+ hiddenResultCount >
+   0 && (
+   <div
+     className="
+       border-t
+       border-[#EEE7DF]
+       bg-white
+       px-5
+       py-4
+       text-center
+     ">
 
-            <p
-              className="
-                mt-1
-                text-[10px]
-                text-[#7A8386]
-              ">
+     <button
+       type="button"
+       onClick={
+         showAllResults
+       }
+       className="
+         inline-flex
+         items-center
+         gap-2
+         text-[13px]
+         font-semibold
+         text-[#081620]
+         transition
+         hover:text-[#8C1D40]
+       ">
 
-              {hiddenResultCount} more product
-              {hiddenResultCount !==
-              1
-                ? "s"
-                : ""}
-            </p>
-          </div>
-        )}
+       See all{" "}
+       {filteredProducts.length}{" "}
+       {loadingMore
+         ? "loaded results"
+         : "results"}
+
+       <span
+         aria-hidden="true"
+         className="text-[17px]">
+
+         ↓
+       </span>
+     </button>
+
+     <p
+       className="
+         mt-1
+         text-[10px]
+         text-[#7A8386]
+       ">
+
+       {hiddenResultCount} more product
+       {hiddenResultCount !==
+       1
+         ? "s"
+         : ""}
+     </p>
+   </div>
+ )}
+
+
+
+
+
+
+
       </div>
     ) : loadingMore ? (
       <div

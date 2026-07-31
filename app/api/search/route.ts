@@ -602,11 +602,21 @@ import {
               expansion.reason
             ),
  
-          searchMode:
-            "direct-marketplace",
- 
-          expandAliases:
+
+
+
+            searchMode:
+            expansion.kind ===
+              SearchExpansionKind
+                .RELATED_SUPPLEMENT
+              ? "supplement"
+              : "direct-marketplace",
+           
+           expandAliases:
             false,
+
+
+
  
           maxPages:
             EXPANDED_SEARCH_MAX_PAGES,
@@ -877,11 +887,17 @@ import {
       return null;
     }
  
+
+
+
+
+
+
     return createSearchJob({
       id:
         firstSupplementExpansion.id ??
         "initial-sensitive-supplement",
- 
+     
       displayName:
         cleanText(
           firstSupplementExpansion
@@ -889,36 +905,51 @@ import {
         ) ??
         firstSupplementExpansion
           .searchTerm,
- 
+     
       searchTerm:
         firstSupplementExpansion
           .searchTerm,
- 
+     
       reason:
         cleanText(
           firstSupplementExpansion
             .reason
         ),
- 
+     
+      /*
+       * The fast initial search for a health condition
+       * or life stage still represents one specific
+       * RELATED_SUPPLEMENT category.
+       *
+       * Keep supplement matching enabled so unrelated
+       * Google Shopping results cannot inherit that
+       * supplement's category.
+       */
       searchMode:
-        "direct-marketplace",
- 
+        "supplement",
+     
       expandAliases:
         false,
- 
+     
       maxPages:
         INITIAL_SEARCH_MAX_PAGES,
- 
+     
       maxRetailListings:
         INITIAL_MAX_RETAIL_LISTINGS,
- 
+     
       priority:
         firstSupplementExpansion
           .priority,
- 
+     
       kind:
         "INITIAL_RELATED_SUPPLEMENT",
-    });
+     });
+     
+
+
+
+
+
   }
  
   return createSearchJob({
@@ -1006,15 +1037,27 @@ import {
   return completeJobs;
  }
  
+
+
+
+
  function normalizeListingsForCombinedGrouping({
   listings,
   canonicalSupplement,
+  categoryId,
+  categoryPriority,
  }: {
   listings:
     SearchRetailProduct[];
  
   canonicalSupplement:
     string;
+ 
+  categoryId:
+    string;
+ 
+  categoryPriority:
+    number;
  }) {
   return listings.map(
     (
@@ -1022,11 +1065,38 @@ import {
     ) => ({
       ...listing,
  
+      /*
+       * Keep the existing canonical supplement
+       * behavior intact for pricing, scoring,
+       * grouping, and the rest of the current
+       * VidaSearch pipeline.
+       */
       supplement:
         canonicalSupplement,
+ 
+      /*
+       * Separately preserve the supplement
+       * category that actually produced this
+       * marketplace listing.
+       *
+       * This is what the grouped results UI
+       * will eventually use.
+       */
+      searchCategoryId:
+        categoryId,
+ 
+      searchCategoryPriority:
+        categoryPriority,
     })
   );
  }
+ 
+
+
+
+
+
+
  
  async function runSearchJob({
   job,
@@ -1043,25 +1113,50 @@ import {
   const startedAt =
     Date.now();
  
-  const listings =
+
+
+    const listings =
     await findSearchProducts({
+      /*
+       * Supplement-mode searches should match against
+       * the canonical supplement name rather than the
+       * marketplace phrase.
+       *
+       * Example:
+       *
+       * Search marketplace for:
+       * "CoQ10 supplement"
+       *
+       * Validate products against:
+       * "CoQ10"
+       *
+       * This keeps unrelated products out without
+       * requiring the literal word "supplement" to
+       * appear in every valid product title.
+       */
       supplement:
-        job.searchTerm,
- 
+        job.searchMode ===
+          "supplement"
+          ? job.displayName
+          : job.searchTerm,
+   
       brand,
- 
+   
       searchMode:
         job.searchMode,
- 
+   
       expandAliases:
         job.expandAliases,
- 
+   
       maxPages:
         job.maxPages,
- 
+   
       maxRetailListings:
         job.maxRetailListings,
     });
+
+
+
  
   console.log(
     "VidaSearch marketplace job completed:",
@@ -1571,7 +1666,10 @@ import {
         .trim() ||
       originalQuery;
  
-    const combinedListings =
+
+
+
+      const combinedListings =
       completedJobs.flatMap(
         (
           completedJob
@@ -1580,10 +1678,22 @@ import {
             listings:
               completedJob
                 .listings,
- 
+     
             canonicalSupplement,
+     
+            categoryId:
+              completedJob
+                .job.id,
+     
+            categoryPriority:
+              completedJob
+                .job.priority,
           })
       );
+
+
+
+
  
     const combinedBrandRequest = {
       supplement:

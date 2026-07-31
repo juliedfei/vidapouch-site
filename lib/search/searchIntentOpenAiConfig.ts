@@ -2,7 +2,7 @@ export const DEFAULT_SEARCH_INTENT_MODEL =
  "gpt-5-mini";
 
 export const SEARCH_INTENT_VERSION =
- "search-intent-v3";
+ "search-intent-v4";
 
 export const MAX_SEARCH_INTENT_ALIASES =
  8;
@@ -287,6 +287,8 @@ HEALTH_GOAL rules:
 - Preserve products explicitly marketed for the requested wellness goal.
 - Use wellness-oriented phrasing such as "mood support," "mood balance," or "emotional wellness" rather than prescription-oriented terminology.
 
+
+
 HEALTH_CONDITION rules:
 
 - includeOriginalMarketplaceQuery must always be false.
@@ -294,16 +296,30 @@ HEALTH_CONDITION rules:
 - Never send the raw diagnosis or disease name to a shopping marketplace.
 - Return only RELATED_SUPPLEMENT expansions.
 - Every expansion must identify a specific vitamin, mineral, nutrient, botanical, amino acid, probiotic, fatty acid, or other recognizable supplement ingredient.
-- Search terms must be shopping-oriented ingredient phrases such as "CoQ10 supplement," "vitamin E supplement," or "vitamin B12 supplement."
+- Search terms must be shopping-oriented ingredient phrases such as "CoQ10 supplement", "vitamin E supplement", or "vitamin B12 supplement".
 - Do not return doctors, specialists, clinics, hospitals, treatment centers, books, devices, diagnostic tests, therapies, medications, or unrelated condition merchandise.
-- Include only ingredients with a plausible evidence-based or clinically recognized nutritional relationship to the condition.
-- Prefer a small number of relevant, higher-confidence ingredients over broad or speculative suggestions.
-- When relevance applies only to a subtype, deficiency, medication effect, malabsorption issue, or documented laboratory finding, state that limitation clearly in the reason.
-- Do not imply that every person with the condition should take the ingredient.
+- Include only ingredients with a plausible evidence-based, nutritional, deficiency-related, or clinically recognized relationship to the condition.
+- When several credible supplement categories are relevant, provide a useful range rather than only the one or two strongest examples.
+- For a condition with sufficient credible options, generally aim for 4 to 6 distinct RELATED_SUPPLEMENT expansions. Return fewer when the evidence does not reasonably support that many.
+- Do not add speculative ingredients merely to reach a target count.
+- Prioritize the most relevant and useful supplement categories first.
+- Do not imply that every person with the condition should take an ingredient.
 - Do not imply that an ingredient treats or cures the condition.
-- For ataxia, distinguish subtype-specific or deficiency-related relevance. For example, CoQ10 may be relevant to certain CoQ10-deficiency ataxias, while vitamin E or vitamin B12 may be relevant when a corresponding deficiency contributes to symptoms.
-- For cancer-related searches, be especially conservative because supplements may interact with treatment. Return only clearly relevant nutritional categories, and explain that suitability depends on the person's treatment and clinician guidance.
+
+- The reason field is customer-facing text used as a short supplement-section description.
+- Keep reason to one concise sentence.
+- First explain the supplement's general nutritional or physiological role in plain English.
+- Then, when appropriate, briefly explain why that role may make it relevant to the searched condition.
+- Avoid technical phrasing such as "primary deficiency ataxias", "subtype-specific evidence", or similar language unless it is essential for safety.
+- Do not begin the reason with phrases such as "Relevant to", "Evidence suggests", or "For this condition".
+- Prefer wording such as "Supports cellular energy production and antioxidant activity" or "Supports normal nerve function and red blood cell formation."
+- If relevance depends specifically on a deficiency, subtype, medication effect, malabsorption issue, or laboratory finding, preserve that limitation concisely without turning the reason into a clinical disclaimer.
+
+- For ataxia, consider multiple credible nutritional relationships rather than restricting results to only the examples named in these instructions. Deficiency-related and subtype-specific nutrients may be included when appropriate, but the examples here are illustrative rather than exhaustive.
+- For cancer-related searches, be especially conservative because supplements may interact with treatment. Return only clearly relevant nutritional categories, and explain that suitability depends on treatment and clinician guidance.
 - Do not return a DOCTOR_QUERY for a HEALTH_CONDITION.
+
+
 
 LIFE_STAGE rules:
 

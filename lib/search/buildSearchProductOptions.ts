@@ -45,6 +45,10 @@ import {
   scoreProduct,
  } from "@/lib/recommendations/scoreProduct";
  
+
+
+
+
  type ProductGroup = {
   productName:
     string;
@@ -55,6 +59,12 @@ import {
   supplement:
     string;
  
+  searchCategoryId:
+    string | null;
+ 
+  searchCategoryPriority:
+    number | null;
+ 
   listings:
     SearchRetailProduct[];
  
@@ -64,6 +74,10 @@ import {
   identityTokens:
     Set<string>;
  };
+
+
+
+
  
  type PreparedSearchProduct = {
   productName:
@@ -74,6 +88,15 @@ import {
  
   supplement:
     string;
+
+
+    searchCategoryId:
+    string | null;
+ 
+  searchCategoryPriority:
+    number | null;
+
+
  
   representativeProduct:
     SearchRetailProduct;
@@ -665,6 +688,8 @@ import {
   );
  }
  
+
+
  function addListingToGroup(
   group:
     ProductGroup,
@@ -675,6 +700,49 @@ import {
   group.listings.push(
     listing
   );
+
+  const incomingCategoryId =
+  listing.searchCategoryId ??
+  null;
+ 
+ const incomingCategoryPriority =
+  typeof listing
+    .searchCategoryPriority ===
+    "number"
+    ? listing
+        .searchCategoryPriority
+    : null;
+ 
+ const shouldReplacePrimaryCategory =
+  incomingCategoryId !==
+    null &&
+  (
+    group.searchCategoryId ===
+      null ||
+    group.searchCategoryPriority ===
+      null ||
+    (
+      incomingCategoryPriority !==
+        null &&
+      incomingCategoryPriority <
+        group.searchCategoryPriority
+    )
+  );
+ 
+ if (
+  shouldReplacePrimaryCategory
+ ) {
+  group.searchCategoryId =
+    incomingCategoryId;
+ 
+  group.searchCategoryPriority =
+    incomingCategoryPriority;
+ }
+ 
+
+
+
+
  
   const shoppingProductId =
     getStableShoppingProductId(
@@ -701,6 +769,8 @@ import {
   }
  }
  
+
+
  function createProductGroup(
   listing:
     SearchRetailProduct
@@ -728,12 +798,33 @@ import {
     brand:
       listing.brand.trim(),
  
-    supplement:
+
+
+
+
+      supplement:
       listing.supplement.trim(),
- 
-    listings: [
+     
+     searchCategoryId:
+      listing.searchCategoryId ??
+      null,
+     
+     searchCategoryPriority:
+      typeof listing
+        .searchCategoryPriority ===
+        "number"
+        ? listing
+            .searchCategoryPriority
+        : null,
+     
+     listings: [
       listing,
-    ],
+     ],
+     
+
+
+
+
  
     shoppingProductIds,
  
@@ -1129,6 +1220,8 @@ import {
                 group.listings
               );
  
+
+
             return {
               productName:
                 group.productName,
@@ -1420,6 +1513,8 @@ import {
   const monthlyUnits =
     pricing.monthlyCapsules;
  
+
+
   return {
     productName:
       group.productName,
@@ -1429,6 +1524,15 @@ import {
  
     supplement:
       group.supplement,
+
+      searchCategoryId:
+      group.searchCategoryId,
+   
+    searchCategoryPriority:
+      group.searchCategoryPriority,
+
+
+
  
     representativeProduct,
  
@@ -1753,10 +1857,14 @@ import {
     );
  
   return preparedProducts
-    .map(
+    
+  
+  .map(
       (
         prepared
       ): SearchProductOption => {
+
+
         const value =
           calculateValueScore({
             displayedPerCapsulePrice:
@@ -1895,15 +2003,25 @@ import {
 
 
  
-        return {
-          productName:
-            prepared.productName,
- 
-          brand:
-            prepared.brand,
- 
-          representativeProduct:
-            representative,
+          return {
+            productName:
+              prepared.productName,
+           
+            brand:
+              prepared.brand,
+           
+            searchCategoryId:
+              prepared.searchCategoryId,
+           
+            searchCategoryPriority:
+              prepared.searchCategoryPriority,
+           
+            representativeProduct:
+              representative,
+
+
+
+
  
           listings:
             prepared.listings,

@@ -149,6 +149,42 @@ import type {
     serpApiImmersiveProductUrl?:
       string;
  
+
+/*
+* Search-result category that produced this
+* marketplace listing.
+*
+* This is separate from `supplement` because
+* health-goal and health-condition searches
+* may expand into several supplement
+* categories before the final products are
+* combined.
+*
+* The category ID lets the UI place the final
+* product under the correct compact supplement
+* section without changing the existing
+* supplement/pricing behavior.
+*/
+searchCategoryId?:
+ string;
+
+/*
+* Lower numbers represent higher-priority
+* search categories.
+*
+* If the same exact product is discovered
+* through more than one supplement expansion,
+* this allows the product builder to assign it
+* to one primary section rather than displaying
+* the same product multiple times.
+*/
+searchCategoryPriority?:
+ number;
+
+
+
+
+
     /*
      * Indicates that Google reported more
      * than one seller or source for this

@@ -279,12 +279,37 @@ import type {
  export type SearchVitaPouchPricingInput =
   SearchVidaPouchPricingInput;
  
+
+
+
  export type SearchProductOption = {
   productName:
     string;
  
   brand:
     string;
+
+
+/*
+  * Primary supplement category assigned to this
+  * product for grouped search-result views.
+  *
+  * This is mainly used for health-goal,
+  * health-condition, and life-stage searches.
+  */
+searchCategoryId:
+string | null;
+
+/*
+* Priority of the primary search category.
+* Lower numbers represent higher-priority
+* categories.
+*/
+searchCategoryPriority:
+number | null;
+
+
+
  
   representativeProduct:
     SearchRetailProduct;

@@ -21,15 +21,18 @@ import type {
  SearchProductOption,
 } from "./searchProductOption";
 
+
+
 const SEARCH_DELAY_MS =
- 250;
-
- const INITIAL_SEARCH_TIMEOUT_MS =
- 10_000;
-
+250;
 
 const ENABLE_LIVE_ENRICHMENT =
- true;
+true;
+
+
+
+
+
 
 const MAX_LIVE_ENRICHMENT_PRODUCTS =
  20;
@@ -1046,24 +1049,13 @@ export function useSearch(
 
 
 
-     const searchController =
-     new AbortController();
-    
-    const initialSearchController =
-     new AbortController();
-    
-    const enrichmentController =
-     new AbortController();
-    
-    function abortInitialSearch() {
-     initialSearchController
-       .abort();
-    }
-    
-    searchController.signal.addEventListener(
-     "abort",
-     abortInitialSearch
-    );
+
+const searchController =
+ new AbortController();
+
+const enrichmentController =
+ new AbortController();
+
 
 
 
@@ -1115,35 +1107,18 @@ export function useSearch(
 
 
 
-             const initialSearchTimeout =
-             window.setTimeout(
-               () => {
-                 initialSearchController
-                   .abort();
-               },
-               INITIAL_SEARCH_TIMEOUT_MS
-             );
+             const initialResult =
+             await searchProductsWithMetadata({
+               supplement:
+                 trimmed,
             
-            let initialResult;
+               phase:
+                 "initial",
             
-            try {
-             initialResult =
-               await searchProductsWithMetadata({
-                 supplement:
-                   trimmed,
-            
-                 phase:
-                   "initial",
-            
-                 signal:
-                   initialSearchController
-                     .signal,
-               });
-            } finally {
-             window.clearTimeout(
-               initialSearchTimeout
-             );
-            }
+               signal:
+                 searchController
+                   .signal,
+             });
             
 
 
@@ -1447,48 +1422,20 @@ export function useSearch(
             } catch (
               caughtError
              ) {
+              
+              
+              
               const wasCancelledByNewSearch =
-                searchController
-                  .signal
-                  .aborted;
+              searchController
+                .signal
+                .aborted;
              
-              const wasInitialTimeout =
-                initialSearchController
-                  .signal
-                  .aborted &&
-                !wasCancelledByNewSearch;
+             if (
+              wasCancelledByNewSearch
+             ) {
+              return;
+             }
              
-              if (
-                wasCancelledByNewSearch
-              ) {
-                return;
-              }
-             
-              if (
-                wasInitialTimeout
-              ) {
-                setResults(
-                  []
-                );
-             
-                setMetadata(
-                  null
-                );
-             
-                setError(
-                  "This search is taking longer than expected."
-                );
-             
-                setErrorCode(
-                  "SEARCH_FAILED"
-                );
-             
-                setErrorSuggestion(
-                  "Please try again. Frequently searched topics will become faster as VidaSearch builds its search cache."
-                );
-             
-                return;
-              }
 
 
 
@@ -1585,19 +1532,11 @@ export function useSearch(
 
 
 
-       searchController.signal.removeEventListener(
-        "abort",
-        abortInitialSearch
-       );
-       
        searchController
-        .abort();
-       
-       initialSearchController
-        .abort();
-       
-       enrichmentController
-        .abort();
+       .abort();
+      
+      enrichmentController
+       .abort();
 
 
 
