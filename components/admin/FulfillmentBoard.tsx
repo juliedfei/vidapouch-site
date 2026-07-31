@@ -32,12 +32,25 @@ type FulfillmentOrder = {
  totalPrice:
    number;
 
- purchaseOption:
+
+
+
+   purchaseOption:
    "ONE_TIME" |
    "SUBSCRIPTION";
-
- fulfillmentStatus:
+  
+  paymentStatus:
+   "PENDING" |
+   "PAID" |
+   "PAYMENT_FAILED" |
+   "CANCELED" |
+   "REFUNDED";
+  
+  fulfillmentStatus:
    FulfillmentStatus;
+
+
+
 
  trackingNumber:
    string | null;
@@ -48,23 +61,89 @@ type FulfillmentOrder = {
  fulfillmentNotes:
    string | null;
 
- createdAt:
-   string;
 
- items:
+
+
+
+   createdAt:
+   string;
+  
+  inventoryReservationStatus:
+   string | null;
+  
+  inventoryReserved:
+   boolean;
+  
+
+
+  inventoryAllocationCount:
+   number;
+  
+  inventoryCost:
+   number;
+  
+inventoryAllocations:
+ {
+   id:
+     string;
+
+   orderItemId:
+     string;
+
+   productName:
+     string;
+
+   brand:
+     string;
+
+   unitLabel:
+     string;
+
+   bottleCode:
+     string;
+
+   manufacturerLotNumber:
+     string | null;
+
+   expirationDate:
+     string | null;
+
+   quantity:
+     number;
+
+   totalCost:
+     number;
+ }[];
+
+
+
+
+   items:
    {
      id:
        string;
-
+  
      productName:
        string;
-
+  
      brand:
        string;
-
+  
      timing:
        string;
+  
+     monthlyUnitCount:
+       number;
+  
+     unitLabel:
+       string;
    }[];
+  
+
+
+
+
+
 };
 
 type Props = {
@@ -173,40 +252,41 @@ function getStatusLabel(
    status;
 }
 
+
+
+
+
 function getStatusClasses(
- status:
-   FulfillmentStatus
-) {
- switch (
-   status
- ) {
-   case "NEW":
-     return "bg-blue-100 text-blue-800";
-
-   case "PREPARING":
-     return "bg-amber-100 text-amber-800";
-
-
-
-
-     case "PACKED":
+    status:
+      FulfillmentStatus
+   ) {
+    switch (
+      status
+    ) {
+      case "NEW":
+        return "bg-blue-100 text-blue-800";
+   
+      case "PREPARING":
+        return "bg-amber-100 text-amber-800";
+   
+      case "PACKED":
         return "bg-purple-100 text-purple-800";
-       
-       case "SHIPPED":
+   
+      case "SHIPPED":
         return "bg-indigo-100 text-indigo-800";
-       
+   
+      case "COMPLETED":
+        return "bg-green-100 text-green-800";
+   
+      case "ON_HOLD":
+        return "bg-red-100 text-red-800";
+    }
+   }
 
 
 
 
 
-   case "COMPLETED":
-     return "bg-green-100 text-green-800";
-
-   case "ON_HOLD":
-     return "bg-red-100 text-red-800";
- }
-}
 
 export default function FulfillmentBoard({
  initialOrders,
@@ -218,6 +298,9 @@ export default function FulfillmentBoard({
    initialOrders
  );
 
+
+
+
  const [
    savingOrderId,
    setSavingOrderId,
@@ -225,6 +308,18 @@ export default function FulfillmentBoard({
    string |
    null
 >(null);
+
+
+const [
+    reservingOrderId,
+    setReservingOrderId,
+   ] = useState<
+    string |
+    null
+   >(null);
+
+
+
 
  const [
    error,
@@ -291,6 +386,9 @@ export default function FulfillmentBoard({
        )
    );
  }
+
+
+
 
  async function saveOrder(
    order:
@@ -370,6 +468,125 @@ export default function FulfillmentBoard({
      );
    }
  }
+
+
+ async function reserveInventory(
+    order:
+      FulfillmentOrder
+   ) {
+    setError(
+      null
+    );
+   
+    setReservingOrderId(
+      order.id
+    );
+   
+    try {
+      const response =
+        await fetch(
+          "/api/admin/inventory/reserve",
+          {
+            method:
+              "POST",
+   
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+   
+            body:
+              JSON.stringify({
+                orderId:
+                  order.id,
+              }),
+          }
+        );
+   
+      const data =
+        await response.json() as {
+          success?:
+            boolean;
+   
+          error?:
+            string;
+   
+          fulfillmentRun?: {
+            status?:
+              string;
+   
+            allocations?: {
+              totalCostSnapshot?:
+                string | number;
+            }[];
+          };
+        };
+   
+      if (
+        !response.ok ||
+        !data.success
+      ) {
+        throw new Error(
+          data.error ??
+          "Unable to reserve inventory."
+        );
+      }
+   
+      const allocations =
+        data.fulfillmentRun
+          ?.allocations ??
+        [];
+   
+      const inventoryCost =
+        allocations.reduce(
+          (
+            total,
+            allocation
+          ) =>
+            total +
+            Number(
+              allocation.totalCostSnapshot ??
+              0
+            ),
+          0
+        );
+   
+      updateLocalOrder(
+        order.id,
+        {
+          inventoryReservationStatus:
+            data.fulfillmentRun?.status ??
+            "INVENTORY_RESERVED",
+   
+          inventoryReserved:
+            true,
+   
+          inventoryAllocationCount:
+            allocations.length,
+   
+          inventoryCost,
+        }
+      );
+    } catch (
+      caughtError
+    ) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Unable to reserve inventory."
+      );
+    } finally {
+      setReservingOrderId(
+        null
+      );
+    }
+   }
+   
+
+
+
+
+
 
  return (
    <div>
@@ -477,7 +694,37 @@ export default function FulfillmentBoard({
                            </span>
                          </div>
 
+
+                         <div className="mt-4 flex items-center gap-2">
+ <span className="text-xs font-medium text-[#766B62]">
+   Payment:
+ </span>
+
+ <span
+   className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+     order.paymentStatus ===
+     "PAID"
+       ? "bg-green-100 text-green-800"
+       : order.paymentStatus ===
+         "PAYMENT_FAILED"
+         ? "bg-red-100 text-red-800"
+         : "bg-gray-100 text-gray-700"
+   }`}>
+
+   {order.paymentStatus.replaceAll(
+     "_",
+     " "
+   )}
+ </span>
+</div>
+
+
+
                          <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+
+
+
+
                            <div>
                              <p className="text-[#766B62]">
                                Plan
@@ -523,29 +770,196 @@ export default function FulfillmentBoard({
                            </div>
                          </div>
 
+
+
                          <div className="mt-4 rounded-xl bg-[#F8F5F1] p-3">
                            <p className="text-xs font-semibold uppercase tracking-wide text-[#766B62]">
                              Routine
                            </p>
 
-                           <div className="mt-2 space-y-1">
-                             {order.items.map(
-                               (
-                                 item
-                               ) => (
-                                 <p
-                                   key={
-                                     item.id
-                                   }
-                                   className="text-sm text-[#302A25]">
 
-                                   {item.productName} ·{" "}
-                                   {item.timing}
-                                 </p>
-                               )
-                             )}
+
+
+                           <div className="mt-2 space-y-1">
+                             
+                             
+                             
+
+
+                           {order.items.map(
+ (
+   item
+ ) => {
+   const itemAllocations =
+     order.inventoryAllocations.filter(
+       (
+         allocation
+       ) =>
+         allocation.orderItemId ===
+         item.id
+     );
+
+   return (
+     <div
+       key={
+         item.id
+       }
+       className="rounded-xl border border-[#E7DED5] bg-white/70 p-3">
+
+       <p className="text-sm font-medium text-[#302A25]">
+         {item.productName} ·{" "}
+         {item.timing}
+       </p>
+
+       <p className="mt-0.5 text-xs text-[#766B62]">
+         {item.monthlyUnitCount}{" "}
+         {item.unitLabel}
+         {item.monthlyUnitCount ===
+         1
+           ? ""
+           : "s"}{" "}
+         for this fulfillment
+       </p>
+
+       {itemAllocations.length >
+       0 ? (
+         <div className="mt-3 space-y-2">
+           {itemAllocations.map(
+             (
+               allocation
+             ) => (
+               <div
+                 key={
+                   allocation.id
+                 }
+                 className="rounded-lg bg-[#F7F3EE] px-3 py-2 text-xs text-[#665C54]">
+
+                 <div className="flex flex-wrap items-center justify-between gap-2">
+                   <span className="font-medium text-[#302A25]">
+                     {
+                       allocation.bottleCode
+                     }
+                   </span>
+
+                   <span>
+                     {
+                       allocation.quantity
+                     }{" "}
+                     {
+                       allocation.unitLabel
+                     }
+                     {allocation.quantity ===
+                     1
+                       ? ""
+                       : "s"}
+                   </span>
+                 </div>
+
+                 {allocation.manufacturerLotNumber ? (
+                   <p className="mt-1">
+                     Lot:{" "}
+                     {
+                       allocation.manufacturerLotNumber
+                     }
+                   </p>
+                 ) : null}
+
+                 {allocation.expirationDate ? (
+                   <p className="mt-1">
+                     Expires:{" "}
+                     {new Date(
+                       allocation.expirationDate
+                     ).toLocaleDateString()}
+                   </p>
+                 ) : null}
+
+                 <p className="mt-1">
+                   Cost: $
+                   {allocation.totalCost.toFixed(
+                     2
+                   )}
+                 </p>
+               </div>
+             )
+           )}
+         </div>
+       ) : order.inventoryReserved ? (
+         <p className="mt-2 text-xs text-[#9A6B47]">
+           No bottle allocation found for this item.
+         </p>
+       ) : null}
+     </div>
+   );
+ }
+)}
+
+
+
+
+
                            </div>
                          </div>
+
+
+<div className="mt-4 rounded-xl border border-[#E5DCD2] bg-[#FCFAF7] p-3">
+ <div className="flex items-start justify-between gap-3">
+   <div>
+     <p className="text-xs font-semibold uppercase tracking-wide text-[#766B62]">
+       Inventory
+     </p>
+
+     {order.inventoryReserved ? (
+       <div className="mt-2">
+         <p className="text-sm font-semibold text-green-800">
+           Inventory reserved
+         </p>
+
+         <p className="mt-1 text-xs leading-5 text-[#665C54]">
+           {order.inventoryAllocationCount}{" "}
+           {order.inventoryAllocationCount ===
+           1
+             ? "bottle allocation"
+             : "bottle allocations"}
+           {" · "}
+           {formatMoney(
+             order.inventoryCost
+           )} supplement cost
+         </p>
+       </div>
+     ) : (
+       <p className="mt-2 text-sm text-[#665C54]">
+         Inventory has not been reserved for this order yet.
+       </p>
+     )}
+   </div>
+ </div>
+
+ {!order.inventoryReserved ? (
+   <button
+     type="button"
+     disabled={
+       reservingOrderId ===
+       order.id
+     }
+     onClick={() => {
+       void reserveInventory(
+         order
+       );
+     }}
+     className="mt-3 w-full rounded-full border border-[#7D0E1C] bg-white px-4 py-2.5 text-sm font-semibold text-[#7D0E1C] transition hover:bg-[#FFF8F6] disabled:cursor-not-allowed disabled:opacity-60">
+
+     {reservingOrderId ===
+     order.id
+       ? "Reserving inventory..."
+       : "Reserve inventory"}
+   </button>
+ ) : null}
+</div>
+
+
+
+
+
 
                          <label className="mt-4 block text-sm font-medium text-[#302A25]">
                            Fulfillment status

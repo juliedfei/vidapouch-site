@@ -137,21 +137,15 @@ enum ProductResearchStatus {
   FAILED
 }
 
-
-
 enum SearchIntentType {
-SUPPLEMENT
-HEALTH_GOAL
-HEALTH_CONDITION
-LIFE_STAGE
-BRAND
-DOCTOR_TYPE
-INVALID
+  SUPPLEMENT
+  HEALTH_GOAL
+  HEALTH_CONDITION
+  LIFE_STAGE
+  BRAND
+  DOCTOR_TYPE
+  INVALID
 }
-
-
-
-
 
 enum SearchIntentSource {
   MANUAL
@@ -944,22 +938,18 @@ enum VidaPouchPurchaseOption {
 }
 
 enum VidaPouchSalesMode {
-STRIPE
-WAITLIST
-PAUSED
+  STRIPE
+  WAITLIST
+  PAUSED
 }
 
 enum VidaPouchWaitlistStatus {
-NEW
-CONTACTED
-READY_TO_ORDER
-CONVERTED
-DECLINED
+  NEW
+  CONTACTED
+  READY_TO_ORDER
+  CONVERTED
+  DECLINED
 }
-
-
-
-
 
 enum VidaPouchOrderStatus {
   PENDING
@@ -970,15 +960,13 @@ enum VidaPouchOrderStatus {
 }
 
 enum VidaPouchFulfillmentStatus {
-NEW
-PREPARING
-PACKED
-SHIPPED
-COMPLETED
-ON_HOLD
+  NEW
+  PREPARING
+  PACKED
+  SHIPPED
+  COMPLETED
+  ON_HOLD
 }
-
-
 
 enum VidaPouchWebhookStatus {
   PROCESSING
@@ -986,24 +974,17 @@ enum VidaPouchWebhookStatus {
   FAILED
 }
 
-
 model VidaPouchCommerceSetting {
-id String @id @default(cuid())
+  id String @id @default(cuid())
 
-salesMode VidaPouchSalesMode @default(WAITLIST)
+  salesMode VidaPouchSalesMode @default(WAITLIST)
 
-updatedBy String?
-notes     String?
+  updatedBy String?
+  notes     String?
 
-createdAt DateTime @default(now())
-updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
-
-
-
-
-
-
 
 model VidaPouchPricingVersion {
   id String @id @default(cuid())
@@ -1256,13 +1237,9 @@ model MarketplaceSearchCache {
 model VidaPouchOrder {
   id String @id @default(cuid())
 
-purchaseOption   VidaPouchPurchaseOption
-status           VidaPouchOrderStatus       @default(PENDING)
-fulfillmentStatus VidaPouchFulfillmentStatus @default(NEW)
-
-
-
-
+  purchaseOption    VidaPouchPurchaseOption
+  status            VidaPouchOrderStatus       @default(PENDING)
+  fulfillmentStatus VidaPouchFulfillmentStatus @default(NEW)
 
   planKey  String
   planName String
@@ -1290,42 +1267,34 @@ fulfillmentStatus VidaPouchFulfillmentStatus @default(NEW)
   shippingName    String?
   shippingAddress Json?
 
-paidAt     DateTime?
-canceledAt DateTime?
-refundedAt DateTime?
+  paidAt     DateTime?
+  canceledAt DateTime?
+  refundedAt DateTime?
 
-preparingAt DateTime?
-packedAt    DateTime?
-shippedAt   DateTime?
-completedAt DateTime?
-onHoldAt    DateTime?
+  preparingAt DateTime?
+  packedAt    DateTime?
+  shippedAt   DateTime?
+  completedAt DateTime?
+  onHoldAt    DateTime?
 
-trackingNumber String?
-shippingCarrier String?
-fulfillmentNotes String?
+  trackingNumber   String?
+  shippingCarrier  String?
+  fulfillmentNotes String?
 
+  cancelAtPeriodEnd       Boolean   @default(false)
+  cancellationScheduledAt DateTime?
+  scheduledCancellationAt DateTime?
+  cancellationReason      String?
 
-
-
-cancelAtPeriodEnd       Boolean  @default(false)
-cancellationScheduledAt DateTime?
-scheduledCancellationAt DateTime?
-cancellationReason      String?
-
-
-
-
-
-  items         VidaPouchOrderItem[]
-  billingCycles VidaPouchBillingCycle[]
+  items           VidaPouchOrderItem[]
+  billingCycles   VidaPouchBillingCycle[]
+  fulfillmentRuns VidaPouchFulfillmentRun[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([status])
-@@index([fulfillmentStatus])
-
-
+  @@index([fulfillmentStatus])
   @@index([purchaseOption])
   @@index([stripeCustomerId])
   @@index([customerEmail])
@@ -1361,6 +1330,8 @@ model VidaPouchOrderItem {
 
   shoppingProductId         String?
   immersiveProductPageToken String?
+
+  inventoryAllocations VidaPouchInventoryAllocation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1414,6 +1385,8 @@ model VidaPouchBillingCycle {
   paidAt   DateTime?
   failedAt DateTime?
 
+  fulfillmentRun VidaPouchFulfillmentRun?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1422,86 +1395,368 @@ model VidaPouchBillingCycle {
   @@index([createdAt])
 }
 
-
 model VidaPouchWaitlistEntry {
-id String @id @default(cuid())
+  id String @id @default(cuid())
 
-status VidaPouchWaitlistStatus @default(NEW)
+  status VidaPouchWaitlistStatus @default(NEW)
 
-customerEmail String
-customerName  String?
-customerPhone String?
+  customerEmail String
+  customerName  String?
+  customerPhone String?
 
-purchaseOption VidaPouchPurchaseOption
+  purchaseOption VidaPouchPurchaseOption
 
-planKey  String
-planName String
+  planKey  String
+  planName String
 
-supplementCount Int
+  supplementCount Int
 
-estimatedPlanPrice  Decimal @db.Decimal(10, 2)
-estimatedOverageFee Decimal @db.Decimal(10, 2)
-estimatedTotalPrice Decimal @db.Decimal(10, 2)
+  estimatedPlanPrice  Decimal @db.Decimal(10, 2)
+  estimatedOverageFee Decimal @db.Decimal(10, 2)
+  estimatedTotalPrice Decimal @db.Decimal(10, 2)
 
-currency String @default("usd")
+  currency String @default("usd")
 
-pricingVersionId    String?
-pricingCalculatedAt DateTime?
+  pricingVersionId    String?
+  pricingCalculatedAt DateTime?
 
-adminNotes String?
-contactedAt DateTime?
-readyToOrderAt DateTime?
-convertedAt DateTime?
-declinedAt DateTime?
+  adminNotes     String?
+  contactedAt    DateTime?
+  readyToOrderAt DateTime?
+  convertedAt    DateTime?
+  declinedAt     DateTime?
 
-items VidaPouchWaitlistItem[]
+  items VidaPouchWaitlistItem[]
 
-createdAt DateTime @default(now())
-updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-@@index([status])
-@@index([customerEmail])
-@@index([createdAt])
+  @@index([status])
+  @@index([customerEmail])
+  @@index([createdAt])
 }
 
 model VidaPouchWaitlistItem {
-id String @id @default(cuid())
+  id String @id @default(cuid())
 
-waitlistEntryId String
-waitlistEntry   VidaPouchWaitlistEntry @relation(fields: [waitlistEntryId], references: [id], onDelete: Cascade)
+  waitlistEntryId String
+  waitlistEntry   VidaPouchWaitlistEntry @relation(fields: [waitlistEntryId], references: [id], onDelete: Cascade)
 
-pouchItemId String
+  pouchItemId String
 
-productName String
-brand       String
-retailer    String
+  productName String
+  brand       String
+  retailer    String
 
-dosage    String?
-form      String?
-unitLabel String
+  dosage    String?
+  form      String?
+  unitLabel String
 
-unitsPerDay      Decimal @db.Decimal(10, 2)
-monthlyUnitCount Decimal @db.Decimal(10, 2)
+  unitsPerDay      Decimal @db.Decimal(10, 2)
+  monthlyUnitCount Decimal @db.Decimal(10, 2)
 
-timing           String
-timingPreference String
+  timing           String
+  timingPreference String
 
-bottlePrice     Decimal @db.Decimal(10, 2)
-bottleUnitCount Int
+  bottlePrice     Decimal @db.Decimal(10, 2)
+  bottleUnitCount Int
 
-liveProductUrl String?
+  liveProductUrl String?
 
-shoppingProductId         String?
-immersiveProductPageToken String?
+  shoppingProductId         String?
+  immersiveProductPageToken String?
 
-createdAt DateTime @default(now())
-updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-@@index([waitlistEntryId])
-@@index([shoppingProductId])
+  @@index([waitlistEntryId])
+  @@index([shoppingProductId])
 }
 
+enum VidaPouchInventoryBottleStatus {
+  QUARANTINED
+  AVAILABLE
+  LOW_STOCK
+  DEPLETED
+  EXPIRED
+  RECALLED
+  DISCARDED
+}
 
+enum VidaPouchInventoryMovementType {
+  RECEIVED
+  RESERVED
+  RELEASED
+  CONSUMED
+  ADJUSTMENT_IN
+  ADJUSTMENT_OUT
+  DISCARDED
+  RECALL_HOLD
+}
 
+model VidaPouchInventoryProduct {
+  id String @id @default(cuid())
 
+  /**
+   * Stable identity for this product inside the
+   * VidaPouch inventory system.
+   * Example:
+   * "thorne|magnesium-bisglycinate|90-capsules"
+   */
+  normalizedKey String @unique
 
+  productName String
+  brand       String
+
+  dosage    String?
+  form      String?
+  unitLabel String
+
+  /**
+   * Optional connection back to the marketplace
+   * product identity used by VidaSearch.
+   */
+  shoppingProductId String?
+
+  /**
+   * Allows an inventory product to remain in
+   * historical records even if VidaPouch stops
+   * purchasing it.
+   */
+  active Boolean @default(true)
+
+  /**
+   * Quantity at which the admin inventory screen
+   * should flag this product for reordering.
+   */
+  reorderThreshold Decimal? @db.Decimal(10, 2)
+
+  notes String?
+
+  bottles VidaPouchInventoryBottle[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([brand])
+  @@index([productName])
+  @@index([shoppingProductId])
+  @@index([active])
+}
+
+model VidaPouchInventoryBottle {
+  id String @id @default(cuid())
+
+  /**
+   * VidaPouch's internal bottle identifier.
+   * Example:
+   * VP-BTL-000127
+   */
+  bottleCode String @unique
+
+  inventoryProductId String
+  inventoryProduct   VidaPouchInventoryProduct @relation(fields: [inventoryProductId], references: [id], onDelete: Restrict)
+
+  /**
+   * Manufacturer traceability information.
+   */
+  manufacturerLotNumber String?
+  expirationDate        DateTime?
+
+  /**
+   * Where this specific bottle was purchased.
+   */
+  supplier            String?
+  supplierOrderNumber String?
+
+  purchaseDate DateTime?
+  receivedAt   DateTime  @default(now())
+  openedAt     DateTime?
+
+  status VidaPouchInventoryBottleStatus @default(QUARANTINED)
+
+  /**
+   * Actual acquisition cost for this specific bottle.
+   */
+  bottleCost Decimal @db.Decimal(10, 2)
+
+  allocatedShippingCost Decimal @default(0) @db.Decimal(10, 2)
+  allocatedTaxCost      Decimal @default(0) @db.Decimal(10, 2)
+
+  /**
+   * bottleCost + allocated shipping + allocated tax.
+   * This is stored historically rather than recalculated
+   * from today's retail price.
+   */
+  landedCost Decimal @db.Decimal(10, 2)
+
+  /**
+   * Quantities are decimal rather than integer so the
+   * system can support products whose usable unit may
+   * eventually involve fractional servings.
+   */
+  originalUnitCount Decimal @db.Decimal(10, 2)
+
+  remainingUnitCount Decimal @db.Decimal(10, 2)
+
+  reservedUnitCount Decimal @default(0) @db.Decimal(10, 2)
+
+  storageLocation String?
+
+  notes String?
+
+  movements   VidaPouchInventoryMovement[]
+  allocations VidaPouchInventoryAllocation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([inventoryProductId])
+  @@index([status])
+  @@index([manufacturerLotNumber])
+  @@index([expirationDate])
+  @@index([receivedAt])
+}
+
+model VidaPouchInventoryMovement {
+  id String @id @default(cuid())
+
+  bottleId String
+  bottle   VidaPouchInventoryBottle @relation(fields: [bottleId], references: [id], onDelete: Restrict)
+
+  movementType VidaPouchInventoryMovementType
+
+  /**
+   * Always store quantity as a positive number.
+   * movementType determines whether inventory is
+   * entering, leaving, being reserved, or released.
+   */
+  quantity Decimal @db.Decimal(10, 2)
+
+  /**
+   * These fields allow us to connect a movement to
+   * an order, fulfillment run, adjustment, recall,
+   * or another future business record without
+   * weakening the inventory audit trail.
+   */
+  referenceType String?
+  referenceId   String?
+
+  reason String?
+
+  createdBy String?
+
+  createdAt DateTime @default(now())
+
+  @@index([bottleId])
+  @@index([movementType])
+  @@index([referenceType, referenceId])
+  @@index([createdAt])
+}
+
+enum VidaPouchFulfillmentRunStatus {
+  PENDING
+  INVENTORY_RESERVED
+  ASSEMBLING
+  COMPLETED
+  CANCELED
+}
+
+model VidaPouchFulfillmentRun {
+  id String @id @default(cuid())
+
+  /**
+   * The customer order this fulfillment belongs to.
+   * A one-time order will normally have one fulfillment run.
+   * A subscription may have a new fulfillment run for each
+   * monthly billing cycle.
+   */
+  orderId String
+  order   VidaPouchOrder @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  /**
+   * Subscription renewals can point to the exact billing
+   * cycle that caused this fulfillment.
+   * This remains null for a normal one-time order.
+   */
+  billingCycleId String?                @unique
+  billingCycle   VidaPouchBillingCycle? @relation(fields: [billingCycleId], references: [id], onDelete: Restrict)
+
+  status VidaPouchFulfillmentRunStatus @default(PENDING)
+
+  /**
+   * Actual customer revenue associated with this
+   * fulfillment occurrence. We snapshot it here so
+   * historical profitability does not change later.
+   */
+  revenueAmount Decimal @db.Decimal(10, 2)
+
+  currency String @default("usd")
+
+  inventoryReservedAt DateTime?
+  assemblingAt        DateTime?
+  completedAt         DateTime?
+  canceledAt          DateTime?
+
+  notes String?
+
+  allocations VidaPouchInventoryAllocation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model VidaPouchInventoryAllocation {
+  id String @id @default(cuid())
+
+  fulfillmentRunId String
+  fulfillmentRun   VidaPouchFulfillmentRun @relation(fields: [fulfillmentRunId], references: [id], onDelete: Restrict)
+
+  /**
+   * The exact supplement line from the customer's
+   * VidaPouch order.
+   */
+  orderItemId String
+  orderItem   VidaPouchOrderItem @relation(fields: [orderItemId], references: [id], onDelete: Restrict)
+
+  /**
+   * The exact physical source bottle used.
+   */
+  bottleId String
+  bottle   VidaPouchInventoryBottle @relation(fields: [bottleId], references: [id], onDelete: Restrict)
+
+  /**
+   * Number of units taken from this bottle for this
+   * customer fulfillment.
+   */
+  quantity Decimal @db.Decimal(10, 2)
+
+  /**
+   * Historical cost snapshot.
+   * Example:
+   * Bottle landed cost = $30
+   * Bottle units = 90
+   * unitCostSnapshot = $0.333333
+   * Once this allocation exists, later bottle-price
+   * changes cannot alter the historical order profit.
+   */
+  unitCostSnapshot Decimal @db.Decimal(12, 6)
+
+  totalCostSnapshot Decimal @db.Decimal(10, 2)
+
+  reservedAt DateTime  @default(now())
+  consumedAt DateTime?
+  releasedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([fulfillmentRunId])
+  @@index([orderItemId])
+  @@index([bottleId])
+  @@index([createdAt])
+}

@@ -16,10 +16,8 @@ import {
    } from "@/lib/admin/adminSession";
    
    import FulfillmentBoard from "@/components/admin/FulfillmentBoard";
-
+   
    import AdminNavigation from "@/components/admin/AdminNavigation";
-
-
    
    export const dynamic =
     "force-dynamic";
@@ -71,6 +69,61 @@ import {
                   "asc",
               },
             },
+   
+            fulfillmentRuns: {
+              where: {
+                billingCycleId:
+                  null,
+              },
+   
+              orderBy: {
+                createdAt:
+                  "desc",
+              },
+   
+              take:
+                1,
+   
+
+
+                include: {
+                    allocations: {
+                      include: {
+                        bottle: {
+                          select: {
+                            bottleCode:
+                              true,
+                   
+                            manufacturerLotNumber:
+                              true,
+                   
+                            expirationDate:
+                              true,
+                          },
+                        },
+                   
+                        orderItem: {
+                          select: {
+                            id:
+                              true,
+                   
+                            productName:
+                              true,
+                   
+                            brand:
+                              true,
+                   
+                            unitLabel:
+                              true,
+                          },
+                        },
+                      },
+                    },
+                   },
+
+
+
+            },
           },
         });
    
@@ -78,101 +131,203 @@ import {
       orders.map(
         (
           order
-        ) => ({
-          id:
-            order.id,
+        ) => {
+          const fulfillmentRun =
+            order.fulfillmentRuns[0] ??
+            null;
    
-          customerName:
-            order.customerName,
+          const inventoryCost =
+            fulfillmentRun
+              ? fulfillmentRun.allocations.reduce(
+                  (
+                    total,
+                    allocation
+                  ) =>
+                    total +
+                    Number(
+                      allocation.totalCostSnapshot
+                    ),
+                  0
+                )
+              : 0;
    
-          customerEmail:
-            order.customerEmail,
+          return {
+            id:
+              order.id,
    
-          planName:
-            order.planName,
+            customerName:
+              order.customerName,
    
-          supplementCount:
-            order.supplementCount,
+            customerEmail:
+              order.customerEmail,
    
-          totalPrice:
-            Number(
-              order.totalPrice
-            ),
+            planName:
+              order.planName,
    
-          purchaseOption:
-            order.purchaseOption,
+            supplementCount:
+              order.supplementCount,
    
-          fulfillmentStatus:
-            order.fulfillmentStatus,
+            totalPrice:
+              Number(
+                order.totalPrice
+              ),
    
-          trackingNumber:
-            order.trackingNumber,
+
+
+
+              purchaseOption:
+              order.purchaseOption,
+             
+             paymentStatus:
+              order.status,
+             
+             fulfillmentStatus:
+              order.fulfillmentStatus,
+             
+
+
+
    
-          shippingCarrier:
-            order.shippingCarrier,
+            trackingNumber:
+              order.trackingNumber,
    
-          fulfillmentNotes:
-            order.fulfillmentNotes,
+            shippingCarrier:
+              order.shippingCarrier,
    
-          createdAt:
-            order.createdAt.toISOString(),
+            fulfillmentNotes:
+              order.fulfillmentNotes,
    
-          items:
-            order.items.map(
-              (
-                item
-              ) => ({
-                id:
-                  item.id,
+            createdAt:
+              order.createdAt.toISOString(),
    
-                productName:
-                  item.productName,
+            inventoryReservationStatus:
+              fulfillmentRun?.status ??
+              null,
    
-                brand:
-                  item.brand,
+            inventoryReserved:
+              fulfillmentRun?.status ===
+                "INVENTORY_RESERVED" ||
+              fulfillmentRun?.status ===
+                "ASSEMBLING" ||
+              fulfillmentRun?.status ===
+                "COMPLETED",
    
-                timing:
-                  item.timing,
-              })
-            ),
-        })
+
+
+
+
+
+           inventoryAllocationCount:
+ fulfillmentRun?.allocations.length ??
+ 0,
+
+inventoryCost,
+
+inventoryAllocations:
+ fulfillmentRun
+   ?.allocations
+   .map(
+     (
+       allocation
+     ) => ({
+       id:
+         allocation.id,
+
+       orderItemId:
+         allocation.orderItemId,
+
+       productName:
+         allocation.orderItem.productName,
+
+       brand:
+         allocation.orderItem.brand,
+
+       unitLabel:
+         allocation.orderItem.unitLabel,
+
+       bottleCode:
+         allocation.bottle.bottleCode,
+
+       manufacturerLotNumber:
+         allocation.bottle.manufacturerLotNumber,
+
+       expirationDate:
+         allocation.bottle.expirationDate
+           ? allocation.bottle.expirationDate.toISOString()
+           : null,
+
+       quantity:
+         Number(
+           allocation.quantity
+         ),
+
+       totalCost:
+         Number(
+           allocation.totalCostSnapshot
+         ),
+     })
+   ) ??
+ [],
+
+items:
+ order.items.map(
+   (
+     item
+   ) => ({
+     id:
+       item.id,
+
+     productName:
+       item.productName,
+
+     brand:
+       item.brand,
+
+     timing:
+       item.timing,
+
+     monthlyUnitCount:
+       Number(
+         item.monthlyUnitCount
+       ),
+
+     unitLabel:
+       item.unitLabel,
+   })
+ ),
+
+
+
+
+
+
+          };
+        }
       );
    
     return (
       <main className="min-h-screen bg-[#F7F3EE] px-4 py-10 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-[1600px]">
-          
-          
-          
-          
-          
-        <div className="flex flex-col gap-5">
- <div>
-   <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#8B6F58]">
-     VidaPouch Admin
-   </p>
-
-   <h1 className="mt-2 text-3xl font-semibold text-[#26211D]">
-     Fulfillment
-   </h1>
-
-   <p className="mt-2 text-[#665C54]">
-     Track orders from preparation through shipment and completion.
-   </p>
- </div>
-
- <AdminNavigation
-   currentPage="fulfillment"
- />
-</div>
-
+          <div className="flex flex-col gap-5">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#8B6F58]">
+                VidaPouch Admin
+              </p>
    
-
-
-
-
-
-
+              <h1 className="mt-2 text-3xl font-semibold text-[#26211D]">
+                Fulfillment
+              </h1>
+   
+              <p className="mt-2 text-[#665C54]">
+                Track orders from preparation through shipment and completion.
+              </p>
+            </div>
+   
+            <AdminNavigation
+              currentPage="fulfillment"
+            />
+          </div>
+   
           <div className="mt-8">
             <FulfillmentBoard
               initialOrders={
@@ -184,4 +339,3 @@ import {
       </main>
     );
    }
-   
