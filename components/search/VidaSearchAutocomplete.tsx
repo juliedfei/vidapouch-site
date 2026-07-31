@@ -14,22 +14,32 @@ import {
  createPortal,
 } from "react-dom";
 
+
+
+
 type SearchSuggestion = {
- id:
-   string;
+    id:
+      string;
+    
+    label:
+      string;
+    
+    query:
+      string;
+    
+    type:
+      | "supplement"
+      | "goal"
+      | "condition"
+      | "life-stage"
+      | "brand"
+      | "search";
+    };
+    
 
- label:
-   string;
 
- query:
-   string;
 
- type:
-   | "supplement"
-   | "goal"
-   | "brand"
-   | "search";
-};
+
 
 type SuggestionResponse = {
  suggestions?:
@@ -82,27 +92,42 @@ const MAX_VISIBLE_SUGGESTIONS =
 const DROPDOWN_GAP_PX =
  10;
 
-function getSuggestionTypeLabel(
- type:
-   SearchSuggestion["type"]
-) {
- switch (
-   type
- ) {
-   case "supplement":
-     return "Supplement";
 
-   case "goal":
-     return "Goal";
 
-   case "brand":
-     return "Brand";
 
-   case "search":
-   default:
-     return "Search";
- }
-}
+ function getSuggestionTypeLabel(
+    type:
+      SearchSuggestion["type"]
+    ) {
+    switch (
+      type
+    ) {
+      case "supplement":
+        return "Supplement";
+    
+      case "goal":
+        return "Goal";
+    
+      case "condition":
+        return "Condition";
+    
+      case "life-stage":
+        return "Life Stage";
+    
+      case "brand":
+        return "Brand";
+    
+      case "search":
+      default:
+        return "Search";
+    }
+    }
+    
+
+
+
+
+
 
 function isSearchSuggestion(
  value:
@@ -129,16 +154,27 @@ function isSearchSuggestion(
      "string" &&
    typeof suggestion.query ===
      "string" &&
-   (
-     suggestion.type ===
-       "supplement" ||
-     suggestion.type ===
-       "goal" ||
-     suggestion.type ===
-       "brand" ||
-     suggestion.type ===
-       "search"
-   )
+   
+   
+   
+   
+     (
+        suggestion.type ===
+          "supplement" ||
+        suggestion.type ===
+          "goal" ||
+        suggestion.type ===
+          "condition" ||
+        suggestion.type ===
+          "life-stage" ||
+        suggestion.type ===
+          "brand" ||
+        suggestion.type ===
+          "search"
+       )
+
+
+
  );
 }
 

@@ -24,11 +24,19 @@ import {
    const DATABASE_RESULT_LIMIT =
     12;
    
-   type SuggestionType =
+
+
+
+    type SuggestionType =
     | "supplement"
     | "goal"
+    | "condition"
+    | "life-stage"
     | "brand"
     | "search";
+
+
+
    
    type SearchSuggestion = {
     id:
@@ -376,22 +384,41 @@ import {
     );
    }
    
-   async function findGoalSuggestions(
+
+
+
+
+   async function findHealthTopicSuggestions(
     query:
       string
    ): Promise<
     SearchSuggestion[]
-   >{
+  > {
     const intents =
       await prisma.searchIntent.findMany({
         where: {
-          intentType:
-            SearchIntentType
-              .HEALTH_GOAL,
+          intentType: {
+            in: [
+              SearchIntentType
+                .HEALTH_GOAL,
    
-          reviewStatus:
-            SearchIntentReviewStatus
-              .ACTIVE,
+              SearchIntentType
+                .HEALTH_CONDITION,
+   
+              SearchIntentType
+                .LIFE_STAGE,
+            ],
+          },
+   
+          reviewStatus: {
+            in: [
+              SearchIntentReviewStatus
+                .ACTIVE,
+   
+              SearchIntentReviewStatus
+                .NEEDS_REVIEW,
+            ],
+          },
    
           OR: [
             {
@@ -438,6 +465,9 @@ import {
             true,
    
           normalizedKey:
+            true,
+   
+          intentType:
             true,
    
           usageCount:
@@ -491,9 +521,32 @@ import {
             ?.alias ??
           null;
    
+        const suggestionType:
+          SuggestionType =
+          intent.intentType ===
+            SearchIntentType
+              .HEALTH_CONDITION
+            ? "condition"
+            : intent.intentType ===
+                SearchIntentType
+                  .LIFE_STAGE
+              ? "life-stage"
+              : "goal";
+   
+        const baseScore =
+          intent.intentType ===
+            SearchIntentType
+              .HEALTH_GOAL
+            ? 300
+            : intent.intentType ===
+                SearchIntentType
+                  .HEALTH_CONDITION
+              ? 290
+              : 280;
+   
         return {
           id:
-            `goal:${intent.id}`,
+            `${suggestionType}:${intent.id}`,
    
           label:
             intent.displayName,
@@ -502,7 +555,7 @@ import {
             intent.displayName,
    
           type:
-            "goal",
+            suggestionType,
    
           score:
             calculateMatchScore({
@@ -515,7 +568,7 @@ import {
                 matchingAlias,
    
               baseScore:
-                300 +
+                baseScore +
                 Math.min(
                   intent.usageCount,
                   25
@@ -525,6 +578,11 @@ import {
       }
     );
    }
+
+
+
+
+
    
    async function findBrandSuggestions(
     query:
@@ -697,31 +755,43 @@ import {
     }
    
     try {
-      const [
-        supplementSuggestions,
-        goalSuggestions,
-        brandSuggestions,
-      ] =
-        await Promise.all([
-          findSupplementSuggestions(
-            query
-          ),
+      
+      
+      
+        const [
+            supplementSuggestions,
+            healthTopicSuggestions,
+            brandSuggestions,
+           ] =
+            await Promise.all([
+              findSupplementSuggestions(
+                query
+              ),
+           
+              findHealthTopicSuggestions(
+                query
+              ),
+           
+              findBrandSuggestions(
+                query
+              ),
+            ]);
+           
+
+
+
+
    
-          findGoalSuggestions(
-            query
-          ),
-   
-          findBrandSuggestions(
-            query
-          ),
-        ]);
-   
-      const databaseSuggestions =
-        deduplicateSuggestions([
-          ...supplementSuggestions,
-          ...goalSuggestions,
-          ...brandSuggestions,
-        ]);
+            const databaseSuggestions =
+            deduplicateSuggestions([
+              ...supplementSuggestions,
+              ...healthTopicSuggestions,
+              ...brandSuggestions,
+            ]);
+
+
+
+
    
       const hasExactSuggestion =
         databaseSuggestions.some(
