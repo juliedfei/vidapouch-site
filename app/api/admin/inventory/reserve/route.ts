@@ -253,10 +253,18 @@ import {
                         billingCycleId,
                       },
    
+
+
                       include: {
-                        allocations:
-                          true,
-                      },
+                        allocations: {
+                          where: {
+                            releasedAt:
+                              null,
+                          },
+                        },
+                       },
+
+
                     })
                 : await tx
                     .vidaPouchFulfillmentRun
@@ -270,9 +278,15 @@ import {
                       },
    
                       include: {
-                        allocations:
-                          true,
-                      },
+                        allocations: {
+                          where: {
+                            releasedAt:
+                              null,
+                          },
+                        },
+                       },
+
+
                     });
    
             if (
@@ -545,17 +559,30 @@ import {
                       new Date(),
                   },
    
+
+
                   include: {
                     allocations: {
+                      where: {
+                        releasedAt:
+                          null,
+                      },
+                   
                       include: {
                         bottle:
                           true,
-   
+                   
                         orderItem:
                           true,
                       },
                     },
-                  },
+                   },
+                   
+                   
+
+
+
+
                 });
    
             return updatedRun;

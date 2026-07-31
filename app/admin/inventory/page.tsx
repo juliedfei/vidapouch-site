@@ -26,6 +26,7 @@ import {
 
    import InventoryBottleStatusControl from "@/components/admin/InventoryBottleStatusControl";
 
+   import InventoryBottleActions from "@/components/admin/InventoryBottleActions";
 
 
 
@@ -561,6 +562,16 @@ import {
                                 <th className="pb-3 pr-5 font-medium">
                                   Landed cost
                                 </th>
+
+                                <th className="pb-3 text-right font-medium">
+ Actions
+</th>
+
+
+
+
+
+
                               </tr>
                             </thead>
    
@@ -627,6 +638,8 @@ import {
                                       {bottle.reservedUnitCount.toString()}
                                     </td>
    
+
+
                                     <td className="py-3 pr-5 text-[#665C54]">
                                       {formatMoney(
                                         Number(
@@ -634,6 +647,62 @@ import {
                                         )
                                       )}
                                     </td>
+
+                                    <td className="py-3 text-right">
+ <InventoryBottleActions
+   bottle={{
+     id:
+       bottle.id,
+
+     bottleCode:
+       bottle.bottleCode,
+
+     manufacturerLotNumber:
+       bottle.manufacturerLotNumber,
+
+     expirationDate:
+       bottle.expirationDate
+         ? bottle.expirationDate.toISOString()
+         : null,
+
+     supplier:
+       bottle.supplier,
+
+     supplierOrderNumber:
+       bottle.supplierOrderNumber,
+
+     purchaseDate:
+       bottle.purchaseDate
+         ? bottle.purchaseDate.toISOString()
+         : null,
+
+     bottleCost:
+       Number(
+         bottle.bottleCost
+       ),
+
+     allocatedShippingCost:
+       Number(
+         bottle.allocatedShippingCost
+       ),
+
+     allocatedTaxCost:
+       Number(
+         bottle.allocatedTaxCost
+       ),
+
+     storageLocation:
+       bottle.storageLocation,
+
+     notes:
+       bottle.notes,
+   }}
+ />
+</td>
+
+
+
+
                                   </tr>
                                 )
                               )}

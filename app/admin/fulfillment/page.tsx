@@ -88,6 +88,11 @@ import {
 
                 include: {
                     allocations: {
+                      where: {
+                        releasedAt:
+                          null,
+                      },
+                   
                       include: {
                         bottle: {
                           select: {
@@ -120,6 +125,7 @@ import {
                       },
                     },
                    },
+                   
 
 
 

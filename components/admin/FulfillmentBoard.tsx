@@ -321,6 +321,36 @@ const [
 
 
 
+
+   const [
+    releasingOrderId,
+    setReleasingOrderId,
+   ] = useState<
+    string |
+    null
+   >(null);
+
+
+   const [
+    assemblingOrderId,
+    setAssemblingOrderId,
+   ] = useState<
+    string |
+    null
+   >(null);
+
+
+   const [
+    undoingAssemblyOrderId,
+    setUndoingAssemblyOrderId,
+   ] = useState<
+    string |
+    null
+   >(null);
+
+
+
+
  const [
    error,
    setError,
@@ -462,7 +492,9 @@ const [
          ? caughtError.message
          : "Unable to save fulfillment changes."
      );
-   } finally {
+  
+  
+    } finally {
      setSavingOrderId(
        null
      );
@@ -583,6 +615,277 @@ const [
    }
    
 
+   async function releaseInventory(
+    order:
+      FulfillmentOrder
+   ) {
+    setError(
+      null
+    );
+   
+    const confirmed =
+      window.confirm(
+        [
+          "Release the reserved inventory for this order?",
+          "",
+          "The reserved units will become available again.",
+          "The release will remain in the inventory history.",
+        ].join(
+          "\n"
+        )
+      );
+   
+    if (
+      !confirmed
+    ) {
+      return;
+    }
+   
+    setReleasingOrderId(
+      order.id
+    );
+   
+    try {
+      const response =
+        await fetch(
+          "/api/admin/inventory/release",
+          {
+            method:
+              "POST",
+   
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+   
+            body:
+              JSON.stringify({
+                orderId:
+                  order.id,
+              }),
+          }
+        );
+   
+      const data =
+        await response.json() as {
+          success?:
+            boolean;
+   
+          error?:
+            string;
+   
+          releasedAllocationCount?:
+            number;
+        };
+   
+      if (
+        !response.ok ||
+        !data.success
+      ) {
+        throw new Error(
+          data.error ??
+          "Unable to release inventory."
+        );
+      }
+   
+      window.location.reload();
+    } catch (
+      caughtError
+    ) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Unable to release inventory."
+      );
+    } finally {
+      setReleasingOrderId(
+        null
+      );
+    }
+   }
+
+
+   async function beginAssembly(
+    order:
+      FulfillmentOrder
+   ) {
+    setError(
+      null
+    );
+   
+    const confirmed =
+      window.confirm(
+        [
+          "Begin assembly for this order?",
+          "",
+          "This will permanently consume the reserved inventory for this fulfillment.",
+          "",
+          "After this step, the reservation cannot simply be released.",
+        ].join(
+          "\n"
+        )
+      );
+   
+    if (
+      !confirmed
+    ) {
+      return;
+    }
+   
+    setAssemblingOrderId(
+      order.id
+    );
+   
+    try {
+      const response =
+        await fetch(
+          "/api/admin/inventory/consume",
+          {
+            method:
+              "POST",
+   
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+   
+            body:
+              JSON.stringify({
+                orderId:
+                  order.id,
+              }),
+          }
+        );
+   
+      const data =
+        await response.json() as {
+          success?:
+            boolean;
+   
+          error?:
+            string;
+   
+          consumedAllocationCount?:
+            number;
+        };
+   
+      if (
+        !response.ok ||
+        !data.success
+      ) {
+        throw new Error(
+          data.error ??
+          "Unable to begin assembly."
+        );
+      }
+   
+      window.location.reload();
+    } catch (
+      caughtError
+    ) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Unable to begin assembly."
+      );
+    } finally {
+      setAssemblingOrderId(
+        null
+      );
+    }
+   }
+   
+
+
+   async function undoAssembly(
+    order:
+      FulfillmentOrder
+   ) {
+    setError(
+      null
+    );
+   
+    const confirmed =
+      window.confirm(
+        [
+          "Undo assembly for this order?",
+          "",
+          "The consumed inventory will be restored to reserved inventory.",
+          "",
+          "You can then release the reservation if needed.",
+        ].join(
+          "\n"
+        )
+      );
+   
+    if (
+      !confirmed
+    ) {
+      return;
+    }
+   
+    setUndoingAssemblyOrderId(
+      order.id
+    );
+   
+    try {
+      const response =
+        await fetch(
+          "/api/admin/inventory/undo-consume",
+          {
+            method:
+              "POST",
+   
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+   
+            body:
+              JSON.stringify({
+                orderId:
+                  order.id,
+              }),
+          }
+        );
+   
+      const data =
+        await response.json() as {
+          success?:
+            boolean;
+   
+          error?:
+            string;
+   
+          restoredAllocationCount?:
+            number;
+        };
+   
+      if (
+        !response.ok ||
+        !data.success
+      ) {
+        throw new Error(
+          data.error ??
+          "Unable to undo assembly."
+        );
+      }
+   
+      window.location.reload();
+    } catch (
+      caughtError
+    ) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Unable to undo assembly."
+      );
+    } finally {
+      setUndoingAssemblyOrderId(
+        null
+      );
+    }
+   }
 
 
 
@@ -934,26 +1237,112 @@ const [
    </div>
  </div>
 
+
+
+
+
+
  {!order.inventoryReserved ? (
+ <button
+   type="button"
+   disabled={
+     reservingOrderId ===
+     order.id
+   }
+   onClick={() => {
+     void reserveInventory(
+       order
+     );
+   }}
+   className="mt-3 w-full rounded-full border border-[#7D0E1C] bg-white px-4 py-2.5 text-sm font-semibold text-[#7D0E1C] transition hover:bg-[#FFF8F6] disabled:cursor-not-allowed disabled:opacity-60">
+
+   {reservingOrderId ===
+   order.id
+     ? "Reserving inventory..."
+     : "Reserve inventory"}
+ </button>
+) : order.inventoryReservationStatus ===
+ "INVENTORY_RESERVED" ? (
+ <div className="mt-3 grid gap-2 sm:grid-cols-2">
    <button
      type="button"
      disabled={
-       reservingOrderId ===
-       order.id
+       releasingOrderId ===
+         order.id ||
+       assemblingOrderId ===
+         order.id
      }
      onClick={() => {
-       void reserveInventory(
+       void releaseInventory(
          order
        );
      }}
-     className="mt-3 w-full rounded-full border border-[#7D0E1C] bg-white px-4 py-2.5 text-sm font-semibold text-[#7D0E1C] transition hover:bg-[#FFF8F6] disabled:cursor-not-allowed disabled:opacity-60">
+     className="rounded-full border border-[#C9B8A8] bg-white px-4 py-2.5 text-sm font-semibold text-[#6F5140] transition hover:bg-[#F7F3EE] disabled:cursor-not-allowed disabled:opacity-60">
 
-     {reservingOrderId ===
+     {releasingOrderId ===
      order.id
-       ? "Reserving inventory..."
-       : "Reserve inventory"}
+       ? "Releasing..."
+       : "Release inventory"}
    </button>
- ) : null}
+
+   <button
+     type="button"
+     disabled={
+       assemblingOrderId ===
+         order.id ||
+       releasingOrderId ===
+         order.id
+     }
+     onClick={() => {
+       void beginAssembly(
+         order
+       );
+     }}
+     className="rounded-full bg-[#26211D] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#40372F] disabled:cursor-not-allowed disabled:opacity-60">
+
+     {assemblingOrderId ===
+     order.id
+       ? "Beginning assembly..."
+       : "Begin assembly"}
+   </button>
+ </div>
+
+
+
+) : order.inventoryReservationStatus ===
+"ASSEMBLING" ? (
+<div className="mt-3">
+  <p className="text-sm font-medium text-[#665C54]">
+    Inventory consumed for assembly
+  </p>
+
+  <button
+    type="button"
+    disabled={
+      undoingAssemblyOrderId ===
+      order.id
+    }
+    onClick={() => {
+      void undoAssembly(
+        order
+      );
+    }}
+    className="mt-3 w-full rounded-full border border-[#C9B8A8] bg-white px-4 py-2.5 text-sm font-semibold text-[#6F5140] transition hover:bg-[#F7F3EE] disabled:cursor-not-allowed disabled:opacity-60">
+
+    {undoingAssemblyOrderId ===
+    order.id
+      ? "Undoing assembly..."
+      : "Undo assembly"}
+  </button>
+</div>
+) : (
+<p className="mt-3 text-sm font-medium text-[#665C54]">
+  Inventory processed
+</p>
+)}
+
+
+
 </div>
 
 
