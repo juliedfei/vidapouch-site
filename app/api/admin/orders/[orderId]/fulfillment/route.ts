@@ -45,6 +45,10 @@ import {
     fulfillmentNotes?:
       string |
       null;
+   
+    billingCycleId?:
+      string |
+      null;
    };
    
    const ALLOWED_STATUSES =
@@ -137,6 +141,13 @@ import {
         );
       }
    
+      const billingCycleId =
+        typeof body.billingCycleId ===
+          "string" &&
+        body.billingCycleId.trim()
+          ? body.billingCycleId.trim()
+          : null;
+   
       const currentTime =
         new Date();
    
@@ -172,6 +183,121 @@ import {
                         currentTime,
                     }
                   : {};
+   
+      if (
+        billingCycleId
+      ) {
+        const fulfillmentRun =
+          await prisma
+            .vidaPouchFulfillmentRun
+            .findUnique({
+              where: {
+                billingCycleId,
+              },
+   
+              select: {
+                id:
+                  true,
+   
+                orderId:
+                  true,
+              },
+            });
+   
+        if (
+          !fulfillmentRun ||
+          fulfillmentRun.orderId !==
+            orderId
+        ) {
+          return NextResponse.json(
+            {
+              error:
+                "The renewal fulfillment was not found for this order.",
+            },
+            {
+              status:
+                404,
+            }
+          );
+        }
+   
+        const updatedFulfillmentRun =
+          await prisma
+            .vidaPouchFulfillmentRun
+            .update({
+              where: {
+                id:
+                  fulfillmentRun.id,
+              },
+   
+              data: {
+                fulfillmentStatus,
+   
+                trackingNumber:
+                  normalizeOptionalText(
+                    body.trackingNumber
+                  ),
+   
+                shippingCarrier:
+                  normalizeOptionalText(
+                    body.shippingCarrier
+                  ),
+   
+                notes:
+                  normalizeOptionalText(
+                    body.fulfillmentNotes
+                  ),
+   
+                ...statusTimestamps,
+              },
+   
+              select: {
+                id:
+                  true,
+   
+                billingCycleId:
+                  true,
+   
+                fulfillmentStatus:
+                  true,
+   
+                trackingNumber:
+                  true,
+   
+                shippingCarrier:
+                  true,
+   
+                notes:
+                  true,
+   
+                preparingAt:
+                  true,
+   
+                packedAt:
+                  true,
+   
+                shippedAt:
+                  true,
+   
+                completedAt:
+                  true,
+   
+                onHoldAt:
+                  true,
+   
+                updatedAt:
+                  true,
+              },
+            });
+   
+        return NextResponse.json({
+          success:
+            true,
+   
+          fulfillmentRun:
+            updatedFulfillmentRun,
+        });
+      }
    
       const order =
         await prisma

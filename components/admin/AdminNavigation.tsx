@@ -6,6 +6,7 @@ type Props = {
    | "fulfillment"
    | "waitlist"
    | "inventory"
+   | "profit"
    | "settings";
 };
 
@@ -72,6 +73,16 @@ export default function AdminNavigation({
  Inventory
 </Link>
 
+
+<Link
+ href="/admin/profit"
+ className={getLinkClasses(
+   currentPage ===
+     "profit"
+ )}>
+
+ Profit
+</Link>
 
 
 

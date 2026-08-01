@@ -551,19 +551,29 @@ import {
                                   Lot
                                 </th>
    
-                                <th className="pb-3 pr-5 font-medium">
-                                  Available
-                                </th>
-   
-                                <th className="pb-3 pr-5 font-medium">
-                                  Reserved
-                                </th>
-   
-                                <th className="pb-3 pr-5 font-medium">
-                                  Landed cost
-                                </th>
 
-                                <th className="pb-3 text-right font-medium">
+
+<th className="pb-3 pr-5 font-medium">
+ Original
+</th>
+
+<th className="pb-3 pr-5 font-medium">
+ Available
+</th>
+
+<th className="pb-3 pr-5 font-medium">
+ Reserved
+</th>
+
+<th className="pb-3 pr-5 font-medium">
+ Consumed
+</th>
+
+<th className="pb-3 pr-5 font-medium">
+ Landed cost
+</th>
+
+<th className="pb-3 text-right font-medium">
  Actions
 </th>
 
@@ -617,6 +627,14 @@ import {
 
 
                                     <td className="py-3 pr-5 text-[#665C54]">
+ {Number(
+   bottle.originalUnitCount
+ ).toFixed(
+   0
+ )}
+</td>
+
+<td className="py-3 pr-5 text-[#665C54]">
  {Math.max(
    0,
    Number(
@@ -630,23 +648,41 @@ import {
  )}
 </td>
 
+<td className="py-3 pr-5 text-[#665C54]">
+ {Number(
+   bottle.reservedUnitCount
+ ).toFixed(
+   0
+ )}
+</td>
+
+<td className="py-3 pr-5 text-[#665C54]">
+ {Math.max(
+   0,
+   Number(
+     bottle.originalUnitCount
+   ) -
+     Number(
+       bottle.remainingUnitCount
+     )
+ ).toFixed(
+   0
+ )}
+</td>
+
+<td className="py-3 pr-5 text-[#665C54]">
+ {formatMoney(
+   Number(
+     bottle.landedCost
+   )
+ )}
+</td>
 
 
 
-   
-                                    <td className="py-3 pr-5 text-[#665C54]">
-                                      {bottle.reservedUnitCount.toString()}
-                                    </td>
-   
 
 
-                                    <td className="py-3 pr-5 text-[#665C54]">
-                                      {formatMoney(
-                                        Number(
-                                          bottle.landedCost
-                                        )
-                                      )}
-                                    </td>
+
 
                                     <td className="py-3 text-right">
  <InventoryBottleActions

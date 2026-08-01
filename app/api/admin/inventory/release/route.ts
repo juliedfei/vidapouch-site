@@ -61,6 +61,13 @@ import {
           ? body.orderId.trim()
           : "";
    
+      const billingCycleId =
+        typeof body.billingCycleId ===
+          "string" &&
+        body.billingCycleId.trim()
+          ? body.billingCycleId.trim()
+          : null;
+   
       if (
         !orderId
       ) {
@@ -83,8 +90,7 @@ import {
             where: {
               orderId,
    
-              billingCycleId:
-                null,
+              billingCycleId,
    
               status: {
                 in: [
@@ -115,7 +121,7 @@ import {
         return NextResponse.json(
           {
             error:
-              "No releasable inventory reservation was found for this order.",
+              "No releasable inventory reservation was found for this fulfillment.",
           },
           {
             status:
@@ -140,7 +146,7 @@ import {
         return NextResponse.json(
           {
             error:
-              "This order has no active inventory reservations to release.",
+              "This fulfillment has no active inventory reservations to release.",
           },
           {
             status:
@@ -252,8 +258,7 @@ import {
       return NextResponse.json(
         {
           error:
-            error instanceof
-              Error
+            error instanceof Error
               ? error.message
               : "Unable to release inventory.",
         },

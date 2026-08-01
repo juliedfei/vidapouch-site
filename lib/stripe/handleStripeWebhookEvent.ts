@@ -14,6 +14,13 @@ import {
  resolveVidaPouchOrderForInvoice,
 } from "@/lib/stripe/resolveVidaPouchOrderForInvoice";
 
+
+import {
+    getSubscriptionCycleTiming,
+   } from "@/lib/commerce/getSubscriptionFulfillmentTiming";
+   
+
+
 function getStripeObjectId(
  value:
    | string
@@ -159,131 +166,347 @@ async function handleCheckoutSessionCompleted(
    });
 }
 
+
+
+
 async function handleInvoicePaid(
- invoice:
-   Stripe.Invoice
-) {
- const resolvedOrder =
-   await resolveVidaPouchOrderForInvoice(
-     invoice
-   );
+    invoice:
+      Stripe.Invoice
+   ) {
+    const resolvedOrder =
+      await resolveVidaPouchOrderForInvoice(
+        invoice
+      );
+   
+    if (
+      !resolvedOrder
+    ) {
+      throw new Error(
+        `No VidaPouch order could be resolved for invoice ${invoice.id}.`
+      );
+    }
+   
+    const orderId =
+      resolvedOrder.orderId;
+   
+    /*
+     * Newer Stripe API versions do not expose one
+     * payment_intent directly on the Invoice because
+     * an invoice may have multiple payments.
+     */
+    const paymentIntentId =
+      null;
+   
+    const periodStart =
+      invoice.period_start
+        ? new Date(
+            invoice.period_start *
+              1000
+          )
+        : null;
+   
+    const periodEnd =
+      invoice.period_end
+        ? new Date(
+            invoice.period_end *
+              1000
+          )
+        : null;
+   
 
- if (
-   !resolvedOrder
- ) {
-   throw new Error(
-     `No VidaPouch order could be resolved for invoice ${invoice.id}.`
-   );
- }
 
- const orderId =
-   resolvedOrder.orderId;
+    const isRenewal =
+      invoice.billing_reason ===
+      "subscription_cycle";
 
- /*
-  * Newer Stripe API versions do not expose one
-  * payment_intent directly on the Invoice because
-  * an invoice may have multiple payments.
-  */
- const paymentIntentId =
-   null;
 
- const periodStart =
-   invoice.period_start
-     ? new Date(
-         invoice.period_start *
-           1000
-       )
-     : null;
+      const invoicePaidAt =
+      invoice
+        .status_transitions
 
- const periodEnd =
-   invoice.period_end
-     ? new Date(
-         invoice.period_end *
-           1000
-       )
-     : null;
+        
+        ?.paid_at
+        ? new Date(
 
- await prisma
-   .vidaPouchBillingCycle
-   .upsert({
-     where: {
-       stripeInvoiceId:
-         invoice.id,
-     },
 
-     create: {
-       orderId,
+            invoice
+              .status_transitions
+              .paid_at *
+              1000
+          )
+        : new Date();
 
-       stripeInvoiceId:
-         invoice.id,
 
-       stripePaymentIntentId:
-         paymentIntentId,
 
-       status:
-         VidaPouchOrderStatus.PAID,
+   
+    await prisma.$transaction(
+      async (
+        tx
+      ) => {
+        const order =
+          await tx
+            .vidaPouchOrder
+            .findUnique({
+              where: {
+                id:
+                  orderId,
+              },
+   
+              select: {
+                id:
+                  true,
+   
+                currency:
+                  true,
+   
+                nextTargetDeliveryDate:
+                  true,
+   
+                nextShipByDate:
+                  true,
+              },
+            });
+   
+        if (
+          !order
+        ) {
+          throw new Error(
+            `VidaPouch order ${orderId} was not found.`
+          );
+        }
+   
+        /*
+         * Determine whether this exact invoice was
+         * already assigned fulfillment dates.
+         *
+         * This prevents a retried webhook from advancing
+         * the subscription delivery schedule twice.
+         */
+        const existingBillingCycle =
+          await tx
+            .vidaPouchBillingCycle
+            .findUnique({
+              where: {
+                stripeInvoiceId:
+                  invoice.id,
+              },
+   
+              select: {
+                id:
+                  true,
+   
+                targetDeliveryDate:
+                  true,
+   
+                shipByDate:
+                  true,
+              },
+            });
+   
+        const renewalDatesAlreadyAssigned =
+          Boolean(
+            existingBillingCycle
+              ?.targetDeliveryDate &&
+            existingBillingCycle
+              ?.shipByDate
+          );
+   
+        const cycleTiming =
+          isRenewal &&
+          !renewalDatesAlreadyAssigned
+            ? getSubscriptionCycleTiming({
+                currentTargetDeliveryDate:
+                  order
+                    .nextTargetDeliveryDate,
+   
+                currentShipByDate:
+                  order
+                    .nextShipByDate,
+   
+                fallbackDate:
+                  new Date(),
+              })
+            : null;
+   
+        const targetDeliveryDate =
+          existingBillingCycle
+            ?.targetDeliveryDate ??
+          cycleTiming
+            ?.targetDeliveryDate ??
+          null;
+   
+        const shipByDate =
+          existingBillingCycle
+            ?.shipByDate ??
+          cycleTiming
+            ?.shipByDate ??
+          null;
+   
+        const billingCycle =
+          await tx
+            .vidaPouchBillingCycle
+            .upsert({
+              where: {
+                stripeInvoiceId:
+                  invoice.id,
+              },
+   
+              create: {
+                orderId,
+   
+                stripeInvoiceId:
+                  invoice.id,
+   
+                stripePaymentIntentId:
+                  paymentIntentId,
+   
+                status:
+                  VidaPouchOrderStatus.PAID,
+   
+                amountPaid:
+                  invoice.amount_paid /
+                  100,
+   
+                currency:
+                  invoice.currency,
+   
+                billingReason:
+                  invoice.billing_reason,
+   
+                periodStart,
+   
+                periodEnd,
+   
+                targetDeliveryDate,
+   
+                shipByDate,
+   
+                paidAt:
+                invoicePaidAt,
 
-       amountPaid:
-         invoice.amount_paid /
-         100,
 
-       currency:
-         invoice.currency,
+              },
+   
+              update: {
+                stripePaymentIntentId:
+                  paymentIntentId,
+   
+                status:
+                  VidaPouchOrderStatus.PAID,
+   
+                amountPaid:
+                  invoice.amount_paid /
+                  100,
+   
+                currency:
+                  invoice.currency,
+   
+                billingReason:
+                  invoice.billing_reason,
+   
+                periodStart,
+   
+                periodEnd,
+   
+                targetDeliveryDate,
+   
+                shipByDate,
+   
+                paidAt:
+                invoicePaidAt,
+   
+                failedAt:
+                  null,
+              },
+            });
+   
+        /*
+         * A successful subscription renewal immediately
+         * becomes an independent fulfillment ticket.
+         *
+         * The initial subscription invoice uses
+         * "subscription_create" and remains part of the
+         * original-order fulfillment workflow.
+         */
+        if (
+          isRenewal
+        ) {
+          await tx
+            .vidaPouchFulfillmentRun
+            .upsert({
+              where: {
+                billingCycleId:
+                  billingCycle.id,
+              },
+   
+              create: {
+                orderId,
+   
+                billingCycleId:
+                  billingCycle.id,
+   
+                status:
+                  "PENDING",
+   
+                revenueAmount:
+                  invoice.amount_paid /
+                  100,
+   
+                currency:
+                  invoice.currency,
+              },
+   
+              update: {
+                revenueAmount:
+                  invoice.amount_paid /
+                  100,
+   
+                currency:
+                  invoice.currency,
+              },
+            });
+        }
+   
+        /*
+         * Once the current renewal receives its delivery
+         * dates, advance the parent subscription to the
+         * following delivery window.
+         *
+         * Do not advance again when Stripe retries the
+         * same invoice.
+         */
+        await tx
+          .vidaPouchOrder
+          .update({
+            where: {
+              id:
+                orderId,
+            },
+   
+            data: {
+              status:
+                VidaPouchOrderStatus.PAID,
+   
+              ...(cycleTiming
+                ? {
+                    nextTargetDeliveryDate:
+                      cycleTiming
+                        .followingTargetDeliveryDate,
+   
+                    nextShipByDate:
+                      cycleTiming
+                        .followingShipByDate,
+                  }
+                : {}),
+            },
+          });
+      }
+    );
+   }
+   
 
-       billingReason:
-         invoice.billing_reason,
 
-       periodStart,
 
-       periodEnd,
-
-       paidAt:
-         new Date(),
-     },
-
-     update: {
-       stripePaymentIntentId:
-         paymentIntentId,
-
-       status:
-         VidaPouchOrderStatus.PAID,
-
-       amountPaid:
-         invoice.amount_paid /
-         100,
-
-       currency:
-         invoice.currency,
-
-       billingReason:
-         invoice.billing_reason,
-
-       periodStart,
-
-       periodEnd,
-
-       paidAt:
-         new Date(),
-
-       failedAt:
-         null,
-     },
-   });
-
- await prisma
-   .vidaPouchOrder
-   .update({
-     where: {
-       id:
-         orderId,
-     },
-
-     data: {
-       status:
-         VidaPouchOrderStatus.PAID,
-     },
-   });
-}
 
 async function handleInvoicePaymentFailed(
  invoice:
@@ -390,20 +613,7 @@ async function handleInvoicePaymentFailed(
      },
    });
 
- await prisma
-   .vidaPouchOrder
-   .update({
-     where: {
-       id:
-         orderId,
-     },
-
-     data: {
-       status:
-         VidaPouchOrderStatus
-           .PAYMENT_FAILED,
-     },
-   });
+ 
 }
 
 async function handleSubscriptionUpdated(

@@ -11,6 +11,11 @@ import type {
 } from "@/components/search/types/searchPouch";
 
 
+import {
+  getSubscriptionFulfillmentTiming,
+ } from "@/lib/commerce/getSubscriptionFulfillmentTiming";
+
+
 
 import {
   VidaPouchOrderStatus,
@@ -570,15 +575,26 @@ import {
  
 
 
+
+
       const isSubscription =
       purchaseOption ===
       "subscription";
+     
+     const subscriptionTiming =
+      isSubscription
+        ? getSubscriptionFulfillmentTiming()
+        : null;
      
      const planAmountInCents =
       toCents(
         pooledPricing
           .planMonthlyPrice
       );
+
+
+
+
      
      const lineItems = [
       isSubscription
@@ -745,12 +761,29 @@ import {
             pooledPricing
               .totalMonthlyPrice,
    
-          currency:
-            "usd",
-   
-          pricingVersionId:
-            pooledPricing
-              .pricingVersionId,
+
+
+
+              currency:
+              "usd",
+             
+             nextTargetDeliveryDate:
+              subscriptionTiming
+                ?.nextTargetDeliveryDate ??
+              null,
+             
+             nextShipByDate:
+              subscriptionTiming
+                ?.nextShipByDate ??
+              null,
+             
+             pricingVersionId:
+              pooledPricing
+                .pricingVersionId,
+
+
+
+
    
           pricingCalculatedAt:
             new Date(
@@ -910,30 +943,25 @@ metadata:
 
 
    
-        ...(isSubscription
-          ? {
-              subscription_data: {
-                
-                
-                
-                metadata:
-                checkoutMetadata,
+ ...(isSubscription
+  ? {
+      subscription_data: {
+        metadata:
+          checkoutMetadata,
+      },
+    }
+  : {
+      payment_intent_data: {
+        metadata:
+          checkoutMetadata,
+      },
+    }),
 
 
 
 
-              },
-            }
-          : {
-              payment_intent_data: {
-                
-                
-                metadata:
-                checkoutMetadata,
 
 
-              },
-            }),
       });
    
 

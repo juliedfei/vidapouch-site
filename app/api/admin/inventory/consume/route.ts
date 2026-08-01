@@ -61,6 +61,13 @@ import {
           ? body.orderId.trim()
           : "";
    
+      const billingCycleId =
+        typeof body.billingCycleId ===
+          "string" &&
+        body.billingCycleId.trim()
+          ? body.billingCycleId.trim()
+          : null;
+   
       if (
         !orderId
       ) {
@@ -83,8 +90,7 @@ import {
             where: {
               orderId,
    
-              billingCycleId:
-                null,
+              billingCycleId,
             },
    
             orderBy: {
@@ -104,7 +110,7 @@ import {
         return NextResponse.json(
           {
             error:
-              "No fulfillment run was found for this order.",
+              "No fulfillment run was found for this fulfillment.",
           },
           {
             status:
@@ -313,8 +319,7 @@ import {
       return NextResponse.json(
         {
           error:
-            error instanceof
-              Error
+            error instanceof Error
               ? error.message
               : "Unable to consume inventory.",
         },
@@ -325,4 +330,3 @@ import {
       );
     }
    }
-   
