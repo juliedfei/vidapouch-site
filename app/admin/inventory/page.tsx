@@ -20,7 +20,7 @@ import {
 
 
 
-   import InventoryReceiveForm from "@/components/admin/InventoryReceiveForm";
+   import InventoryActions from "@/components/admin/InventoryActions";
 
 
 
@@ -208,19 +208,33 @@ import {
       <main className="min-h-screen bg-[#F7F3EE] px-4 py-10 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col gap-5">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#8B6F58]">
-                VidaPouch Admin
-              </p>
-   
-              <h1 className="mt-2 text-3xl font-semibold text-[#26211D]">
-                Inventory
-              </h1>
-   
-              <p className="mt-2 text-[#665C54]">
-                Track supplement products, individual bottles, available units, lot numbers, expiration dates, and acquisition costs.
-              </p>
-            </div>
+            
+            
+            
+            
+          <div className="flex items-start justify-between gap-4">
+ <div>
+   <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#8B6F58]">
+     VidaPouch Admin
+   </p>
+
+   <h1 className="mt-2 text-3xl font-semibold text-[#26211D]">
+     Inventory
+   </h1>
+
+   <p className="mt-2 text-[#665C54]">
+     Track supplement products, individual bottles, available units, lot numbers, expiration dates, and acquisition costs.
+   </p>
+ </div>
+
+ <InventoryActions />
+</div>
+
+
+
+
+
+
    
             <AdminNavigation
               currentPage="inventory"
@@ -275,9 +289,7 @@ import {
 
 
 
-          <div className="mt-8">
- <InventoryReceiveForm />
-</div>
+
 
 
 
