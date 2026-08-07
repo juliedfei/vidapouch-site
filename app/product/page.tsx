@@ -1,95 +1,11 @@
-"use client";
-
-import { useState } from "react";
+import Navbar from "@/components/home/Navbar";
 
 export default function ProductPage() {
-const [menuOpen, setMenuOpen] = useState(false);
+
 
 return (
   <main className="min-h-screen bg-[#F3E9DD] text-[#0E171B]">
-    <header className="sticky top-0 z-50 border-b border-[#D6CCBF] bg-[#EDE1D3]/90 backdrop-blur-md">
-      <div className="mx-auto flex max-w-[1440px] items-center justify-between px-5 py-3 lg:px-10">
-        <a href="/" className="shrink-0">
-          <img
-            src="/vidapouch_logo3.png"
-            alt="Vidapouch logo"
-            className="h-[42px] w-auto sm:h-[52px] lg:h-[60px]"
-          />
-        </a>
-
-        <nav className="hidden items-center gap-5 min-[1024px]:flex min-[1150px]:gap-7">
-          <a href="/product" className="nav-item">PRODUCT</a>
-          <a href="/how-it-works" className="nav-item">HOW IT WORKS</a>
-          <a href="/why-vidapouch" className="nav-item">WHY VIDAPOUCH</a>
-          <a href="/about" className="nav-item">ABOUT</a>
-          <a href="/faq" className="nav-item">FAQ</a>
-          <a
-            href="/waitlist"
-            className="whitespace-nowrap rounded-full bg-[#081620] px-6 py-3 text-[13px] tracking-[0.08em] text-white">
-
-            GET EARLY ACCESS
-          </a>
-        </nav>
-
-        <button
-          type="button"
-          onClick={() => setMenuOpen(true)}
-          className="flex h-11 w-11 items-center justify-center rounded-full border border-[#CFC4B7] bg-[#F8F2EA]/80 text-[#081620] min-[1024px]:hidden"
-          aria-label="Open menu">
-
-          <span className="grid gap-1.5">
-            <span className="block h-px w-5 bg-[#081620]" />
-            <span className="block h-px w-5 bg-[#081620]" />
-            <span className="block h-px w-5 bg-[#081620]" />
-          </span>
-        </button>
-      </div>
-    </header>
-
-    {menuOpen && (
-      <div className="fixed inset-0 z-[100] min-[1024px]:hidden">
-        <button
-          type="button"
-          aria-label="Close menu overlay"
-          onClick={() => setMenuOpen(false)}
-          className="absolute inset-0 bg-[#081620]/30"
-        />
-
-        <aside className="absolute right-0 top-0 flex h-full w-[82%] max-w-[360px] flex-col bg-[#F8F2EA] px-7 py-6 shadow-[-20px_0_70px_rgba(0,0,0,0.18)]">
-          <div className="mb-10 flex items-center justify-between">
-            <img
-              src="/vidapouch_logo3.png"
-              alt="Vidapouch logo"
-              className="h-[46px] w-auto"
-            />
-
-            <button
-              type="button"
-              onClick={() => setMenuOpen(false)}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-[#D6CCBF] text-2xl leading-none text-[#081620]"
-              aria-label="Close menu">
-
-              ×
-            </button>
-          </div>
-
-          <nav className="grid gap-6">
-            <MobileNavLink href="/product" label="Product" />
-            <MobileNavLink href="/how-it-works" label="How It Works" />
-            <MobileNavLink href="/why-vidapouch" label="Why VidaPouch" />
-            <MobileNavLink href="/about" label="About" />
-            <MobileNavLink href="/faq" label="FAQ" />
-          </nav>
-
-          <a
-            href="/waitlist"
-            className="mt-10 rounded-full bg-[#081620] px-7 py-4 text-center text-[13px] tracking-[0.08em] text-white">
-
-            GET EARLY ACCESS
-          </a>
-        </aside>
-      </div>
-    )}
+    <Navbar />
 
     <section className="bg-[linear-gradient(180deg,#F3E9DD_0%,#EFE2D4_100%)] px-6 py-16 text-center lg:py-22">
       <div className="mx-auto max-w-[1120px]">
@@ -377,17 +293,6 @@ return (
       </div>
     </section>
   </main>
-);
-}
-
-function MobileNavLink({ href, label }: { href: string; label: string }) {
-return (
-  <a
-    href={href}
-    className="border-b border-[#DDD7CF] pb-5 text-[18px] uppercase tracking-[0.16em] text-[#081620]">
-
-    {label}
-  </a>
 );
 }
 
