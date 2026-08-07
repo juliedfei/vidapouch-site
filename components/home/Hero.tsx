@@ -194,7 +194,7 @@ export default function Hero() {
            </a>
 
            <a
-             href="tel:5085079301"
+             href="tel:5082438404"
              className="
                w-full max-w-[340px]
                rounded-full
@@ -259,7 +259,7 @@ export default function Hero() {
            </a>
 
            <a
-             href="tel:5085079301"
+             href="tel:5082438404"
              className="
                rounded-full
                border border-[#1B2529]
@@ -312,7 +312,7 @@ export default function Hero() {
            </p>
 
            <a
-             href="tel:5085079301"
+             href="tel:5082438404"
              className="
                mt-1 inline-block
                text-[18px] font-semibold
@@ -320,7 +320,7 @@ export default function Hero() {
                hover:underline
              ">
 
-             (508) 507-9301
+             (508) 243-8404
            </a>
          </div>
 

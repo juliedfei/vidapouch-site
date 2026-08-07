@@ -39,7 +39,7 @@ export default function ConciergeModal({
          </p>
 
          <p className="mt-2 text-[28px] font-medium text-[#081620]">
-           (508) 507-9301
+           (508) 243-8404
          </p>
 
          <p className="mt-3 text-sm leading-6 text-[#5D686C]">
@@ -52,7 +52,7 @@ export default function ConciergeModal({
        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
 
          <a
-           href="tel:+15085079301"
+           href="tel:+15082438404"
            className="flex-1 rounded-full bg-[#081620] px-6 py-4 text-center text-[13px] font-medium uppercase tracking-[0.08em] text-white transition hover:bg-[#13222C]">
 
            Call Now
