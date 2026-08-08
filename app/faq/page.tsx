@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Navbar from "@/components/home/Navbar";
+import Footer from "@/components/home/Footer";
 
 
 
@@ -136,7 +137,7 @@ export default function FAQPage() {
        </div>
      </section>
 
-     <section className="bg-[#F3E9DD] px-6 pb-20 pt-2">
+     {/*<section className="bg-[#F3E9DD] px-6 pb-20 pt-2">
        <div className="mx-auto max-w-[900px] rounded-[32px] border border-[#DDD7CF] bg-[#F8F2EA]/90 px-8 py-12 text-center shadow-[0_30px_80px_rgba(20,15,10,0.08)]">
          <p className="text-[12px] uppercase tracking-[0.24em] text-[#8C1D40]">
            READY WHEN YOU ARE
@@ -161,7 +162,9 @@ export default function FAQPage() {
            GET EARLY ACCESS
          </a>
        </div>
-     </section>
+     </section>*/}
+
+     <Footer />
    </main>
  );
 }

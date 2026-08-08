@@ -4,6 +4,8 @@ import Navbar from "@/components/home/Navbar";
 import Hero from "@/components/home/Hero";
 import ProductOverview from "@/components/home/ProductOverview";
 import WhyVidaPouch from "@/components/home/WhyVidaPouch";
+import Footer from "@/components/home/Footer";
+
 
 export default function Home() {
  return (
@@ -12,6 +14,7 @@ export default function Home() {
      <Hero />
      <ProductOverview />
      <WhyVidaPouch />
+     <Footer />
    </main>
  );
 }

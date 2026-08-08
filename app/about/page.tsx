@@ -1,4 +1,6 @@
 import Navbar from "@/components/home/Navbar";
+import Footer from "@/components/home/Footer";
+
 
 export default function AboutPage() {
 
@@ -148,14 +150,16 @@ export default function AboutPage() {
            replacement for medical advice.
          </p>
 
-         <a
+        {/*} <a
            href="/waitlist"
            className="mt-8 inline-block rounded-full bg-[#081620] px-8 py-4 text-[14px] tracking-[0.08em] text-white">
 
            GET EARLY ACCESS
-         </a>
+         </a>*/}
        </div>
      </section>
+
+     <Footer />
    </main>
  );
 }

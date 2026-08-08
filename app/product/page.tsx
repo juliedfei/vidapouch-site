@@ -1,4 +1,5 @@
 import Navbar from "@/components/home/Navbar";
+import Footer from "@/components/home/Footer";
 
 export default function ProductPage() {
  return (
@@ -492,7 +493,7 @@ export default function ProductPage() {
 
 
      {/* FINAL CTA */}
-     <section className="bg-[#8C1D40] px-6 py-20 text-white lg:py-24">
+    {/*} <section className="bg-[#8C1D40] px-6 py-20 text-white lg:py-24">
        <div className="mx-auto max-w-[850px] text-center">
          <p className="text-[12px] font-medium uppercase tracking-[0.24em] text-white/75">
            GET STARTED WITh VIDASEARCH
@@ -519,7 +520,9 @@ export default function ProductPage() {
            <span aria-hidden="true">→</span>
          </a>
        </div>
-     </section>
+     </section>*/}
+     
+     <Footer />
    </main>
  );
 }
