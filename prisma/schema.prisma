@@ -951,6 +951,11 @@ enum VidaPouchWaitlistStatus {
   DECLINED
 }
 
+enum VidaPouchWaitlistSource {
+  VIDASEARCH
+  VIDAPOUCH
+}
+
 enum VidaPouchOrderStatus {
   PENDING
   PAID
@@ -1282,8 +1287,7 @@ model VidaPouchOrder {
   fulfillmentNotes String?
 
   nextTargetDeliveryDate DateTime?
-nextShipByDate         DateTime?
-
+  nextShipByDate         DateTime?
 
   cancelAtPeriodEnd       Boolean   @default(false)
   cancellationScheduledAt DateTime?
@@ -1390,7 +1394,7 @@ model VidaPouchBillingCycle {
   failedAt DateTime?
 
   targetDeliveryDate DateTime?
-shipByDate         DateTime?
+  shipByDate         DateTime?
 
   fulfillmentRun VidaPouchFulfillmentRun?
 
@@ -1406,21 +1410,22 @@ model VidaPouchWaitlistEntry {
   id String @id @default(cuid())
 
   status VidaPouchWaitlistStatus @default(NEW)
+  source VidaPouchWaitlistSource @default(VIDASEARCH)
 
   customerEmail String
   customerName  String?
   customerPhone String?
 
-  purchaseOption VidaPouchPurchaseOption
+  purchaseOption VidaPouchPurchaseOption?
 
-  planKey  String
-  planName String
+  planKey  String?
+  planName String?
 
-  supplementCount Int
+  supplementCount Int?
 
-  estimatedPlanPrice  Decimal @db.Decimal(10, 2)
-  estimatedOverageFee Decimal @db.Decimal(10, 2)
-  estimatedTotalPrice Decimal @db.Decimal(10, 2)
+  estimatedPlanPrice  Decimal? @db.Decimal(10, 2)
+  estimatedOverageFee Decimal? @db.Decimal(10, 2)
+  estimatedTotalPrice Decimal? @db.Decimal(10, 2)
 
   currency String @default("usd")
 
@@ -1439,6 +1444,7 @@ model VidaPouchWaitlistEntry {
   updatedAt DateTime @updatedAt
 
   @@index([status])
+  @@index([source])
   @@index([customerEmail])
   @@index([createdAt])
 }
@@ -1491,25 +1497,23 @@ enum VidaPouchInventoryBottleStatus {
 }
 
 enum VidaPouchInventoryMovementType {
- RECEIVED
- RESERVED
- RELEASED
- CONSUMED
- CONSUMPTION_REVERSED
- ADJUSTMENT_IN
- ADJUSTMENT_OUT
- DISCARDED
- RECALL_HOLD
+  RECEIVED
+  RESERVED
+  RELEASED
+  CONSUMED
+  CONSUMPTION_REVERSED
+  ADJUSTMENT_IN
+  ADJUSTMENT_OUT
+  DISCARDED
+  RECALL_HOLD
 }
 
 enum VidaPouchFulfillmentCostType {
- PACKAGING
- SHIPPING
- PAYMENT_PROCESSING
- OTHER
+  PACKAGING
+  SHIPPING
+  PAYMENT_PROCESSING
+  OTHER
 }
-
-
 
 model VidaPouchInventoryProduct {
   id String @id @default(cuid())
@@ -1679,110 +1683,97 @@ enum VidaPouchFulfillmentRunStatus {
   CANCELED
 }
 
-
-
-
-
 model VidaPouchFulfillmentRun {
-id String @id @default(cuid())
+  id String @id @default(cuid())
 
-/**
- * The customer order this fulfillment belongs to.
- * A one-time order will normally have one fulfillment run.
- * A subscription may have a new fulfillment run for each
- * monthly billing cycle.
- */
-orderId String
-order   VidaPouchOrder @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  /**
+   * The customer order this fulfillment belongs to.
+   * A one-time order will normally have one fulfillment run.
+   * A subscription may have a new fulfillment run for each
+   * monthly billing cycle.
+   */
+  orderId String
+  order   VidaPouchOrder @relation(fields: [orderId], references: [id], onDelete: Restrict)
 
-/**
- * Subscription renewals can point to the exact billing
- * cycle that caused this fulfillment.
- * This remains null for a normal one-time order.
- */
-billingCycleId String?                @unique
-billingCycle   VidaPouchBillingCycle? @relation(fields: [billingCycleId], references: [id], onDelete: Restrict)
+  /**
+   * Subscription renewals can point to the exact billing
+   * cycle that caused this fulfillment.
+   * This remains null for a normal one-time order.
+   */
+  billingCycleId String?                @unique
+  billingCycle   VidaPouchBillingCycle? @relation(fields: [billingCycleId], references: [id], onDelete: Restrict)
 
-/**
- * Internal inventory / assembly lifecycle.
- */
-status VidaPouchFulfillmentRunStatus @default(PENDING)
+  /**
+   * Internal inventory / assembly lifecycle.
+   */
+  status VidaPouchFulfillmentRunStatus @default(PENDING)
 
-/**
- * Customer-facing fulfillment lifecycle for this
- * specific shipment.
- *
- * This is separate from the inventory status above.
- */
-fulfillmentStatus VidaPouchFulfillmentStatus @default(NEW)
+  /**
+   * Customer-facing fulfillment lifecycle for this
+   * specific shipment.
+   * This is separate from the inventory status above.
+   */
+  fulfillmentStatus VidaPouchFulfillmentStatus @default(NEW)
 
-/**
- * Actual customer revenue associated with this
- * fulfillment occurrence. We snapshot it here so
- * historical profitability does not change later.
- */
-revenueAmount Decimal @db.Decimal(10, 2)
+  /**
+   * Actual customer revenue associated with this
+   * fulfillment occurrence. We snapshot it here so
+   * historical profitability does not change later.
+   */
+  revenueAmount Decimal @db.Decimal(10, 2)
 
-currency String @default("usd")
+  currency String @default("usd")
 
-inventoryReservedAt DateTime?
-assemblingAt        DateTime?
+  inventoryReservedAt DateTime?
+  assemblingAt        DateTime?
 
-/**
- * Customer-facing fulfillment timestamps for this
- * exact shipment.
- */
-preparingAt DateTime?
-packedAt    DateTime?
-shippedAt   DateTime?
-completedAt DateTime?
-onHoldAt    DateTime?
+  /**
+   * Customer-facing fulfillment timestamps for this
+   * exact shipment.
+   */
+  preparingAt DateTime?
+  packedAt    DateTime?
+  shippedAt   DateTime?
+  completedAt DateTime?
+  onHoldAt    DateTime?
 
-canceledAt DateTime?
+  canceledAt DateTime?
 
-/**
- * Shipping details belong to the individual
- * fulfillment run so each subscription month can
- * have its own carrier and tracking number.
- */
-trackingNumber  String?
-shippingCarrier String?
+  /**
+   * Shipping details belong to the individual
+   * fulfillment run so each subscription month can
+   * have its own carrier and tracking number.
+   */
+  trackingNumber  String?
+  shippingCarrier String?
 
+  notes String?
 
+  /**
+   * Optional fulfillment-specific cost overrides.
+   * Null means use the historical global setting that
+   * applied when this fulfillment was created.
+   */
+  pouchCostOverride            Decimal? @db.Decimal(10, 4)
+  boxCostOverride              Decimal? @db.Decimal(10, 4)
+  insertCostOverride           Decimal? @db.Decimal(10, 4)
+  labelCostOverride            Decimal? @db.Decimal(10, 4)
+  otherPackagingCostOverride   Decimal? @db.Decimal(10, 4)
+  laborHourlyRateOverride      Decimal? @db.Decimal(10, 2)
+  laborMinutesPerOrderOverride Decimal? @db.Decimal(10, 2)
 
-notes String?
+  allocations VidaPouchInventoryAllocation[]
 
-/**
-* Optional fulfillment-specific cost overrides.
-*
-* Null means use the historical global setting that
-* applied when this fulfillment was created.
-*/
-pouchCostOverride            Decimal? @db.Decimal(10, 4)
-boxCostOverride              Decimal? @db.Decimal(10, 4)
-insertCostOverride           Decimal? @db.Decimal(10, 4)
-labelCostOverride            Decimal? @db.Decimal(10, 4)
-otherPackagingCostOverride   Decimal? @db.Decimal(10, 4)
-laborHourlyRateOverride      Decimal? @db.Decimal(10, 2)
-laborMinutesPerOrderOverride Decimal? @db.Decimal(10, 2)
+  costs VidaPouchFulfillmentCost[]
 
-allocations VidaPouchInventoryAllocation[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-costs VidaPouchFulfillmentCost[]
-
-
-
-
-
-createdAt DateTime @default(now())
-updatedAt DateTime @updatedAt
-
-@@index([orderId])
-@@index([status])
-@@index([fulfillmentStatus])
-@@index([createdAt])
+  @@index([orderId])
+  @@index([status])
+  @@index([fulfillmentStatus])
+  @@index([createdAt])
 }
-
 
 model VidaPouchInventoryAllocation {
   id String @id @default(cuid())
@@ -1835,57 +1826,52 @@ model VidaPouchInventoryAllocation {
   @@index([createdAt])
 }
 
-
 model VidaPouchFulfillmentCost {
- id               String                      @id @default(cuid())
- fulfillmentRunId String
- fulfillmentRun   VidaPouchFulfillmentRun     @relation(fields: [fulfillmentRunId], references: [id], onDelete: Restrict)
+  id               String                  @id @default(cuid())
+  fulfillmentRunId String
+  fulfillmentRun   VidaPouchFulfillmentRun @relation(fields: [fulfillmentRunId], references: [id], onDelete: Restrict)
 
- costType         VidaPouchFulfillmentCostType
- amount           Decimal                     @db.Decimal(10, 2)
- description      String?
+  costType    VidaPouchFulfillmentCostType
+  amount      Decimal                      @db.Decimal(10, 2)
+  description String?
 
- createdAt        DateTime                    @default(now())
- updatedAt        DateTime                    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
- @@index([fulfillmentRunId])
- @@index([costType])
- @@index([createdAt])
+  @@index([fulfillmentRunId])
+  @@index([costType])
+  @@index([createdAt])
 }
 
-
-
-
-
 model VidaPouchProfitSettings {
- id String @id @default(cuid())
+  id String @id @default(cuid())
 
- pouchCost Decimal @default(0) @db.Decimal(10, 4)
+  pouchCost Decimal @default(0) @db.Decimal(10, 4)
 
- singleBoxCost Decimal @default(0) @db.Decimal(10, 4)
+  singleBoxCost Decimal @default(0) @db.Decimal(10, 4)
 
- dualBoxCost Decimal @default(0) @db.Decimal(10, 4)
+  dualBoxCost Decimal @default(0) @db.Decimal(10, 4)
 
- insertCost Decimal @default(0) @db.Decimal(10, 4)
+  insertCost Decimal @default(0) @db.Decimal(10, 4)
 
- labelCost Decimal @default(0) @db.Decimal(10, 4)
+  labelCost Decimal @default(0) @db.Decimal(10, 4)
 
- laborHourlyRate Decimal @default(0) @db.Decimal(10, 2)
+  laborHourlyRate Decimal @default(0) @db.Decimal(10, 2)
 
- laborMinutesPerOrder Decimal @default(0) @db.Decimal(10, 2)
+  laborMinutesPerOrder Decimal @default(0) @db.Decimal(10, 2)
 
- otherPackagingCost Decimal @default(0) @db.Decimal(10, 4)
+  otherPackagingCost Decimal @default(0) @db.Decimal(10, 4)
 
- active Boolean @default(true)
+  active Boolean @default(true)
 
- effectiveFrom DateTime @default(now())
+  effectiveFrom DateTime @default(now())
 
- retiredAt DateTime?
+  retiredAt DateTime?
 
- createdAt DateTime @default(now())
+  createdAt DateTime @default(now())
 
- updatedAt DateTime @updatedAt
+  updatedAt DateTime @updatedAt
 
- @@index([active])
- @@index([effectiveFrom])
+  @@index([active])
+  @@index([effectiveFrom])
 }

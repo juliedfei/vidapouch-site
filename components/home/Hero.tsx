@@ -145,6 +145,12 @@ export default function Hero() {
              min-[1024px]:mx-0
            ">
 
+{/*<strong>VidaPouch</strong> turns your supplements into personalized daily pouches - 
+           organized for morning and evening and delivered to your door.
+           <strong>VidaSearch</strong>, our AI-powered supplement search
+           Join the waitlist or get help from a Supplement Concierge. */}
+
+
            <strong>VidaPouch</strong> turns your supplements into simple,
            personalized daily pouches. Use{" "}
            <strong>VidaSearch</strong>, our AI-powered supplement search
@@ -160,8 +166,8 @@ export default function Hero() {
              min-[1024px]:mx-0
            ">
 
-           Spend less time managing supplements - and
-           more time benefiting from them.
+           Become a Founding Member and get your first month
+           on us. No payment is required today.
          </p>
 
          {/* Mobile CTAs */}
@@ -173,7 +179,7 @@ export default function Hero() {
            ">
 
            <a
-             href={VIDASEARCH_URL}
+             href="#founding-member"
              className="
                w-full max-w-[340px]
                rounded-full bg-[#081620]
@@ -188,13 +194,13 @@ export default function Hero() {
                focus-visible:ring-offset-2
                focus-visible:ring-offset-[#F3E9DD]
              "
-             aria-label="Start building your routine with VidaSearch">
+             aria-label="Become a VidaPouch Founding Member">
 
-             START MY ROUTINE
+             BECOME A FOUNDING MEMBER
            </a>
 
            <a
-             href="tel:5082438404"
+             href={VIDASEARCH_URL}
              className="
                w-full max-w-[340px]
                rounded-full
@@ -214,7 +220,7 @@ export default function Hero() {
                focus-visible:ring-offset-[#F3E9DD]
              ">
 
-             TALK TO A CONCIERGE
+             BUILD MY VIDAPOUCH
            </a>
 
            <p
@@ -239,7 +245,7 @@ export default function Hero() {
            ">
 
            <a
-             href={VIDASEARCH_URL}
+             href="#founding-member"
              className="
                rounded-full bg-[#081620]
                px-8 py-4
@@ -253,13 +259,13 @@ export default function Hero() {
                focus-visible:ring-offset-2
                focus-visible:ring-offset-[#F3E9DD]
              "
-             aria-label="Start building your routine with VidaSearch">
+             aria-label="Become a VidaPouch Founding Member">
 
-             START MY ROUTINE
+             BECOME A FOUNDING MEMBER
            </a>
 
            <a
-             href="tel:5082438404"
+             href={VIDASEARCH_URL}
              className="
                rounded-full
                border border-[#1B2529]
@@ -278,7 +284,7 @@ export default function Hero() {
                focus-visible:ring-offset-[#F3E9DD]
              ">
 
-             TALK TO A CONCIERGE
+             BUILD MY VIDAPOUCH
            </a>
          </div>
 
@@ -300,29 +306,63 @@ export default function Hero() {
            Powered by VidaSearch
          </a>
 
-         {/* Phone */}
-         <div
-           className="
-             mt-5 text-center
-             min-[1024px]:text-left
-           ">
 
-           <p className="text-[15px] text-[#5C666A]">
-             Questions? Speak with a Supplement Concierge.
-           </p>
 
-           <a
-             href="tel:5082438404"
-             className="
-               mt-1 inline-block
-               text-[18px] font-semibold
-               text-[#8C1D40]
-               hover:underline
-             ">
+{/* Concierge contact options */}
+<div
+ className="
+   mt-5 text-center
+   min-[1024px]:text-left
+ ">
 
-             (508) 243-8404
-           </a>
-         </div>
+ <p className="text-[15px] text-[#5C666A]">
+   Prefer personal help? Text or call a Supplement Concierge.
+ </p>
+
+ <div
+   className="
+     mt-2 flex flex-wrap
+     items-center justify-center
+     gap-x-4 gap-y-2
+     min-[1024px]:justify-start
+   ">
+
+   <a
+     href="sms:5082438404"
+     className="
+       text-[16px] font-semibold
+       text-[#8C1D40]
+       hover:underline
+     ">
+
+     TEXT THE CONCIERGE
+   </a>
+
+   <span
+     aria-hidden="true"
+     className="text-[#A39A91]">
+
+     ·
+   </span>
+
+   <a
+     href="tel:5082438404"
+     className="
+       text-[16px] font-semibold
+       text-[#8C1D40]
+       hover:underline
+     ">
+
+     CALL (508) 243-8404
+   </a>
+ </div>
+</div>
+         
+
+
+
+
+
 
          {/* Features */}
          <div

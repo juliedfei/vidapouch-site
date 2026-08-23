@@ -474,6 +474,25 @@ import {
                                 " "
                               )}
                             </span>
+
+
+                            <span
+ className="
+   rounded-full
+   bg-[#F3E9DD]
+   px-3 py-1
+   text-xs font-semibold
+   text-[#694F3B]
+ ">
+
+ {entry.source ===
+ "VIDAPOUCH"
+   ? "SOURCE: VIDAPOUCH"
+   : "SOURCE: VIDASEARCH"}
+</span>
+
+
+
                           </div>
    
                           <p className="mt-2 text-sm text-[#665C54]">
@@ -487,21 +506,38 @@ import {
                         </div>
    
                         <div className="text-left lg:text-right">
-                          <p className="text-2xl font-semibold text-[#26211D]">
-                            {formatMoney(
-                              Number(
-                                entry.estimatedTotalPrice
-                              )
-                            )}
-                          </p>
+ <p className="text-2xl font-semibold text-[#26211D]">
+   {entry.estimatedTotalPrice ===
+   null
+     ? "Not selected yet"
+     : formatMoney(
+         Number(
+           entry.estimatedTotalPrice
+         )
+       )}
+ </p>
+
+
+
    
-                          <p className="mt-1 text-sm text-[#665C54]">
-                            Estimated{" "}
-                            {entry.purchaseOption ===
-                            "SUBSCRIPTION"
-                              ? "monthly subscription"
-                              : "one-time order"}
-                          </p>
+ <p className="mt-1 text-sm text-[#665C54]">
+ {entry.purchaseOption ===
+ null
+   ? "Founding Member registration"
+   : (
+       <>
+         Estimated{" "}
+         {entry.purchaseOption ===
+         "SUBSCRIPTION"
+           ? "monthly subscription"
+           : "one-time order"}
+       </>
+     )}
+</p>
+
+
+
+
                         </div>
                       </div>
    
@@ -511,9 +547,17 @@ import {
                             Plan
                           </dt>
    
+
+
                           <dd className="mt-1 font-medium text-[#26211D]">
-                            {entry.planName}
-                          </dd>
+ {entry.planName ??
+   "Not selected yet"}
+</dd>
+
+
+
+
+
                         </div>
    
                         <div>
@@ -521,9 +565,17 @@ import {
                             Supplements
                           </dt>
    
+
+
+
                           <dd className="mt-1 font-medium text-[#26211D]">
-                            {entry.supplementCount}
-                          </dd>
+ {entry.supplementCount ??
+   "Not selected yet"}
+</dd>
+
+
+
+
                         </div>
    
                         <div>
@@ -556,11 +608,30 @@ import {
                           Requested routine
                         </h3>
    
+
+
                         <div className="mt-4 space-y-3">
-                          {entry.items.map(
+
+
+
+{entry.items.length ===
+0 ? (
+ <div className="rounded-2xl bg-[#F8F5F1] p-4 text-sm text-[#665C54]">
+   No supplements selected yet.
+ </div>
+) : (
+ entry.items.map(
+
+
+
+
                             (
                               item
                             ) => (
+
+
+
+
                               <div
                                 key={
                                   item.id
@@ -583,8 +654,14 @@ import {
                                 </p>
                               </div>
                             )
+
+
+                          )
                           )}
                         </div>
+
+
+
                       </section>
    
                       <section>
@@ -598,13 +675,24 @@ import {
                               Plan price
                             </dt>
    
+
+
+
                             <dd className="font-medium text-[#26211D]">
-                              {formatMoney(
-                                Number(
-                                  entry.estimatedPlanPrice
-                                )
-                              )}
-                            </dd>
+ {entry.estimatedPlanPrice ===
+ null
+   ? "Not selected yet"
+   : formatMoney(
+       Number(
+         entry.estimatedPlanPrice
+       )
+     )}
+</dd>
+
+
+
+
+
                           </div>
    
                           <div className="flex items-center justify-between gap-4">
@@ -612,13 +700,24 @@ import {
                               Estimated overage
                             </dt>
    
+
+
+
                             <dd className="font-medium text-[#26211D]">
-                              {formatMoney(
-                                Number(
-                                  entry.estimatedOverageFee
-                                )
-                              )}
-                            </dd>
+ {entry.estimatedOverageFee ===
+ null
+   ? "Not selected yet"
+   : formatMoney(
+       Number(
+         entry.estimatedOverageFee
+       )
+     )}
+</dd>
+
+
+
+
+
                           </div>
    
                           <div className="flex items-center justify-between gap-4 border-t border-[#E6DED5] pt-3">
@@ -626,13 +725,23 @@ import {
                               Estimated total
                             </dt>
    
+
+
                             <dd className="font-semibold text-[#26211D]">
-                              {formatMoney(
-                                Number(
-                                  entry.estimatedTotalPrice
-                                )
-                              )}
-                            </dd>
+ {entry.estimatedTotalPrice ===
+ null
+   ? "Not selected yet"
+   : formatMoney(
+       Number(
+         entry.estimatedTotalPrice
+       )
+     )}
+</dd>
+
+
+
+
+
                           </div>
                         </dl>
    

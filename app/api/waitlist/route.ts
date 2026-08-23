@@ -8,10 +8,17 @@ import {
     SearchPouchPurchaseOption,
    } from "@/components/search/types/searchPouch";
    
+
+
    import {
     VidaPouchPurchaseOption,
     VidaPouchSalesMode,
-   } from "@/lib/generated/prisma/client";
+    VidaPouchWaitlistSource,
+    } from "@/lib/generated/prisma/client";
+    
+
+
+
    
    import {
     prisma,
@@ -505,6 +512,10 @@ import {
           .vidaPouchWaitlistEntry
           .create({
             data: {
+              source:
+VidaPouchWaitlistSource.VIDASEARCH,
+
+
               customerEmail:
                 body.customerEmail
                   .trim()

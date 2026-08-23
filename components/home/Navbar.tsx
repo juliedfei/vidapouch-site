@@ -102,7 +102,7 @@ export default function Navbar() {
            </Link>
 
            <Link
-             href={VIDASEARCH_URL}
+             href="/#founding-member"
              className="
                whitespace-nowrap rounded-full
                bg-[#081620] px-6 py-3
@@ -115,9 +115,9 @@ export default function Navbar() {
                focus-visible:ring-offset-2
                focus-visible:ring-offset-[#EDE1D3]
              "
-             aria-label="Build your VidaPouch using VidaSearch">
+             aria-label="Become a VidaPouch Founding Member">
 
-             BUILD MY VIDAPOUCH
+             BECOME A FOUNDING MEMBER
            </Link>
          </nav>
 
@@ -283,7 +283,7 @@ export default function Navbar() {
            </nav>
 
            <Link
-             href={VIDASEARCH_URL}
+             href="/#founding-member"
              onClick={() =>
                setMenuOpen(
                  false
@@ -298,9 +298,9 @@ export default function Navbar() {
                text-white transition
                hover:bg-[#162A34]
              "
-             aria-label="Build your VidaPouch using VidaSearch">
+             aria-label="Become a VidaPouch Founding Member">
 
-             BUILD MY VIDAPOUCH
+             BECOME A FOUNDING MEMBER
            </Link>
 
            <p
@@ -309,8 +309,8 @@ export default function Navbar() {
                leading-5 text-[#6F665E]
              ">
 
-             Search supplements, build your future pouch,
-             and save it for early access.
+             Get your first month on us. No payment
+             is required today.
            </p>
          </aside>
        </div>
