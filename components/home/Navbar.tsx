@@ -283,7 +283,7 @@ export default function Navbar() {
            </nav>
 
            <Link
-             href="/#founding-member"
+             href="/waitlist"
              onClick={() =>
                setMenuOpen(
                  false
