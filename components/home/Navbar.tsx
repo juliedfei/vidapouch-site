@@ -117,7 +117,7 @@ export default function Navbar() {
              "
              aria-label="Become a VidaPouch Founding Member">
 
-             BECOME A FOUNDING MEMBER
+             JOIN VIDAPOUCH
            </Link>
          </nav>
 
@@ -298,9 +298,9 @@ export default function Navbar() {
                text-white transition
                hover:bg-[#162A34]
              "
-             aria-label="Become a VidaPouch Founding Member">
+             aria-label="Join VidaPouch">
 
-             BECOME A FOUNDING MEMBER
+             JOIN VIDAPOUCH
            </Link>
 
            <p

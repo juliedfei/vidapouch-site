@@ -181,8 +181,8 @@ export default function Hero() {
              min-[1024px]:mx-0
            ">
 
-           Become a Founding Member and get your first month
-           on us. No payment is required today.
+           Join VidaPouch today. Your first month
+           is on us!
          </p>
 
          {/* Mobile CTAs */}
@@ -209,9 +209,9 @@ export default function Hero() {
                focus-visible:ring-offset-2
                focus-visible:ring-offset-[#F3E9DD]
              "
-             aria-label="Become a VidaPouch Founding Member">
+             aria-label="Join VidaPouch">
 
-             BECOME A FOUNDING MEMBER
+             JOIN VIDAPOUCH
            </a>
 
            <a
@@ -274,9 +274,9 @@ export default function Hero() {
                focus-visible:ring-offset-2
                focus-visible:ring-offset-[#F3E9DD]
              "
-             aria-label="Become a VidaPouch Founding Member">
+             aria-label="Join VidaPouch">
 
-             BECOME A FOUNDING MEMBER
+             JOIN VIDAPOUCH
            </a>
 
            <a
@@ -331,7 +331,7 @@ export default function Hero() {
  ">
 
  <p className="text-[15px] text-[#5C666A]">
-   Prefer personal help? Text or call a Supplement Concierge.
+   Prefer to chat? Our Supplement Concierge is here to help.
  </p>
 
  <div

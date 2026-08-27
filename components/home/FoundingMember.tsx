@@ -126,87 +126,249 @@ export default function FoundingMember() {
          border border-[#D8CCBE]
          bg-white
          shadow-[0_24px_70px_rgba(31,26,22,0.10)]
-         lg:grid-cols-[0.92fr_1.08fr]
+         lg:grid-cols-[1.08fr_0.92fr]
        ">
 
-       <div
-         className="
-           bg-[#081620]
-           px-7 py-10
-           text-white
-           sm:px-10 sm:py-12
-           lg:px-12 lg:py-16
-         ">
+       
+       
+       
+       
+<div
+ className="
+   bg-[#C8D8C2]
+   px-7 py-10
+   text-[#183126]
+   sm:px-10 sm:py-12
+   lg:px-12 lg:py-16
+ ">
 
-         <p
-           className="
-             text-[11px]
-             uppercase
-             tracking-[0.22em]
-             text-[#E3C6CF]
-             sm:text-[12px]
-           ">
+ <p
+   className="
+     text-[11px]
+     uppercase
+     tracking-[0.22em]
+     text-[#7D2945]
+     sm:text-[12px]
+   ">
 
-           FOUNDING MEMBER ACCESS
-         </p>
+   A WELCOME FROM JULIE
+ </p>
 
-         <h2
-           className="
-             mt-5
-             text-[38px]
-             leading-[1.04]
-             tracking-[-0.035em]
-             sm:text-[48px]
-           "
-           style={{
-             fontFamily:
-               'Georgia, "Times New Roman", serif',
-           }}>
+ 
+ 
+ 
+ 
+ <div
+ className="
+   mt-5 grid
+   grid-cols-[80px_1fr]
+   items-center gap-5
+   sm:grid-cols-[96px_1fr]
+   sm:gap-6
+ ">
 
-           Be among the first
-           to experience VidaPouch.
-         </h2>
-
-         <p
-           className="
-             mt-6 max-w-[480px]
-             text-[16px]
-             leading-7
-             text-[#D6DDE0]
-           ">
-
-           Become a Founding Member
-           and get your first month
-           on us. Tell us how to
-           reach you, and the
-           VidaPouch team will be
-           in touch with your next
-           steps.
-         </p>
-
-         <div
-           className="
-             mt-9 border-t
-             border-white/15 pt-7
-           ">
-
-           
-           
-           
-<div className="flex items-center gap-4">
  <img
    src="/images/home-v2/julie-concierge.png"
    alt="Julie, founder of VidaPouch"
-   className="h-16 w-16 shrink-0 rounded-full border-2 border-white/25 object-cover shadow-[0_8px_24px_rgba(0,0,0,0.18)]"
+   className="
+     h-20 w-20
+     rounded-full
+     border-2 border-white/70
+     object-cover
+     shadow-[0_8px_24px_rgba(24,49,38,0.14)]
+     sm:h-24 sm:w-24
+   "
  />
 
  <div>
-   <p className="text-[13px] uppercase tracking-[0.12em] text-[#AAB7BC]">
-     Prefer personal help?
-   </p>
+   <h2
+     className="
+       text-[32px]
+       leading-[1.08]
+       tracking-[-0.035em]
+       sm:text-[42px]
+     "
+     style={{
+       fontFamily:
+         'Georgia, "Times New Roman", serif',
+     }}>
 
-   <p className="mt-1 text-[14px] leading-5 text-[#D6DDE0]">
-     Text or call Julie, founder of VidaPouch.
+     “VidaPouch makes taking your supplements simple.”
+   </h2>
+
+   <p
+     className="
+       mt-3 text-[13px]
+       font-medium
+       uppercase
+       tracking-[0.12em]
+       text-[#5D3B47]
+     ">
+
+     Julie, Founder of VidaPouch
+   </p>
+ </div>
+</div>
+
+<p
+ className="
+   mt-7 max-w-[560px]
+   text-[16px]
+   leading-7
+   text-[#30332F]
+ ">
+
+ I created VidaPouch because managing multiple supplement bottles
+ shouldn’t add more work to your day. Your supplements are organized
+ into convenient daily pouches, making your routine simpler at home
+ or on the go.
+</p>
+
+<p
+ className="
+   mt-5 max-w-[560px]
+   text-[16px]
+   leading-7
+   text-[#30332F]
+ ">
+
+ I’m excited for you to experience this simpler way of taking
+ your supplements.
+</p>
+
+<p
+ className="
+   mt-1
+   text-[18px]
+   font-semibold
+   leading-7
+   text-[#8C1D40]
+ ">
+
+ That’s why your first month is on us!
+</p>
+
+
+
+
+ <div
+   className="
+     mt-9 border-t
+     border-[#171A17]/20 pt-7
+   ">
+
+   <div className="flex items-center gap-4">
+   <div
+ className="
+   flex h-12 w-12 shrink-0
+   items-center justify-center
+   rounded-full
+   bg-[#183126]
+   text-white
+ "
+ aria-hidden="true">
+
+ <svg
+   viewBox="0 0 24 24"
+   fill="none"
+   stroke="currentColor"
+   strokeWidth="1.8"
+   className="h-6 w-6">
+
+   <path
+     strokeLinecap="round"
+     strokeLinejoin="round"
+     d="M4 18v-6a8 8 0 0 1 16 0v6"
+   />
+
+   <path
+     strokeLinecap="round"
+     strokeLinejoin="round"
+     d="M4 18a3 3 0 0 0 3 3h1v-6H7a3 3 0 0 0-3 3Z"
+   />
+
+   <path
+     strokeLinecap="round"
+     strokeLinejoin="round"
+     d="M20 18a3 3 0 0 1-3 3h-1v-6h1a3 3 0 0 1 3 3Z"
+   />
+ </svg>
+</div>
+
+     <div>
+       <p
+         className="
+           text-[13px]
+           uppercase
+           tracking-[0.12em]
+           text-[#30332F]
+         ">
+
+         PREFER TO CHAT?
+       </p>
+
+       <p
+         className="
+           mt-1 text-[14px]
+           leading-5
+           text-[#30332F]
+         ">
+
+         Our Supplement Concierge is here to help.
+       </p>
+     </div>
+   </div>
+
+   <div
+     className="
+       mt-4 flex
+       flex-wrap gap-3
+     ">
+
+     <a
+       href="sms:5082438404"
+       className="
+         rounded-full
+         bg-[#183126]
+         px-6 py-3
+         text-[12px]
+         font-medium
+         tracking-[0.08em]
+         text-white
+         transition
+         hover:bg-[#284A39]
+       ">
+
+       TEXT THE CONCIERGE
+     </a>
+
+     <a
+       href="tel:5082438404"
+       className="
+         rounded-full
+         border
+         border-[#183126]/25
+         bg-[#F8F2EA]
+         px-6 py-3
+         text-[12px]
+         font-medium
+         tracking-[0.08em]
+         text-[#183126]
+         transition
+         hover:bg-white
+       ">
+
+       CALL THE CONCIERGE
+     </a>
+   </div>
+
+   <p
+     className="
+       mt-4 text-[15px]
+       text-[#30332F]
+     ">
+
+     (508) 243-8404
    </p>
  </div>
 </div>
@@ -214,57 +376,11 @@ export default function FoundingMember() {
 
 
 
-           <div
-             className="
-               mt-4 flex
-               flex-wrap gap-3
-             ">
 
-             <a
-               href="sms:5082438404"
-               className="
-                 rounded-full
-                 bg-white px-6 py-3
-                 text-[12px]
-                 font-medium
-                 tracking-[0.08em]
-                 text-[#081620]
-                 transition
-                 hover:bg-[#F3E9DD]
-               ">
 
-               TEXT THE CONCIERGE
-             </a>
 
-             <a
-               href="tel:5082438404"
-               className="
-                 rounded-full
-                 border
-                 border-white/40
-                 px-6 py-3
-                 text-[12px]
-                 font-medium
-                 tracking-[0.08em]
-                 text-white
-                 transition
-                 hover:bg-white/10
-               ">
 
-               CALL THE CONCIERGE
-             </a>
-           </div>
 
-           <p
-             className="
-               mt-4 text-[15px]
-               text-[#D6DDE0]
-             ">
-
-             (508) 243-8404
-           </p>
-         </div>
-       </div>
 
        <div
          className="
@@ -292,7 +408,7 @@ export default function FoundingMember() {
                  text-[#8C1D40]
                ">
 
-               YOU’RE REGISTERED
+               WELCOME TO VIDAPOUCH
              </p>
 
              <h3
@@ -306,8 +422,7 @@ export default function FoundingMember() {
                    'Georgia, "Times New Roman", serif',
                }}>
 
-               Welcome to the
-               Founding Member list.
+               You're on the list!
              </h3>
 
              <p
@@ -318,10 +433,8 @@ export default function FoundingMember() {
                  text-[#5C666A]
                ">
 
-               Thank you for your
-               interest in VidaPouch.
-               We’ll be in touch
-               with your next steps.
+               Thank you for joining VidaPouch. We'll be in touch soon 
+               to help you get started.
              </p>
 
              <a
@@ -353,7 +466,7 @@ export default function FoundingMember() {
                  text-[#8C1D40]
                ">
 
-               BECOME A FOUNDING MEMBER
+               JOIN VIDAPOUCH
              </p>
 
              <h3
@@ -379,9 +492,8 @@ export default function FoundingMember() {
                  text-[#5C666A]
                ">
 
-               Complete the short
-               form below. No payment
-               is required today.
+               Complete the short form below, and we'll be in touch
+               to help you get started.
              </p>
 
              <form
@@ -556,7 +668,7 @@ export default function FoundingMember() {
                  {submissionState ===
                  "submitting"
                    ? "REGISTERING..."
-                   : "BECOME A FOUNDING MEMBER"}
+                   : "JOIN VIDAPOUCH"}
                </button>
              </form>
            </>

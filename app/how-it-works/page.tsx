@@ -390,7 +390,7 @@ export default function HowItWorksPage() {
 
            <div className="pt-3">
              <p className="max-w-[470px] text-[14px] leading-7 text-[#F4E7E2]">
-               Become a Founding Member and receive your first month on us.
+               Join VidaPouch and receive your first month on us.
                Complete our short form, and we&apos;ll be in touch with your next steps.
              </p>
            </div>
@@ -403,7 +403,7 @@ export default function HowItWorksPage() {
  href="/waitlist"
  className="inline-flex min-w-[240px] justify-center rounded-full border border-white/35 bg-transparent px-7 py-4 text-[12px] font-semibold tracking-[0.09em] text-white transition hover:bg-white/10">
 
- BECOME A FOUNDING MEMBER
+ JOIN VIDAPOUCH
 </a>
 
 

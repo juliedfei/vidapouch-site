@@ -531,7 +531,7 @@ export default function ProductPage() {
  href="/waitlist"
  className="inline-flex min-w-[250px] justify-center rounded-full bg-[#8C1D40] px-8 py-3.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-white transition hover:bg-[#731735]">
 
- BECOME A FOUNDING MEMBER
+ JOIN VIDAPOUCH
 </a>
 
 
