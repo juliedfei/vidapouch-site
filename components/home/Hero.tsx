@@ -46,7 +46,7 @@ export default function Hero() {
 
      {/* Mobile background */}
      <img
-       src="/Hero-BG-mobile.png"
+       src="/Hero-BG-mobile-clean.png"
        alt=""
        aria-hidden="true"
        className="
@@ -135,27 +135,42 @@ export default function Hero() {
            On autopilot.
          </h1>
 
-         {/* Main copy */}
-         <p
-           className="
-             mx-auto mt-6 max-w-[575px]
-             text-[17px] leading-[1.75]
-             text-[#3E4A4E]
-             sm:text-[18px]
-             min-[1024px]:mx-0
-           ">
-
-{/*<strong>VidaPouch</strong> turns your supplements into personalized daily pouches - 
-           organized for morning and evening and delivered to your door.
-           <strong>VidaSearch</strong>, our AI-powered supplement search
-           Join the waitlist or get help from a Supplement Concierge. */}
 
 
-           <strong>VidaPouch</strong> turns your supplements into simple,
-           personalized daily pouches. Use{" "}
-           <strong>VidaSearch</strong>, our AI-powered supplement search
-           assistant, to choose what goes inside, or get help from a Supplement Concierge.
-         </p>
+
+{/* Mobile main copy */}
+<p
+ className="
+   mx-auto mt-6 max-w-[575px]
+   text-[17px] leading-7
+   text-[#3E4A4E]
+   min-[1024px]:hidden
+ ">
+
+ Personalized daily supplement pouches, built around your routine—because
+ taking care of yourself should be that easy.
+</p>
+
+{/* Desktop main copy */}
+<p
+ className="
+   mx-0 mt-6 hidden max-w-[575px]
+   text-[18px] leading-[1.75]
+   text-[#3E4A4E]
+   min-[1024px]:block
+ ">
+
+ <strong>VidaPouch</strong> turns your supplements into simple,
+ personalized daily pouches. Use{" "}
+ <strong>VidaSearch</strong>, our AI-powered supplement search assistant,
+ to choose what goes inside, or get help from a Supplement Concierge.
+</p>
+
+
+
+
+
+
 
          {/* Supporting copy */}
          <p
