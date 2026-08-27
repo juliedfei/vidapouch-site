@@ -8,17 +8,39 @@ export default function ProductPage() {
 
      {/* HERO */}
      <section className="relative overflow-hidden border-b border-[#DDD2C5] bg-[#F3E9DD]">
-       <div className="relative min-h-[680px] lg:min-h-[720px]">
-         <img
-           src="/images/product/product_hero.png"
-           alt="VidaPouch personalized morning pouch beside a glass of water"
-           className="absolute inset-0 h-full w-full object-cover object-[center_82%]"
-         />
+       
+       
+       
+     <div className="relative min-h-[860px] lg:min-h-[720px]">
+         
+         
+         
+         
+       <picture>
+ <source
+   media="(max-width: 1023px)"
+   srcSet="/images/product/product_hero_mobile.png"
+ />
+
+ <img
+   src="/images/product/product_hero.png"
+   alt="VidaPouch personalized morning pouch beside a glass of water"
+   className="absolute inset-0 h-full w-full object-cover object-center lg:object-[center_82%]"
+ />
+</picture>
+
+
+
+
 
          {/* Soft left-side wash so copy remains readable */}
-         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(243,233,221,0.99)_0%,rgba(243,233,221,0.97)_24%,rgba(243,233,221,0.88)_36%,rgba(243,233,221,0.48)_49%,rgba(243,233,221,0.10)_62%,rgba(243,233,221,0)_72%)]" />
+         <div className="absolute inset-0 hidden bg-[linear-gradient(90deg,rgba(243,233,221,0.99)_0%,rgba(243,233,221,0.97)_24%,rgba(243,233,221,0.88)_36%,rgba(243,233,221,0.48)_49%,rgba(243,233,221,0.10)_62%,rgba(243,233,221,0)_72%)] lg:block" />
 
-         <div className="relative z-10 mx-auto flex min-h-[680px] max-w-[1440px] items-center px-6 pb-32 pt-8 sm:px-10 lg:min-h-[720px] lg:px-16 lg:pb-36 lg:pt-10 xl:px-20">
+
+
+         <div className="relative z-10 mx-auto flex min-h-[860px] max-w-[1440px] items-start px-6 pb-32 pt-16 sm:px-10 lg:min-h-[720px] lg:items-center lg:px-16 lg:pb-36 lg:pt-10 xl:px-20">           
+           
+           
            <div className="max-w-[590px]">
              <p className="text-[12px] font-medium uppercase tracking-[0.24em] text-[#8C1D40]">
                THE PRODUCT
@@ -52,7 +74,10 @@ export default function ProductPage() {
        </div>
 
        {/* HERO BENEFIT STRIP */}
-       <div className="relative z-20 mx-auto -mt-14 max-w-[1320px] px-5 pb-10 sm:px-8 lg:px-12">
+       <div className="relative z-20 mx-auto mt-10 max-w-[1320px] px-5 pb-10 sm:px-8 lg:-mt-14 lg:px-12">
+
+
+
          <div className="grid overflow-hidden rounded-[28px] border border-[#DCCFC0] bg-[#F9F4ED]/95 shadow-[0_24px_70px_rgba(38,26,18,0.08)] backdrop-blur-md md:grid-cols-3">
            <HeroBenefit
              icon="◷"
@@ -78,17 +103,36 @@ export default function ProductPage() {
 
      {/* MORNING + EVENING */}
 <section className="relative overflow-hidden bg-[#EFE2D4]">
- <div className="relative min-h-[560px] lg:min-h-[620px]">
-   <img
-     src="/images/product/product_morning_evening.png"
-     alt="VidaPouch morning and evening personalized supplement pouches"
-     className="absolute inset-0 h-full w-full object-cover object-[82%_center]"
-   />
+ 
+ 
+<div className="relative min-h-[820px] lg:min-h-[620px]">
+
+
+   
+   
+ <picture>
+ <source
+   media="(max-width: 1023px)"
+   srcSet="/images/product/product_morning_evening_mobile.png"
+ />
+
+ <img
+   src="/images/product/product_morning_evening.png"
+   alt="VidaPouch morning and evening personalized supplement pouches"
+   className="absolute inset-0 h-full w-full object-cover object-center lg:object-[82%_center]"
+ />
+</picture>
+
+
 
    {/* Soft cream wash behind the copy */}
-   <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(239,226,212,0.99)_0%,rgba(239,226,212,0.96)_24%,rgba(239,226,212,0.84)_37%,rgba(239,226,212,0.42)_50%,rgba(239,226,212,0.08)_63%,rgba(239,226,212,0)_74%)]" />
+   <div className="absolute inset-0 hidden bg-[linear-gradient(90deg,rgba(239,226,212,0.99)_0%,rgba(239,226,212,0.96)_24%,rgba(239,226,212,0.84)_37%,rgba(239,226,212,0.42)_50%,rgba(239,226,212,0.08)_63%,rgba(239,226,212,0)_74%)] lg:block" />
 
-   <div className="relative z-10 mx-auto flex min-h-[560px] max-w-[1440px] items-center px-6 py-16 sm:px-10 lg:min-h-[620px] lg:px-16 xl:px-20">
+  
+   <div className="relative z-10 mx-auto flex min-h-[820px] max-w-[1440px] items-start px-6 py-16 sm:px-10 lg:min-h-[620px] lg:items-center lg:px-16 xl:px-20">
+
+
+
      <div className="max-w-[500px]">
        <p className="text-[12px] font-medium uppercase tracking-[0.24em] text-[#8C1D40]">
          YOUR DAY, ALREADY ORGANIZED
@@ -122,7 +166,9 @@ export default function ProductPage() {
  <div className="mx-auto grid max-w-[1180px] items-center gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:gap-16">
 
    {/* PRODUCT IMAGE */}
-   <div className="flex justify-center lg:justify-start">
+   <div className="order-2 flex justify-center lg:order-1 lg:justify-start">
+
+
      <div className="aspect-square w-full max-w-[500px] overflow-hidden rounded-[28px]">
        <img
          src="/images/product/product_box.png"
@@ -133,7 +179,11 @@ export default function ProductPage() {
    </div>
 
    {/* COPY */}
-   <div className="max-w-[560px]">
+   <div className="order-1 max-w-[560px] lg:order-2">
+
+
+
+
      <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-[#8C1D40]">
        WHAT YOU RECEIVE
      </p>
@@ -272,7 +322,9 @@ export default function ProductPage() {
  <div className="mx-auto grid max-w-[1180px] items-center gap-14 px-6 lg:grid-cols-[0.95fr_1.05fr]">
 
    {/* IMAGE */}
-<div className="flex justify-center">
+   <div className="order-2 flex justify-center lg:order-1">
+
+
  <div className="flex aspect-square w-full max-w-[430px] items-center justify-center rounded-[30px] bg-[#E8D9C8] p-8 shadow-[0_20px_60px_rgba(30,20,15,0.08)]">
    <img
      src="/images/product/product_pouch_back.png"
@@ -283,7 +335,10 @@ export default function ProductPage() {
 </div>
 
    {/* TEXT */}
-   <div className="max-w-[540px]">
+   <div className="order-1 max-w-[540px] lg:order-2">
+
+
+
      <p className="text-[12px] font-medium uppercase tracking-[0.24em] text-[#8C1D40]">
        A POUCH THAT STAYS CONNECTED
      </p>
@@ -458,7 +513,7 @@ export default function ProductPage() {
                fontFamily: 'Georgia, "Times New Roman", serif',
              }}>
 
-             Become a Founding Member and save 20% on your first year.
+             Become a Founding Member and receive your first month free.
            </h3>
 
            <p className="mt-2 text-[13px] leading-6 text-[#5F676B]">
@@ -469,15 +524,21 @@ export default function ProductPage() {
 
        {/* RIGHT */}
        <div className="flex shrink-0 flex-col items-center gap-2.5 lg:items-end">
-         <a
-           href="tel:+15082438404"
-           className="inline-flex min-w-[250px] justify-center rounded-full bg-[#8C1D40] px-8 py-3.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-white transition hover:bg-[#731735]">
+        
+        
+        
+       <a
+ href="/waitlist"
+ className="inline-flex min-w-[250px] justify-center rounded-full bg-[#8C1D40] px-8 py-3.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-white transition hover:bg-[#731735]">
 
-           CALL THE VIDAPOUCH CONCIERGE
-         </a>
+ BECOME A FOUNDING MEMBER
+</a>
+
+
+
 
          <p className="text-[10px] text-[#7A8185]">
-           Ask about current Founding Member benefits.
+           No payment is required today.
          </p>
        </div>
 

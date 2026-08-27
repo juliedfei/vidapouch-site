@@ -102,7 +102,7 @@ export default function Navbar() {
            </Link>
 
            <Link
-             href="/#founding-member"
+             href="/waitlist"
              className="
                whitespace-nowrap rounded-full
                bg-[#081620] px-6 py-3

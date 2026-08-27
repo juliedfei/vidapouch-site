@@ -190,16 +190,29 @@ export default function FoundingMember() {
              border-white/15 pt-7
            ">
 
-           <p
-             className="
-               text-[13px]
-               uppercase
-               tracking-[0.12em]
-               text-[#AAB7BC]
-             ">
+           
+           
+           
+<div className="flex items-center gap-4">
+ <img
+   src="/images/home-v2/julie-concierge.png"
+   alt="Julie, founder of VidaPouch"
+   className="h-16 w-16 shrink-0 rounded-full border-2 border-white/25 object-cover shadow-[0_8px_24px_rgba(0,0,0,0.18)]"
+ />
 
-             Prefer personal help?
-           </p>
+ <div>
+   <p className="text-[13px] uppercase tracking-[0.12em] text-[#AAB7BC]">
+     Prefer personal help?
+   </p>
+
+   <p className="mt-1 text-[14px] leading-5 text-[#D6DDE0]">
+     Text or call Julie, founder of VidaPouch.
+   </p>
+ </div>
+</div>
+
+
+
 
            <div
              className="

@@ -9,7 +9,10 @@ export default function AboutPage() {
    <main className="min-h-screen bg-[#F3E9DD] text-[#0E171B]">
      <Navbar />
 
-     <section className="bg-[linear-gradient(180deg,#F3E9DD_0%,#EFE2D4_100%)] px-6 py-16 text-center lg:py-22">
+     <section className="bg-[linear-gradient(180deg,#F3E9DD_0%,#EFE2D4_100%)] px-6 pb-8 pt-16 text-center lg:pb-8 lg:pt-22">
+
+
+
        <div className="mx-auto max-w-[1120px]">
          <p className="text-[12px] uppercase tracking-[0.24em] text-[#8C1D40]">
            ABOUT VIDAPOUCH
@@ -23,14 +26,43 @@ export default function AboutPage() {
          </h1>
 
          <p className="mx-auto mt-6 max-w-[680px] text-[18px] leading-[1.7] text-[#3E4A4E]">
-           Vidapouch was created for the people who want to take care of
-           themselves — but need the routine to feel clearer, calmer, and easier
-           to follow.
+           Vidapouch organizes the supplements you choose into personalized daily pouches,
+           built around your routine and designed to evolve with your goals - because taking care of
+           yourself should be that easy.
          </p>
+
+         <div
+ className="mx-auto mt-10 flex w-full max-w-[760px] items-center gap-5 lg:max-w-[850px]"
+ aria-hidden="true">
+
+ <span className="h-px flex-1 bg-[#8C1D40]" />
+
+ <svg
+   width="22"
+   height="22"
+   viewBox="0 0 24 24"
+   fill="none"
+   stroke="#8C1D40"
+   strokeWidth="1.5">
+
+   <path
+     strokeLinecap="round"
+     strokeLinejoin="round"
+     d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"
+   />
+ </svg>
+
+ <span className="h-px flex-1 bg-[#8C1D40]" />
+</div>
+
+
+
+         
        </div>
      </section>
 
-     <section className="bg-[#EFE2D4] px-6 py-20">
+     <section className="bg-[#EFE2D4] px-6 pb-20 pt-10">
+
        <div className="mx-auto grid max-w-[1120px] items-center gap-10 lg:grid-cols-[0.9fr_1.1fr]">
          <div>
            <p className="text-[12px] uppercase tracking-[0.24em] text-[#8C1D40]">
@@ -41,23 +73,47 @@ export default function AboutPage() {
              className="mt-4 text-[38px] leading-[1.06] tracking-[-0.035em] lg:text-[56px]"
              style={{ fontFamily: "Georgia, serif" }}>
 
-             Because routines can become complicated fast.
+             VidaPouch began with my mom.
            </h2>
          </div>
 
          <div className="rounded-[32px] border border-[#D6CCBF] bg-[#F8F2EA]/90 p-8 shadow-[0_24px_70px_rgba(20,15,10,0.07)]">
-           <p className="text-[17px] leading-8 text-[#475357]">
-             The idea for Vidapouch came from watching people I love manage
-             supplement routines that were important, but difficult to keep
-             organized. Multiple bottles. Different timing. Doctor-guided
-             recommendations. Family members trying to help. What should have
-             felt supportive started to feel overwhelming.
-           </p>
+           
+           
+           
+         <p className="text-[17px] leading-8 text-[#475357]">
+ She lives with SCA6, a form of hereditary cerebellar ataxia, and
+ takes nine different supplements as part of her daily routine. I
+ watched her open bottle after bottle, one at a time, every day—and
+ kept thinking: why should something so important require so much
+ time and effort?
+</p>
 
-           <p className="mt-5 text-[17px] leading-8 text-[#475357]">
-             Vidapouch is built around a simple belief: if a routine matters,
-             it should be easier to follow.
-           </p>
+<p className="mt-5 text-[17px] leading-8 text-[#475357]">
+ I created VidaPouch to organize those supplements into simple,
+ ready-to-take daily pouches. As everyday tasks become more
+ difficult, I want her routine to become easier.
+</p>
+
+<p className="mt-5 text-[17px] leading-8 text-[#475357]">
+ That idea grew into something larger: a simpler way for anyone to
+ manage the supplements they choose to take—without sorting bottles,
+ remembering complicated timing, or packing an entire collection
+ when traveling.
+</p>
+
+<p
+ className="mt-5 text-[20px] leading-8 text-[#0E171B]"
+ style={{ fontFamily: "Georgia, serif" }}>
+
+ Why overcomplicate something that could be simple? If a routine
+ matters, it should fit into your life—not take precious time away
+ from it.
+</p>
+
+
+
+
          </div>
        </div>
      </section>

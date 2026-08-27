@@ -316,7 +316,12 @@ export default function HowItWorksPage() {
            <HeartIcon />
          </div>
 
-         <div className="grid h-full grid-rows-[auto_92px_112px_auto_auto]">
+         <div className="grid h-full grid-rows-none lg:grid-rows-[auto_92px_112px_auto_auto]">
+
+
+
+
+
 
            <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-[#F1D7DE]">
              PERSONAL SUPPORT
@@ -366,10 +371,10 @@ export default function HowItWorksPage() {
            <SparkleCTAIcon />
          </div>
 
-         <div className="grid h-full grid-rows-[auto_92px_112px_auto_auto]">
+         <div className="grid h-full grid-rows-none lg:grid-rows-[auto_92px_112px_auto_auto]">
 
            <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-[#F1D7DE]">
-             POWERED BY VIDASEARCH
+             FOUNDING MEMBER ACCESS
            </p>
 
            <div className="flex items-start pt-3">
@@ -379,28 +384,35 @@ export default function HowItWorksPage() {
                  fontFamily: 'Georgia, "Times New Roman", serif',
                }}>
 
-               Prefer to start online?
+               Be among the first to experience VidaPouch.
              </h2>
            </div>
 
            <div className="pt-3">
              <p className="max-w-[470px] text-[14px] leading-7 text-[#F4E7E2]">
-               Use VidaSearch to explore supplements, compare brands, and build
-               the routine you&apos;d like organized into your VidaPouch.
+               Become a Founding Member and receive your first month on us.
+               Complete our short form, and we&apos;ll be in touch with your next steps.
              </p>
            </div>
 
            <div className="pt-5">
-             <a
-               href="https://vidasearch.com"
-               className="inline-flex min-w-[240px] justify-center rounded-full border border-white/35 bg-transparent px-7 py-4 text-[12px] font-semibold tracking-[0.09em] text-white transition hover:bg-white/10">
+             
+             
+             
+           <a
+ href="/waitlist"
+ className="inline-flex min-w-[240px] justify-center rounded-full border border-white/35 bg-transparent px-7 py-4 text-[12px] font-semibold tracking-[0.09em] text-white transition hover:bg-white/10">
 
-               GET EARLY ACCESS
-             </a>
+ BECOME A FOUNDING MEMBER
+</a>
+
+
+
+
            </div>
 
            <p className="pt-3 text-[11px] leading-5 text-[#E8CFD5]">
-             Early access begins through VidaSearch.
+             No payment is required today.
            </p>
 
          </div>
@@ -414,8 +426,10 @@ export default function HowItWorksPage() {
 
 
 
-    
-<Footer showCta={false} />
+{/*    
+<Footer showCta={false} />*/}
+
+<Footer />
 
 
 
