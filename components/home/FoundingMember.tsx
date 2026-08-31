@@ -493,7 +493,7 @@ export default function FoundingMember() {
                ">
 
                Complete the short form below, and we'll be in touch
-               to help you get started.
+               to help you get started. No payment today. Zero commitment.
              </p>
 
              <form
