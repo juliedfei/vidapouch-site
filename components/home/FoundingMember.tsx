@@ -492,8 +492,8 @@ export default function FoundingMember() {
                  text-[#5C666A]
                ">
 
-               Complete the short form below, and we'll be in touch
-               to help you get started. No payment today. Zero commitment.
+               Complete the short form below to get started.
+               Submitting this form does not enroll you or charge you.
              </p>
 
              <form
