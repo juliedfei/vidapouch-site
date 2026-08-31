@@ -622,10 +622,10 @@ export default function FoundingMember() {
                      text-[#7B8488]
                    ">
 
-                   If provided, we’ll
+                  {/* If provided, we’ll
                    use this number only
                    to follow up about
-                   your VidaPouch request.
+                   your VidaPouch request. */}
                  </p>
                </div>
 
