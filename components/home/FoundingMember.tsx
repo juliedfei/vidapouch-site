@@ -150,7 +150,7 @@ export default function FoundingMember() {
              ">
 
              <img
-               src="/images/home-v2/julie-concierge.PNG"
+               src="/images/home-v2/julie-concierge.png"
                alt="Julie, founder of VidaPouch"
                className="
                  h-20 w-20
@@ -299,7 +299,7 @@ export default function FoundingMember() {
                  ">
 
                  <img
-                   src="/images/home-v2/supplement-bottles.png"
+                   src="/images/home-v2/supplement-bottles.PNG"
                    alt="Assorted supplement bottles"
                    className="
                      h-auto
@@ -334,7 +334,7 @@ export default function FoundingMember() {
                  ">
 
                  <img
-                   src="/images/home-v2/vidapouch-am-pm-pouches.png"
+                   src="/images/home-v2/vidapouch-am-pm-pouches.PNG"
                    alt="VidaPouch morning and evening supplement pouches"
                    className="
                      h-auto
