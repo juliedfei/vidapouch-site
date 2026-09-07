@@ -193,12 +193,12 @@ export default function FoundingMember() {
                mx-auto
                mt-4
                max-w-[650px]
-               text-[40px]
+               text-[38px]
                leading-[1.04]
                tracking-[-0.04em]
                text-[#183126]
-               sm:text-[54px]
-               lg:text-[60px]
+               sm:text-[48px]
+               lg:text-[52px]
              "
              style={{
                fontFamily:

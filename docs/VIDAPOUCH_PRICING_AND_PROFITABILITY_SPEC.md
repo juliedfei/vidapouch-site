@@ -10,7 +10,7 @@ The goals are to keep every plan profitable, base overages on real costs rather 
 
 | Plan | Monthly Price | Supplement Limit |
 |---|---:|---:|
-| Essential | $59.99 | Up to 3 |
+| Essential | $49.99 | Up to 3 |
 | Complete | $79.99 | Up to 5 |
 | Premier | $99.99 | Up to 8 |
 
@@ -28,7 +28,7 @@ Before final allowances are activated, confirm whether these break-even figures 
 Essential versus single-box benchmark:
 
 ```text
-$59.99 - $45.48 = $14.51
+$49.99 - $45.48 = $4.51
 ```
 
 Complete versus dual-box benchmark:
@@ -275,7 +275,7 @@ insert into public.vidapouch_plans (
   display_order
 )
 values
-  ('essential', 'Essential', 59.99, 3, null, 'single-box', 1),
+  ('essential', 'Essential', 49.99, 3, null, 'single-box', 1),
   ('complete', 'Complete', 79.99, 5, null, 'dual-box', 2),
   ('premier', 'Premier', 99.99, 8, null, 'dual-box', 3);
 ```

@@ -103,7 +103,7 @@ const PLAN_SEEDS:
        "Essential",
 
      monthlyPrice:
-       "59.99",
+       "49.99",
 
      supplementLimit:
        3,
