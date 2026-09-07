@@ -456,7 +456,7 @@ export default function ProductPage() {
      <MembershipTierCard
        name="Essential"
        count="Up to 3 supplements"
-       price="$49.99"
+       price="$59.99"
        description="A simple, streamlined daily routine."
        tone="essential"
        icon="leaf"
