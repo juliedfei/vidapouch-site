@@ -214,7 +214,7 @@ const FALLBACK_PLANS:
        "Essential",
 
      monthlyPrice:
-       59.99,
+       49.99,
 
      supplementLimit:
        3,

@@ -456,7 +456,7 @@ export default function ProductPage() {
      <MembershipTierCard
        name="Essential"
        count="Up to 3 supplements"
-       price="$59.99"
+       price="$49.99"
        description="A simple, streamlined daily routine."
        tone="essential"
        icon="leaf"
@@ -513,7 +513,7 @@ export default function ProductPage() {
                fontFamily: 'Georgia, "Times New Roman", serif',
              }}>
 
-             Become a Founding Member and receive your first month free.
+             Join VidaPouch and receive your first month free.
            </h3>
 
            <p className="mt-2 text-[13px] leading-6 text-[#5F676B]">

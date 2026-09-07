@@ -206,7 +206,7 @@ export default function FoundingMember() {
              }}>
 
              Get all your supplements starting at
-             $59.99/month.*
+             $49.99/month.*
            </h1>
 
            <p
@@ -590,7 +590,7 @@ export default function FoundingMember() {
                    text-[#081620]
                  ">
 
-                 $59.99/mo
+                 $49.99/mo
                </p>
              </div>
 
