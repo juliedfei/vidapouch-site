@@ -171,7 +171,7 @@ export default function FoundingMember() {
 
              Thank you for joining VidaPouch.
              We'll be in touch soon to help you
-             get started.
+             customize your pouch and get started.
            </p>
          </div>
        ) : (
@@ -226,7 +226,7 @@ export default function FoundingMember() {
              className="
                mx-auto
                mt-4
-               max-w-[550px]
+               max-w-[1000px]
                text-[15px]
                leading-6
                text-[#5C666A]
@@ -265,11 +265,30 @@ export default function FoundingMember() {
              </button>
            </p>
 
+           {/* WHAT HAPPENS NEXT */}
+           <p
+             className="
+               mx-auto
+               mt-6
+               max-w-[520px]
+               text-[14px]
+               font-medium
+               leading-6
+               text-[#394348]
+               sm:text-[15px]
+             ">
+
+             After you join, a member of the
+             VidaPouch team will be in touch to
+             help you customize your pouch with
+             the supplements you choose.
+           </p>
+
            <form
              onSubmit={handleSubmit}
              className="
                mx-auto
-               mt-8
+               mt-6
                grid
                max-w-[500px]
                gap-4
@@ -447,7 +466,7 @@ export default function FoundingMember() {
              <p
                className="
                  text-center
-                 text-[11px]
+                 text-[15px]
                  leading-5
                  text-[#7B8488]
                ">

@@ -207,7 +207,7 @@ export default function AboutPage() {
          </p>
 
         {/*} <a
-           href="/get-started"
+           href="/waitlist"
            className="mt-8 inline-block rounded-full bg-[#081620] px-8 py-4 text-[14px] tracking-[0.08em] text-white">
 
            GET EARLY ACCESS

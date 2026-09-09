@@ -400,7 +400,7 @@ export default function HowItWorksPage() {
              
              
            <a
- href="/get-started"
+ href="/waitlist"
  className="inline-flex min-w-[240px] justify-center rounded-full border border-white/35 bg-transparent px-7 py-4 text-[12px] font-semibold tracking-[0.09em] text-white transition hover:bg-white/10">
 
  JOIN VIDAPOUCH
