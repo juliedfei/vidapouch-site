@@ -158,7 +158,7 @@ export default function FoundingMember() {
                  'Georgia, "Times New Roman", serif',
              }}>
 
-             Your free month is claimed!
+             You're on the list!
            </h2>
 
            <p
@@ -169,11 +169,9 @@ export default function FoundingMember() {
                text-[#5C666A]
              ">
 
-             Thank you for getting started with
-             VidaPouch. A member of the VidaPouch
-             Concierge team will be in touch soon
-             to learn which supplements you take
-             and help customize your pouch.
+             Thank you for joining VidaPouch.
+             We'll be in touch soon to help you
+             customize your pouch and get started.
            </p>
          </div>
        ) : (
@@ -228,7 +226,7 @@ export default function FoundingMember() {
              className="
                mx-auto
                mt-4
-               max-w-[800px]
+               max-w-[1000px]
                text-[15px]
                leading-6
                text-[#5C666A]
@@ -267,41 +265,24 @@ export default function FoundingMember() {
              </button>
            </p>
 
-           <div
+           {/* WHAT HAPPENS NEXT */}
+           <p
              className="
                mx-auto
                mt-6
-               max-w-[540px]
+               max-w-[520px]
+               text-[14px]
+               font-medium
+               leading-6
+               text-[#394348]
+               sm:text-[15px]
              ">
 
-             <p
-               className="
-                 text-[16px]
-                 font-semibold
-                 leading-6
-                 text-[#183126]
-                 sm:text-[17px]
-               ">
-
-               Claim your free month and start your
-               VidaPouch setup.
-             </p>
-
-             <p
-               className="
-                 mt-2
-                 text-[14px]
-                 leading-6
-                 text-[#394348]
-                 sm:text-[15px]
-               ">
-
-               A member of the VidaPouch Concierge
-               team will be in touch to learn which
-               supplements you take and help
-               customize your pouch.
-             </p>
-           </div>
+             After you join, a member of the
+             VidaPouch team will be in touch to
+             help you customize your pouch with
+             the supplements you choose.
+           </p>
 
            <form
              onSubmit={handleSubmit}
@@ -478,21 +459,20 @@ export default function FoundingMember() {
                ">
 
                {submissionState === "submitting"
-                 ? "CLAIMING..."
-                 : "CLAIM MY FREE MONTH"}
+                 ? "JOINING..."
+                 : "GET MY FREE MONTH"}
              </button>
 
              <p
                className="
                  text-center
-                 text-[12px]
+                 text-[15px]
                  leading-5
                  text-[#7B8488]
-                 sm:text-[13px]
                ">
 
                No charge today. No commitment.
-               Your first month is free on any
+               Free first month applies to any
                VidaPouch tier.
              </p>
            </form>
@@ -785,9 +765,8 @@ export default function FoundingMember() {
                  text-[#6B7477]
                ">
 
-               Claiming your free month does not
-               charge you or enroll you in a paid
-               plan.
+               Joining the waitlist does not charge
+               you or enroll you in a paid plan.
              </p>
            </div>
 
