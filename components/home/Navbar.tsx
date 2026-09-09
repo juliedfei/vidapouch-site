@@ -102,7 +102,7 @@ export default function Navbar() {
            </Link>
 
            <Link
-             href="/get-started"
+             href="/waitlist"
              className="
                whitespace-nowrap rounded-full
                bg-[#081620] px-6 py-3
@@ -283,7 +283,7 @@ export default function Navbar() {
            </nav>
 
            <Link
-             href="/get-started"
+             href="/waitlist"
              onClick={() =>
                setMenuOpen(
                  false
