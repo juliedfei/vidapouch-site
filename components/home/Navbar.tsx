@@ -102,7 +102,7 @@ export default function Navbar() {
            </Link>
 
            <Link
-             href="/waitlist"
+             href="/get-started"
              className="
                whitespace-nowrap rounded-full
                bg-[#081620] px-6 py-3
@@ -115,7 +115,7 @@ export default function Navbar() {
                focus-visible:ring-offset-2
                focus-visible:ring-offset-[#EDE1D3]
              "
-             aria-label="Become a VidaPouch Founding Member">
+             aria-label="Join VidaPouch">
 
              JOIN VIDAPOUCH
            </Link>
@@ -283,7 +283,7 @@ export default function Navbar() {
            </nav>
 
            <Link
-             href="/waitlist"
+             href="/get-started"
              onClick={() =>
                setMenuOpen(
                  false

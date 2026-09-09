@@ -528,7 +528,7 @@ export default function ProductPage() {
         
         
        <a
- href="/waitlist"
+ href="/get-started"
  className="inline-flex min-w-[250px] justify-center rounded-full bg-[#8C1D40] px-8 py-3.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-white transition hover:bg-[#731735]">
 
  JOIN VIDAPOUCH

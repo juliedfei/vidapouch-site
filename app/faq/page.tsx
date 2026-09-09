@@ -51,7 +51,7 @@ export default function FAQPage() {
            </p>
 
            <a
-             href="/waitlist"
+             href="/get-started"
              className="mt-7 inline-block rounded-full bg-[#081620] px-7 py-4 text-[13px] tracking-[0.08em] text-white">
 
              GET EARLY ACCESS
@@ -156,7 +156,7 @@ export default function FAQPage() {
          </p>
 
          <a
-           href="/waitlist"
+           href="/get-started"
            className="mt-8 inline-block rounded-full bg-[#081620] px-8 py-4 text-[14px] tracking-[0.08em] text-white">
 
            GET EARLY ACCESS
