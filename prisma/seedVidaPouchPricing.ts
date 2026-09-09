@@ -103,7 +103,7 @@ const PLAN_SEEDS:
        "Essential",
 
      monthlyPrice:
-       "59.99",
+       "39.99",
 
      supplementLimit:
        3,
@@ -133,7 +133,7 @@ const PLAN_SEEDS:
        "Complete",
 
      monthlyPrice:
-       "79.99",
+       "59.99",
 
      supplementLimit:
        5,
@@ -163,7 +163,7 @@ const PLAN_SEEDS:
        "Premier",
 
      monthlyPrice:
-       "99.99",
+       "79.99",
 
      supplementLimit:
        8,

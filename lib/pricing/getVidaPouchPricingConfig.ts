@@ -214,7 +214,7 @@ const FALLBACK_PLANS:
        "Essential",
 
      monthlyPrice:
-       59.99,
+       39.99,
 
      supplementLimit:
        3,
@@ -249,7 +249,7 @@ const FALLBACK_PLANS:
        "Complete",
 
      monthlyPrice:
-       79.99,
+       59.99,
 
      supplementLimit:
        5,
@@ -284,7 +284,7 @@ const FALLBACK_PLANS:
        "Premier",
 
      monthlyPrice:
-       99.99,
+       79.99,
 
      supplementLimit:
        8,

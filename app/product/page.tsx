@@ -456,7 +456,7 @@ export default function ProductPage() {
      <MembershipTierCard
        name="Essential"
        count="Up to 3 supplements"
-       price="$59.99"
+       price="$39.99"
        description="A simple, streamlined daily routine."
        tone="essential"
        icon="leaf"
@@ -465,7 +465,7 @@ export default function ProductPage() {
      <MembershipTierCard
        name="Standard"
        count="Up to 5 supplements"
-       price="$79.99"
+       price="$59.99"
        description="More flexibility for your everyday routine."
        tone="standard"
        icon="sun"
@@ -474,7 +474,7 @@ export default function ProductPage() {
      <MembershipTierCard
        name="Premier"
        count="Up to 8 supplements"
-       price="$99.99"
+       price="$79.99"
        description="For more complete supplement routines."
        tone="premier"
        icon="crown"
@@ -484,7 +484,7 @@ export default function ProductPage() {
      <MembershipTierCard
        name="Custom"
        count="More than 8 supplements"
-       price="From $139.99"
+       price="From $119.99"
        description="For complex routines or unique timing needs."
        tone="custom"
        icon="sliders"

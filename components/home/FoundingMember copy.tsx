@@ -508,7 +508,7 @@ export default function FoundingMember() {
                  text-[#081620]
                ">
 
-               $59.99/month
+               $39.99/month
              </span>{" "}
              after your free first month.
            </p>
@@ -1137,7 +1137,7 @@ export default function FoundingMember() {
            </p>
          </div>
          <p className="font-semibold text-[#081620]">
-           $59.99/mo
+           $39.99/mo
          </p>
        </div>
 
@@ -1151,7 +1151,7 @@ export default function FoundingMember() {
            </p>
          </div>
          <p className="font-semibold text-[#081620]">
-           $79.99/mo
+           $59.99/mo
          </p>
        </div>
 
@@ -1165,7 +1165,7 @@ export default function FoundingMember() {
            </p>
          </div>
          <p className="font-semibold text-[#081620]">
-           $99.99/mo
+           $79.99/mo
          </p>
        </div>
 
@@ -1179,7 +1179,7 @@ export default function FoundingMember() {
            </p>
          </div>
          <p className="font-semibold text-[#081620]">
-           From $139.99/mo
+           From $119.99/mo
          </p>
        </div>
      </div>
