@@ -26,24 +26,8 @@ import type {
 const SEARCH_DELAY_MS =
 50;
 
-/*
- * Keep the customer-facing search fast.
- *
- * The initial marketplace response is enough to
- * populate the results screen. The previous expanded
- * pass can be re-enabled later if we decide the extra
- * breadth is worth the additional requests.
- */
-const ENABLE_EXPANDED_SEARCH =
-false;
-
-/*
- * Live merchant enrichment is intentionally disabled
- * on the search-results screen. It can be re-enabled
- * later for product-detail or checkout validation.
- */
 const ENABLE_LIVE_ENRICHMENT =
-false;
+true;
 
 
 
@@ -1026,14 +1010,10 @@ export function useSearch(
 
  useEffect(
    () => {
- 
- 
- 
-    const trimmed =
-    typeof query === "string" ? query.trim() : "";
-
-
-
+ const trimmed =
+ typeof query === "string"
+ ? query.trim()
+ : "";
 
  if (
  !trimmed
@@ -1202,30 +1182,24 @@ const enrichmentController =
  initialProducts;
 
  /*
-              * Expanded search is currently disabled
-              * so the first useful supplement results
-              * are the final results for this screen.
-              *
-              * Set ENABLE_EXPANDED_SEARCH to true to
-              * restore the broader background pass.
+              * Keep the initial products on screen
+              * while the full expansion runs.
               */
- if (
- ENABLE_EXPANDED_SEARCH
-             ) {
  setLoadingMore(
  true
-               );
+             );
 
  console.log(
  "VidaSearch expanded product search started:",
-                 {
+               {
  query:
  trimmed,
 
  initialProductCount:
- initialProducts.length,
-                 }
-               );
+ initialProducts
+                     .length,
+               }
+             );
 
  try {
  const expandedResult =
@@ -1237,14 +1211,17 @@ const enrichmentController =
  "expanded",
 
  signal:
- searchController.signal,
-                   });
+ searchController
+                       .signal,
+                 });
 
  if (
- searchController.signal.aborted
-                 ) {
+ searchController
+                   .signal
+                   .aborted
+               ) {
  return;
-                 }
+               }
 
  const expandedProducts =
  expandedResult.products;
@@ -1256,96 +1233,111 @@ const enrichmentController =
 
  incomingProducts:
  expandedProducts,
-                   });
+                 });
 
  console.log(
  "VidaSearch expanded product search completed:",
-                   {
+                 {
  query:
  trimmed,
 
  initialProductCount:
- initialProducts.length,
+ initialProducts
+                       .length,
 
  expandedProductCount:
- expandedProducts.length,
+ expandedProducts
+                       .length,
 
  mergedProductCount:
- mergedProducts.length,
+ mergedProducts
+                       .length,
 
  categoryCount:
- expandedResult.metadata?.categories.length ?? 0,
-                   }
-                 );
+ expandedResult
+                       .metadata
+                       ?.categories
+                       .length ??
+ 0,
+                 }
+               );
 
  productsForEnrichment =
  mergedProducts;
 
  setResults(
-                   (
+                 (
  currentResults
-                   ) =>
+                 ) =>
  mergeSearchProducts({
  currentProducts:
  currentResults,
 
  incomingProducts:
  expandedProducts,
-                     })
-                 );
+                   })
+               );
 
  setMetadata(
-                   (
+                 (
  currentMetadata
-                   ) =>
+                 ) =>
  mergeSearchMetadata({
  currentMetadata,
 
  incomingMetadata:
- expandedResult.metadata,
-                     })
-                 );
-               } catch (
+ expandedResult
+                         .metadata,
+                   })
+               );
+             } catch (
  expansionError
-               ) {
+             ) {
  if (
- expansionError instanceof DOMException &&
- expansionError.name === "AbortError"
-                 ) {
+ expansionError instanceof
+ DOMException &&
+ expansionError.name ===
+ "AbortError"
+               ) {
  return;
-                 }
+               }
 
+ /*
+                * Expansion failure is nonfatal.
+                *
+                * The customer keeps the fast initial
+                * product collection rather than seeing
+                * the entire page change to an error.
+                */
  console.error(
  "VidaSearch expanded product search failed:",
-                   {
+                 {
  query:
  trimmed,
 
  error:
- expansionError instanceof Error
+ expansionError instanceof
+ Error
  ? {
  name:
  expansionError.name,
 
  message:
  expansionError.message,
-                           }
+                         }
  : expansionError,
-                   }
-                 );
-               } finally {
- if (
- !searchController.signal.aborted
-                 ) {
- setLoadingMore(
- false
-                   );
                  }
-               }
-             } else {
+               );
+             } finally {
+ if (
+ !searchController
+                   .signal
+                   .aborted
+               ) {
  setLoadingMore(
  false
-               );
+                 );
+               }
              }
 
  if (

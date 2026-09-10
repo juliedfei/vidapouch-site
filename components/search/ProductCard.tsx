@@ -1,100 +1,70 @@
 "use client";
-
 import {
  useState,
 } from "react";
-
 import type {
  ReactNode,
 } from "react";
-
 import type {
  SearchProductOption,
  SearchProductUnitLabel,
 } from "@/lib/search/searchProductOption";
-
 import {
  calculateVitaPouchAddOn,
 } from "@/lib/search/calculateVidaPouchAddOn";
-
 import {
  getSearchPouchTiming,
 } from "@/lib/search/getSearchPouchTiming";
-
 import type {
  SearchPouchItem,
 } from "./types/searchPouch";
-
 import {
  getNextSearchPlan,
 } from "./types/searchPlan";
-
 import type {
  SearchPlan,
 } from "./types/searchPlan";
-
 import {
  trackEvent,
  } from "@/lib/analytics/trackEvent";
-
-
-
 type ProductCardProps = {
  product:
  SearchProductOption;
-
  isInPouch:
  boolean;
-
  selectedPlan:
  SearchPlan | null;
-
  selectedSupplementCount:
  number;
-
-
-
  onAddToPouch: (
  item:
  SearchPouchItem
  ) => void;
 };
-
 type VendorLinkResponse = {
  url?:
  string;
-
  error?:
  string;
-
  matchType?:
  string;
-
  retailer?:
  string;
-
  productTitle?:
  string;
-
  merchantProductTitle?:
  string;
-
  originalBottlePrice?:
  number | null;
-
  liveBottlePrice?:
  number | null;
-
  priceChanged?:
  boolean;
-
  priceDifferenceAmount?:
  number | null;
-
  priceDifferencePercentage?:
  number | null;
 };
-
 function formatCurrency(
  value:
  number
@@ -103,13 +73,6 @@ function formatCurrency(
  2
  )}`;
 }
-
-/*
- * VidaPouch Score is temporarily hidden.
- *
- * Keep this helper commented out so the score can be
- * restored later without rebuilding the calculation.
- *
 function clampScore(
  value:
  number
@@ -124,9 +87,6 @@ function clampScore(
    )
  );
 }
-*/
-
-
 function formatReviewCount(
  value:
  number
@@ -137,11 +97,9 @@ function formatReviewCount(
  value
  );
 }
-
 function getPluralUnitLabel(
  unitLabel:
  SearchProductUnitLabel,
-
  count:
  number
 ) {
@@ -151,34 +109,26 @@ function getPluralUnitLabel(
  ) {
  return unitLabel;
  }
-
  switch (
  unitLabel
  ) {
  case "capsule":
  return "capsules";
-
  case "tablet":
  return "tablets";
-
  case "caplet":
  return "caplets";
-
  case "softgel":
  return "softgels";
-
  case "gummy":
  return "gummies";
-
  case "serving":
  return "servings";
-
  case "unit":
  default:
  return "units";
  }
 }
-
 function RatingStars({
  rating,
 }: {
@@ -193,13 +143,11 @@ function RatingStars({
  rating
      )
    );
-
  const filledWidth =
  `${(
  normalizedRating /
  5
    ) * 100}%`;
-
  return (
  <span
  className="
@@ -212,17 +160,14 @@ function RatingStars({
  aria-label={`${normalizedRating.toFixed(
  1
      )} out of 5 stars`}>
-
  <span
  className="
          tracking-[1px]
          text-[#D8D1C8]
        "
  aria-hidden="true">
-
        ★★★★★
  </span>
-
  <span
  className="
          absolute
@@ -238,13 +183,11 @@ function RatingStars({
  filledWidth,
        }}
  aria-hidden="true">
-
        ★★★★★
  </span>
  </span>
  );
 }
-
 function CalendarIcon() {
  return (
  <svg
@@ -252,7 +195,6 @@ function CalendarIcon() {
  fill="none"
  aria-hidden="true"
  className="h-[16px] w-[16px]">
-
  <rect
  x="4.5"
  y="5.5"
@@ -262,14 +204,12 @@ function CalendarIcon() {
  stroke="currentColor"
  strokeWidth="1.5"
  />
-
  <path
  d="M8 3.5v4M16 3.5v4M4.5 9.5h15"
  stroke="currentColor"
  strokeWidth="1.5"
  strokeLinecap="round"
  />
-
  <path
  d="M9 13h2v2H9z"
  fill="currentColor"
@@ -277,7 +217,6 @@ function CalendarIcon() {
  </svg>
  );
 }
-
 function ShieldIcon() {
  return (
  <svg
@@ -285,14 +224,12 @@ function ShieldIcon() {
  fill="none"
  aria-hidden="true"
  className="h-[16px] w-[16px]">
-
  <path
  d="M12 3.5 19 6v5.2c0 4.4-2.8 7.4-7 9.3-4.2-1.9-7-4.9-7-9.3V6l7-2.5Z"
  stroke="currentColor"
  strokeWidth="1.5"
  strokeLinejoin="round"
  />
-
  <path
  d="m9.2 12 1.8 1.8 3.8-4"
  stroke="currentColor"
@@ -303,7 +240,6 @@ function ShieldIcon() {
  </svg>
  );
 }
-
 function PersonIcon() {
  return (
  <svg
@@ -311,7 +247,6 @@ function PersonIcon() {
  fill="none"
  aria-hidden="true"
  className="h-[16px] w-[16px]">
-
  <circle
  cx="12"
  cy="8"
@@ -319,7 +254,6 @@ function PersonIcon() {
  stroke="currentColor"
  strokeWidth="1.5"
  />
-
  <path
  d="M6.5 19c.4-3.4 2.3-5.2 5.5-5.2s5.1 1.8 5.5 5.2"
  stroke="currentColor"
@@ -329,7 +263,6 @@ function PersonIcon() {
  </svg>
  );
 }
-
 function CheckCircleIcon() {
  return (
  <svg
@@ -337,7 +270,6 @@ function CheckCircleIcon() {
  fill="none"
  aria-hidden="true"
  className="h-[16px] w-[16px]">
-
  <circle
  cx="12"
  cy="12"
@@ -345,7 +277,6 @@ function CheckCircleIcon() {
  stroke="currentColor"
  strokeWidth="1.5"
  />
-
  <path
  d="m8.5 12.2 2.2 2.2 4.8-5"
  stroke="currentColor"
@@ -356,15 +287,12 @@ function CheckCircleIcon() {
  </svg>
  );
 }
-
 type PlanDetailRowProps = {
  icon:
  ReactNode;
-
  children:
  ReactNode;
 };
-
 function PlanDetailRow({
  icon,
  children,
@@ -379,24 +307,20 @@ function PlanDetailRow({
        leading-[1.45]
        text-[#4F5A5E]
      ">
-
  <span
  className="
          mt-[1px]
          shrink-0
          text-[#8C6B55]
        ">
-
  {icon}
  </span>
-
  <span>
  {children}
  </span>
  </div>
  );
 }
-
 export default function ProductCard({
  product,
  isInPouch,
@@ -411,7 +335,6 @@ export default function ProductCard({
  useState(
  false
    );
-
  const [
  vendorLinkError,
  setVendorLinkError,
@@ -419,7 +342,6 @@ export default function ProductCard({
  useState(
  ""
    );
-
  const [
  resolvedBottlePrice,
  setResolvedBottlePrice,
@@ -429,113 +351,97 @@ export default function ProductCard({
 (
  null
    );
-
  const representative =
  product
      .representativeProduct;
-
  const bottleUnitCount =
  representative
      .capsulesPerBottle;
-
  const displayedBottlePrice =
  resolvedBottlePrice ??
  representative
      .bottlePrice;
-
  const bottlePricePerUnit =
  bottleUnitCount >
  0
  ? displayedBottlePrice /
  bottleUnitCount
  : null;
-
  const pouchUnitsPerDay =
  product.unitsPerDay ??
  1;
-
  const pouchUnitCount =
  pouchUnitsPerDay *
  30;
-
  const unitLabel =
  product.unitLabel;
-
  const pluralUnitLabel =
  getPluralUnitLabel(
  unitLabel,
  bottleUnitCount
    );
-
  const pouchPluralUnitLabel =
  getPluralUnitLabel(
  unitLabel,
  pouchUnitCount
    );
-
  /*
-  * VidaPouch Score is temporarily disabled.
-  * Original logic preserved here for easy restoration:
+  * TEMPORARILY DISABLED: VidaPouch Score.
+  *
+  * Keep the original calculation here so it can be
+  * restored later without rebuilding the score logic.
   *
   * const vidaPouchScore =
-  * product.score.overall !== null
-  * ? clampScore(product.score.overall)
+  * product.score.overall !==
+  * null
+  * ? clampScore(
+  * product.score.overall
+  *   )
   * : null;
   */
  const vidaPouchScore:
  number | null =
  null;
-
  const retailerRating =
  representative.rating;
-
  const retailerReviewCount =
  representative
      .reviewCount;
-
  const hasRetailerRating =
  typeof retailerRating ===
  "number" &&
  retailerRating >
  0;
-
  const productClaims =
  Array.from(
  new Set([
  ...product.certifications,
-
  ...product.qualityClaims,
-
  product
          .verifiedClaims
          .nsfCertified
  ? "NSF Certified"
  : null,
-
  product
          .verifiedClaims
          .uspVerified
  ? "USP Verified"
  : null,
-
  product
          .verifiedClaims
          .thirdPartyTested
  ? "Third-Party Tested"
  : null,
-
  product
          .verifiedClaims
          .vegan
  ? "Vegan"
  : null,
-
  product
          .verifiedClaims
          .nonGmo
  ? "Non-GMO"
  : null,
-
  product
          .verifiedClaims
          .glutenFree
@@ -551,15 +457,12 @@ export default function ProductCard({
  claim.trim().length >
  0
    );
-
  const dosageLabel =
  product.dosage ||
  "Not specified";
-
  const formLabel =
  product.form ||
  "Not specified";
-
  const dosageBasisLabel =
  product
      .dosageIsPerServing ===
@@ -570,28 +473,23 @@ export default function ProductCard({
  false
  ? `Per ${unitLabel}`
  : null;
-
  const canAddToVidaPouch =
  product
      .vitaPouchFormEligible;
-
  const recommendedPouchTiming =
  getSearchPouchTiming(
  product
    );
-
  const pouchItemId =
  representative
      .shoppingProductId ??
  `${product.brand}-${product.productName}`;
-
  const nextPlan =
  selectedPlan
  ? getNextSearchPlan(
  selectedPlan.id
        )
  : null;
-
  const reachesCurrentPlanLimit =
  selectedPlan !==
  null &&
@@ -599,17 +497,14 @@ export default function ProductCard({
  selectedPlan
        .supplementLimit &&
  !isInPouch;
-
  const willAutomaticallyUpgrade =
  reachesCurrentPlanLimit &&
  nextPlan !==
  null;
-
  const customRoutineRequired =
  reachesCurrentPlanLimit &&
  nextPlan ===
  null;
-
  /*
   * When the next addition causes an automatic
   * upgrade, calculate the product-cost input
@@ -620,7 +515,6 @@ export default function ProductCard({
  nextPlan
  ? nextPlan
  : selectedPlan;
-
  /*
   * This legacy helper now supplies product-cost
   * input only. It does not render or determine a
@@ -630,16 +524,13 @@ export default function ProductCard({
  effectivePlan
  ? calculateVitaPouchAddOn({
  product,
-
  selectedPlan:
  effectivePlan,
        })
  : undefined;
-
  const addButtonDisabled =
  isInPouch ||
  customRoutineRequired;
-
  function handleAddToPouch() {
  if (
  !canAddToVidaPouch ||
@@ -647,8 +538,6 @@ export default function ProductCard({
    ) {
  return;
    }
-
-
  trackEvent(
  "add_to_pouch_clicked",
     {
@@ -684,22 +573,13 @@ export default function ProductCard({
  willAutomaticallyUpgrade,
     }
    );
-
-
-
-
-
  onAddToPouch({
  id:
  pouchItemId,
-
-
-
  shoppingProductId:
  representative
          .shoppingProductId ??
  null,
-
  immersiveProductPageToken:
  representative
          .immersiveProductPageToken ??
@@ -709,102 +589,72 @@ export default function ProductCard({
  representative
          .serpApiImmersiveProductUrl ??
  null,
-
-
-
  productName:
  product.productName,
-
  brand:
  product.brand,
-
  dosage:
  product.dosage,
-
  form:
  product.form,
-
  unitLabel:
  product.unitLabel,
-
  unitsPerDay:
  pouchUnitsPerDay,
-
  monthlyUnitCount:
  pouchUnitCount,
-
  monthlyPrice:
  product
          .displayedMonthlyCost,
-
  baselineUnitsPerDay:
  product
          .baselineUnitsPerDay ??
  pouchUnitsPerDay,
-
  baselineMonthlyPrice:
  product
          .baselineMonthlyCost ??
  product
          .displayedMonthlyCost,
-
  pricing:
  vidaPouchPricing,
-
-
-
  bottlePrice:
  representative
          .bottlePrice,
-
  bottleUnitCount:
  representative
            .capsulesPerBottle,
-
-
  retailer:
  representative
          .retailer,
-
  imageUrl:
  representative
          .imageUrl ??
  null,
-
  vitaPouchScore:
  vidaPouchScore,
-
  certifications:
  product.certifications,
-
  qualityClaims:
  product.qualityClaims,
-
  timing:
  recommendedPouchTiming
          .timing,
-
  recommendedTiming:
  recommendedPouchTiming
          .timing,
-
  timingPreference:
  "vidapouch",
-
  timingReason:
  recommendedPouchTiming
          .reason,
    });
  }
-
  async function handleBuyBottle() {
  if (
  isFindingVendorLink
    ) {
  return;
    }
-
-
  trackEvent(
  "retailer_link_clicked",
     {
@@ -833,33 +683,23 @@ export default function ProductCard({
  vidaPouchScore,
     }
    );
-
-
-
-
-
  const immersiveProductPageToken =
  representative
        .immersiveProductPageToken;
-
  if (
  !immersiveProductPageToken
    ) {
  setVendorLinkError(
  "The exact Google Shopping product token is missing for this listing."
      );
-
  return;
    }
-
  setVendorLinkError(
  ""
    );
-
  setIsFindingVendorLink(
  true
    );
-
  /*
     * Open during the original click so Safari
     * does not block the new tab.
@@ -869,13 +709,11 @@ export default function ProductCard({
  "",
  "_blank"
      );
-
  if (
  vendorWindow
    ) {
  vendorWindow.document.title =
  `Opening ${representative.retailer}…`;
-
  vendorWindow.document.body.innerHTML =
  `
          <div style="
@@ -896,7 +734,6 @@ export default function ProductCard({
          </div>
        `;
    }
-
  try {
  const response =
  await fetch(
@@ -904,44 +741,35 @@ export default function ProductCard({
          {
  method:
  "POST",
-
  headers: {
  "Content-Type":
  "application/json",
            },
-
  body:
  JSON.stringify({
  retailer:
  representative
                    .retailer,
-
  productTitle:
  product
                    .productName,
-
  bottlePrice:
  representative
                    .bottlePrice,
-
  shoppingProductId:
  representative
                    .shoppingProductId,
-
  immersiveProductPageToken:
  representative
                    .immersiveProductPageToken,
-
  serpApiImmersiveProductUrl:
  representative
                    .serpApiImmersiveProductUrl,
              }),
          }
        );
-
  let data:
  VendorLinkResponse;
-
  try {
  data =
          (await response.json()) as
@@ -951,7 +779,6 @@ export default function ProductCard({
  "The vendor-link service returned an invalid response."
        );
      }
-
  if (
  !response.ok ||
  !data.url
@@ -961,7 +788,6 @@ export default function ProductCard({
  `The exact ${representative.retailer} offer could not be found.`
        );
      }
-
  const liveBottlePrice =
  typeof data
          .liveBottlePrice ===
@@ -973,7 +799,6 @@ export default function ProductCard({
  0
  ? data.liveBottlePrice
  : null;
-
  if (
  liveBottlePrice !==
  null
@@ -982,10 +807,6 @@ export default function ProductCard({
  liveBottlePrice
        );
      }
-
-
-
-
  trackEvent(
  "retailer_link_opened",
       {
@@ -1023,25 +844,17 @@ export default function ProductCard({
         }
        );
  
-
-
-
  if (
  vendorWindow
      ) {
  vendorWindow.opener =
  null;
-
  vendorWindow.location.href =
  data.url;
      } else {
  window.location.href =
  data.url;
      }
-
-
-
-
    } catch (
  error
    ) {
@@ -1051,39 +864,32 @@ export default function ProductCard({
      ) {
  vendorWindow.close();
      }
-
  const message =
  error instanceof Error
  ? error.message
  : "The exact vendor offer could not be found.";
-
  console.error(
  "VidaSearch Buy Bottle failed:",
        {
  retailer:
  representative
              .retailer,
-
  productTitle:
  product
              .productName,
-
  shoppingProductId:
  representative
              .shoppingProductId ??
  null,
-
  hasImmersiveProductPageToken:
  Boolean(
  representative
                .immersiveProductPageToken
            ),
-
  error:
  message,
        }
      );
-
  setVendorLinkError(
  message
      );
@@ -1093,7 +899,6 @@ export default function ProductCard({
      );
    }
  }
-
  return (
  <article
  className="
@@ -1108,9 +913,7 @@ export default function ProductCard({
        last:border-b-0
        lg:grid-cols-[minmax(0,1.65fr)_minmax(155px,0.68fr)_minmax(190px,0.82fr)]
      ">
-
  {/* Product and score */}
-
  <div
  className="
          flex
@@ -1122,7 +925,6 @@ export default function ProductCard({
          py-5
          lg:border-b-0
        ">
-
  <div
  className="
            flex
@@ -1131,7 +933,6 @@ export default function ProductCard({
            items-start
            justify-center
          ">
-
  {representative.imageUrl ? (
  <div
  className="
@@ -1144,7 +945,6 @@ export default function ProductCard({
                bg-white
                p-1
              ">
-
  <img
  src={
  representative
@@ -1178,12 +978,10 @@ export default function ProductCard({
                font-semibold
                text-[#8C1D40]
              ">
-
  {product.brand}
  </div>
          )}
  </div>
-
  <div className="min-w-0 flex-1">
  <h3
  className="
@@ -1192,10 +990,8 @@ export default function ProductCard({
              leading-[1.3]
              text-[#081620]
            ">
-
  {product.productName}
  </h3>
-
  <div
  className="
              mt-1.5
@@ -1206,17 +1002,14 @@ export default function ProductCard({
              gap-x-2
              gap-y-1.5
            ">
-
  <span
  className="
                text-[12px]
                leading-5
                text-[#30383B]
              ">
-
  {product.brand}
  </span>
-
  {product.recommended && (
  <span
  className="
@@ -1231,12 +1024,10 @@ export default function ProductCard({
                  tracking-[0.035em]
                  text-[#46514B]
                ">
-
                Best Overall
  </span>
            )}
  </div>
-
  <div
  className="
              mt-3
@@ -1245,7 +1036,6 @@ export default function ProductCard({
              grid-cols-2
              gap-2
            ">
-
  <div
  className="
                rounded-[8px]
@@ -1255,7 +1045,6 @@ export default function ProductCard({
                px-3
                py-2
              ">
-
  <p
  className="
                  text-[9px]
@@ -1264,10 +1053,8 @@ export default function ProductCard({
                  tracking-[0.06em]
                  text-[#727B7E]
                ">
-
                Dosage
  </p>
-
  <p
  className="
                  mt-1
@@ -1275,10 +1062,8 @@ export default function ProductCard({
                  font-semibold
                  text-[#17252C]
                ">
-
  {dosageLabel}
  </p>
-
  {dosageBasisLabel && (
  <p
  className="
@@ -1286,12 +1071,10 @@ export default function ProductCard({
                    text-[9px]
                    text-[#697276]
                  ">
-
  {dosageBasisLabel}
  </p>
              )}
  </div>
-
  <div
  className="
                rounded-[8px]
@@ -1301,7 +1084,6 @@ export default function ProductCard({
                px-3
                py-2
              ">
-
  <p
  className="
                  text-[9px]
@@ -1310,10 +1092,8 @@ export default function ProductCard({
                  tracking-[0.06em]
                  text-[#727B7E]
                ">
-
                Form
  </p>
-
  <p
  className="
                  mt-1
@@ -1321,17 +1101,61 @@ export default function ProductCard({
                  font-semibold
                  text-[#17252C]
                ">
-
  {formLabel}
  </p>
  </div>
  </div>
-
  {/*
-  * VidaPouch Score UI temporarily hidden.
-  *
-  * Original score display can be restored later.
-  */}
+   TEMPORARILY DISABLED: VidaPouch Score display.
+   Restore this block when you want the score visible again.
+ <div
+ className="
+             mt-3
+             flex
+             min-w-0
+             items-center
+             gap-3
+           ">
+ <div
+ className="
+               flex
+               h-[48px]
+               w-[48px]
+               flex-none
+               items-center
+               justify-center
+               rounded-full
+               border-[3px]
+               border-[#8C1D40]
+               bg-[#FCF9F7]
+             "
+ aria-label={
+ vidaPouchScore !==
+ null
+                 ? `VidaPouch score ${vidaPouchScore} out of 100`
+                 : "VidaPouch score not available"
+ }>
+ <span
+ className="
+                 text-[15px]
+                 font-bold
+                 leading-none
+                 text-[#8C1D40]
+               ">
+ {vidaPouchScore ??
+ "—"}
+ </span>
+ </div>
+ <p
+ className="
+               text-[12px]
+               font-semibold
+               text-[#17252C]
+             ">
+             VidaPouch Score
+ </p>
+ </div>
+ */}
  {productClaims.length >
  0 && (
  <div
@@ -1341,7 +1165,6 @@ export default function ProductCard({
                flex-wrap
                gap-1.5
              ">
-
  {productClaims.map(
                (claim) => (
  <span
@@ -1358,7 +1181,6 @@ export default function ProductCard({
                      font-medium
                      text-[#3D4548]
                    ">
-
  {claim}
  </span>
                )
@@ -1367,9 +1189,7 @@ export default function ProductCard({
          )}
  </div>
  </div>
-
  {/* Buy bottle */}
-
  <div
  className="
          flex
@@ -1382,7 +1202,6 @@ export default function ProductCard({
          lg:border-b-0
          lg:border-l
        ">
-
  <div className="min-w-0">
  <p
  className="
@@ -1391,11 +1210,9 @@ export default function ProductCard({
              leading-5
              text-[#485256]
            ">
-
  {bottleUnitCount}{" "}
  {pluralUnitLabel}
  </p>
-
  <p
  className="
              mt-1
@@ -1406,12 +1223,10 @@ export default function ProductCard({
              tracking-[-0.025em]
              text-[#081620]
            ">
-
  {formatCurrency(
  displayedBottlePrice
            )}
  </p>
-
  {bottlePricePerUnit !==
  null && (
  <p
@@ -1422,14 +1237,12 @@ export default function ProductCard({
                leading-5
                text-[#596367]
              ">
-
  {formatCurrency(
  bottlePricePerUnit
              )}{" "}
              / {unitLabel}
  </p>
          )}
-
  <div
  className="
              mt-4
@@ -1437,7 +1250,6 @@ export default function ProductCard({
              leading-[1.55]
              text-[#4F5A5E]
            ">
-
  <div
  className="
                flex
@@ -1446,20 +1258,17 @@ export default function ProductCard({
                justify-between
                gap-2
              ">
-
  <span
  className="
                  truncate
                  font-semibold
                  text-[#4F5A5E]
                ">
-
  {
  representative
                    .retailer
  }
  </span>
-
  <span
  className="
                  flex-none
@@ -1468,11 +1277,9 @@ export default function ProductCard({
                  text-[#4F5A5E]
                "
  aria-hidden="true">
-
                →
  </span>
  </div>
-
  {hasRetailerRating && (
  <div
  className="
@@ -1482,24 +1289,20 @@ export default function ProductCard({
                  items-center
                  gap-1.5
                ">
-
  <RatingStars
  rating={
  retailerRating
  }
  />
-
  <span
  className="
                    font-semibold
                    text-[#3F494D]
                  ">
-
  {retailerRating.toFixed(
  1
                  )}
  </span>
-
  {typeof retailerReviewCount ===
  "number" &&
  retailerReviewCount >
@@ -1508,7 +1311,6 @@ export default function ProductCard({
  className="
                      text-[#697276]
                    ">
-
                    (
  {formatReviewCount(
  retailerReviewCount
@@ -1518,13 +1320,11 @@ export default function ProductCard({
                )}
  </div>
            )}
-
  <p className="mt-1">
              Buy directly
  </p>
  </div>
  </div>
-
  <button
  type="button"
  onClick={
@@ -1556,12 +1356,10 @@ export default function ProductCard({
            disabled:border-[#C9AFB8]
            disabled:text-[#9A6D7D]
          ">
-
  {isFindingVendorLink
            ? `Finding ${representative.retailer} link…`
            : `Buy at ${representative.retailer}`}
  </button>
-
  {vendorLinkError && (
  <p
  className="
@@ -1571,14 +1369,11 @@ export default function ProductCard({
              text-[#A23636]
            "
  role="alert">
-
  {vendorLinkError}
  </p>
        )}
  </div>
-
  {/* Add to VidaPouch */}
-
  <div
  className="
          flex
@@ -1589,7 +1384,6 @@ export default function ProductCard({
          lg:border-l
          lg:border-[#EEE7DF]
        ">
-
  {canAddToVidaPouch ? (
  <>
  <div className="min-w-0">
@@ -1600,20 +1394,16 @@ export default function ProductCard({
                  gap-2
                  text-[#4F5A5E]
                ">
-
  <CalendarIcon />
-
  <p
  className="
                    text-[11px]
                    font-medium
                  ">
-
  {pouchUnitCount}{" "}
  {pouchPluralUnitLabel} monthly
  </p>
  </div>
-
  {effectivePlan && (
  <div
  className="
@@ -1629,41 +1419,33 @@ export default function ProductCard({
                    font-semibold
                    text-[#76552E]
                  ">
-
                  Eligible for{" "}
  {effectivePlan.name}
  </div>
              )}
-
  <div className="mt-4 space-y-3">
  {effectivePlan && (
  <PlanDetailRow
  icon={
  <PersonIcon />
  }>
-
                    Uses 1 of{" "}
  {effectivePlan.supplementLimit} supplement slots
  </PlanDetailRow>
                )}
-
  <PlanDetailRow
  icon={
  <CheckCircleIcon />
  }>
-
                  Exact brand and dosage supported
  </PlanDetailRow>
-
  <PlanDetailRow
  icon={
  <ShieldIcon />
  }>
-
                  Ships in your personalized pouch
  </PlanDetailRow>
  </div>
-
  {willAutomaticallyUpgrade &&
  nextPlan && (
  <div
@@ -1676,7 +1458,6 @@ export default function ProductCard({
                    px-3
                    py-2.5
                  ">
-
  <p
  className="
                      text-[10px]
@@ -1684,7 +1465,6 @@ export default function ProductCard({
                      leading-[1.45]
                      text-[#73542E]
                    ">
-
                    Adding this supplement will
                    update your plan to{" "}
  {nextPlan.name} at{" "}
@@ -1694,7 +1474,6 @@ export default function ProductCard({
  </p>
  </div>
              )}
-
  {customRoutineRequired && (
  <div
  className="
@@ -1706,7 +1485,6 @@ export default function ProductCard({
                    px-3
                    py-2.5
                  ">
-
  <p
  className="
                      text-[10px]
@@ -1714,13 +1492,11 @@ export default function ProductCard({
                      leading-[1.45]
                      text-[#9A3030]
                    ">
-
                    Premier supports up to eight
                    supplements. Build a custom
                    routine for additional
                    supplements or pouch times.
  </p>
-
  <a
  href="https://vitapouch.com"
  className="
@@ -1732,13 +1508,11 @@ export default function ProductCard({
                      underline
                      underline-offset-2
                    ">
-
                    Build a Custom VidaPouch →
  </a>
  </div>
              )}
  </div>
-
  <button
  type="button"
  onClick={
@@ -1786,21 +1560,18 @@ export default function ProductCard({
                        `
  }
              `}>
-
  <span
  className="
                  text-[16px]
                  leading-none
                "
  aria-hidden="true">
-
  {isInPouch
                  ? "✓"
                  : customRoutineRequired
                    ? "!"
                    : "+"}
  </span>
-
  <span>
  {isInPouch
                  ? "Added to VidaPouch"
@@ -1823,17 +1594,14 @@ export default function ProductCard({
              items-start
              justify-center
            ">
-
  <p
  className="
                text-[12px]
                font-semibold
                text-[#17252C]
              ">
-
              Bottle purchase only
  </p>
-
  <p
  className="
                mt-2
@@ -1841,7 +1609,6 @@ export default function ProductCard({
                leading-[1.55]
                text-[#697276]
              ">
-
              This product form is not currently
              available for VidaPouch packaging.
  </p>

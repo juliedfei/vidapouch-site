@@ -50,7 +50,7 @@ import {
   1;
   
   const INITIAL_MAX_RETAIL_LISTINGS =
-  24;
+  60;
   
   /*
   * The expanded search intentionally explores
@@ -61,10 +61,10 @@ import {
   2;
   
   const EXPANDED_MAX_RETAIL_LISTINGS_PER_SEARCH =
-  120;
+  400;
   
   const MAX_SEARCH_JOBS =
-  4;
+  8;
   
   type SearchPhase =
   | "initial"
@@ -952,37 +952,22 @@ import {
  
    }
   
-  const initialSearchTerm =
-  intentType ===
-  SearchIntentType
-         .HEALTH_GOAL
-  ? buildFallbackMarketplaceQuery({
-  originalQuery,
- 
-  intentType,
-     })
-  : originalQuery.trim();
- 
   return createSearchJob({
   id:
   "initial-fast-search",
- 
+  
   displayName,
- 
-  /*
-   * Health-goal searches must be supplement-scoped
-   * on the very first marketplace request.
-   *
-   * Example: "energy" becomes "energy supplements"
-   * so Google Shopping does not spend the first pass
-   * returning energy drinks and other beverages.
-   */
+  
   searchTerm:
-  initialSearchTerm,
+  intentType ===
+  SearchIntentType
+           .SUPPLEMENT
+  ? originalQuery.trim()
+  : `${originalQuery.trim()} supplements`,
  
   reason:
-  "Fast initial supplement marketplace results matching the customer’s request.",
- 
+  "Fast supplement-only marketplace results matching the customer’s request.",
+  
   searchMode:
   intentType ===
   SearchIntentType
