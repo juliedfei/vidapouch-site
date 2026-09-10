@@ -1082,12 +1082,18 @@ import {
          .SUPPLEMENT
    ) {
   return deduplicateSearchJobs([
-  ...buildSupplementExpansionJobs({
+  ...buildExactProductFallbackJobs({
   originalQuery,
-  
+ 
   displayName,
        }),
-  
+ 
+  ...buildSupplementExpansionJobs({
+  originalQuery,
+ 
+  displayName,
+       }),
+ 
   ...resolvedExpansionJobs,
      ]);
    }
@@ -1110,16 +1116,6 @@ import {
   SearchIntentType
          .BRAND
   ? buildBrandFallbackJobs({
-  originalQuery,
- 
-  displayName,
-        })
-  : []),
- 
-  ...(intentType ===
-  SearchIntentType
-         .SUPPLEMENT
-  ? buildExactProductFallbackJobs({
   originalQuery,
  
   displayName,
