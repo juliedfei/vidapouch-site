@@ -778,7 +778,53 @@ import {
   return "Unknown";
    }
   
-  function getUnitLabel(
+  function inferVidaPouchForm({
+  explicitForm,
+  searchableText,
+ }: {
+  explicitForm: SearchProductForm;
+  searchableText: string;
+ }): SearchProductForm {
+  if (explicitForm !== "Unknown" && explicitForm !== "Other") {
+  return explicitForm;
+   }
+ 
+  const text = searchableText.toLowerCase();
+ 
+  /*
+   * Never infer an encapsulatable form when the listing gives a
+   * clear signal for a non-pouch format.
+   */
+  if (
+  /\b(?:gummies|gummy|chewables?|chews?|powder|powdered|drink\s+mix|stick\s+packs?|sachets?|liquid|drops?|dropper|spray)\b/i.test(
+  text
+     )
+   ) {
+  return explicitForm;
+   }
+ 
+  /*
+   * Marketplace titles often include strength and count but omit the
+   * word "tablet" or "capsule". For VidaPouch discovery, treat these
+   * conventional solid-dose supplement listings as tablets instead of
+   * automatically disqualifying them as "Not specified".
+   *
+   * This is intentionally conservative: we require a supplement signal
+   * plus either a dosage strength or a bottle-count signal.
+   */
+  const hasStrength =
+  /\b\d+(?:\.\d+)?\s*(?:mg|mcg|ug|µg|iu)\b/i.test(text);
+  const hasCount =
+  /\b\d{1,4}\s*(?:ct|count)\b/i.test(text);
+ 
+  if (hasSupplementProductSignal(searchableText) && (hasStrength || hasCount)) {
+  return "Tablet";
+   }
+ 
+  return explicitForm;
+ }
+ 
+ function getUnitLabel(
   form:
   SearchProductForm
    ): SearchRetailProduct[
@@ -1486,10 +1532,18 @@ import {
   return null;
     }
   
-  const form =
+  const extractedForm =
   extractForm(
   searchableText
       );
+ 
+  const form =
+  inferVidaPouchForm({
+  explicitForm:
+  extractedForm,
+ 
+  searchableText,
+      });
   
   const extractedDosage =
   extractDosage(

@@ -64,6 +64,9 @@ import {
   400;
   
   const MAX_SEARCH_JOBS =
+  14;
+ 
+  const INITIAL_SEARCH_CANDIDATE_LIMIT =
   8;
   
   type SearchPhase =
@@ -252,6 +255,97 @@ import {
   return cleaned;
   }
   
+ 
+  function buildHealthGoalFallbackJobs({
+  originalQuery,
+  displayName,
+  }: {
+  originalQuery:
+  string;
+ 
+  displayName:
+  string;
+  }) {
+  const cleaned =
+  originalQuery.trim();
+ 
+  const canonicalName =
+  displayName.trim() ||
+  cleaned;
+ 
+  const variations = [
+    {
+  id:
+  "goal-support-supplements",
+  searchTerm:
+  `${cleaned} support supplements`,
+  priority:
+  -940,
+    },
+    {
+  id:
+  "goal-vitamins-supplements",
+  searchTerm:
+  `${cleaned} vitamins supplements`,
+  priority:
+  -930,
+    },
+    {
+  id:
+  "goal-capsules",
+  searchTerm:
+  `${cleaned} supplement capsules`,
+  priority:
+  -920,
+    },
+    {
+  id:
+  "goal-tablets",
+  searchTerm:
+  `${cleaned} supplement tablets`,
+  priority:
+  -910,
+    },
+  ];
+ 
+  return variations.map(
+    (
+  variation
+    ) =>
+  createSearchJob({
+  id:
+  variation.id,
+ 
+  displayName:
+  canonicalName,
+ 
+  searchTerm:
+  variation.searchTerm,
+ 
+  reason:
+  "Fallback supplement-only marketplace query for a broad wellness goal.",
+ 
+  searchMode:
+  "direct-marketplace",
+ 
+  expandAliases:
+  false,
+ 
+  maxPages:
+  EXPANDED_SEARCH_MAX_PAGES,
+ 
+  maxRetailListings:
+  EXPANDED_MAX_RETAIL_LISTINGS_PER_SEARCH,
+ 
+  priority:
+  variation.priority,
+ 
+  kind:
+  "HEALTH_GOAL_FALLBACK",
+      })
+  );
+  }
+ 
   function createSearchJob({
   id,
   displayName,
@@ -772,6 +866,16 @@ import {
   const jobs:
   SearchJob[] = [
   ...resolvedExpansionJobs,
+ 
+  ...(intentType ===
+  SearchIntentType
+         .HEALTH_GOAL
+  ? buildHealthGoalFallbackJobs({
+  originalQuery,
+ 
+  displayName,
+        })
+  : []),
      ];
   
   const marketplacePolicy =
@@ -999,10 +1103,10 @@ import {
   }: {
   phase:
   SearchPhase;
-  
+ 
   initialJob:
   SearchJob | null;
-  
+ 
   completeJobs:
   SearchJob[];
   }) {
@@ -1011,31 +1115,67 @@ import {
   "initial"
    ) {
   /*
-    * Try several relevant supplement queries in parallel.
-    * This gives the database cache multiple chances to
-    * satisfy the request instantly and prevents one bad
-    * Google Shopping query from taking down the search.
-    */
+   * Broad wellness goals such as Mood should not depend
+   * on one generic Google Shopping request. Prefer the
+   * resolver's specific RELATED_SUPPLEMENT jobs first
+   * because those may already exist in the DB cache.
+   *
+   * Then try several supplement-only goal phrases and,
+   * finally, the broad direct query. The candidates run
+   * concurrently, so any successful/cache-backed job can
+   * satisfy the initial response.
+   */
+  const supplementJobs =
+  completeJobs.filter(
+        (job) =>
+  job.searchMode ===
+  "supplement"
+      );
+ 
+  const goalFallbackJobs =
+  completeJobs.filter(
+        (job) =>
+  job.kind ===
+  "HEALTH_GOAL_FALLBACK"
+      );
+ 
+  const remainingJobs =
+  completeJobs.filter(
+        (job) =>
+  job.searchMode !==
+  "supplement" &&
+  job.kind !==
+  "HEALTH_GOAL_FALLBACK"
+      );
+ 
   const candidateJobs =
   deduplicateSearchJobs([
+  ...supplementJobs,
+  ...goalFallbackJobs,
   ...(initialJob ? [initialJob] : []),
-  ...completeJobs,
+  ...remainingJobs,
       ])
-       .slice(0, 4)
-       .map((job) => ({
+       .slice(
+  0,
+  INITIAL_SEARCH_CANDIDATE_LIMIT
+        )
+       .map(
+        (job) => ({
   ...job,
-  maxPages: INITIAL_SEARCH_MAX_PAGES,
-  maxRetailListings: INITIAL_MAX_RETAIL_LISTINGS,
-        }));
+ 
+  maxPages:
+  INITIAL_SEARCH_MAX_PAGES,
+ 
+  maxRetailListings:
+  INITIAL_MAX_RETAIL_LISTINGS,
+        })
+       );
  
   return candidateJobs;
    }
-  
+ 
   return completeJobs;
   }
-  
- 
- 
  
  
   function normalizeListingsForCombinedGrouping({
@@ -1273,11 +1413,15 @@ import {
   brand: string | undefined;
   }) {
   /*
-   * Initial search is a race: return the first query that
-   * produces usable supplement listings. Cached jobs will
-   * normally win in milliseconds. A failed/slow provider
-   * request therefore cannot block a cached sibling query.
+   * Return the first usable batch quickly, but do not throw away
+   * other cached sibling batches that finish at nearly the same
+   * time. This lets a broad search render dozens of products
+   * immediately while slow live-provider jobs continue to be
+   * handled by the expanded phase.
    */
+  const completedJobs: CompletedSearchJob[] = [];
+  const failedJobs: FailedSearchJob[] = [];
+ 
   const attempts = jobs.map(async (job) => {
   try {
   const result = await runSearchJob({ job, brand });
@@ -1286,53 +1430,57 @@ import {
   throw new Error(`No usable supplement listings for "${job.searchTerm}".`);
       }
  
+  completedJobs.push(result);
   return result;
     } catch (error) {
-  const message =
-  error instanceof Error ? error.message : String(error);
- 
-  throw new Error(`${job.searchTerm}|||${message}`);
+  const message = error instanceof Error ? error.message : String(error);
+  failedJobs.push({
+  searchTerm: job.searchTerm,
+  error: message,
+      });
+  throw error;
     }
   });
  
   try {
-  const firstCompleted = await Promise.any(attempts);
+  await Promise.any(attempts);
+ 
+  /*
+    * Small grace period: cached/database hits normally finish within
+    * this window, while a slow SerpApi request does not hold up the UI.
+    */
+  await new Promise((resolve) => setTimeout(resolve, 650));
  
   return {
-  completedJobs: [firstCompleted],
-  failedJobs: [] as FailedSearchJob[],
+  completedJobs: deduplicateCompletedSearchJobs(completedJobs),
+  failedJobs,
     };
   } catch {
-  const settled = await Promise.allSettled(attempts);
- 
-  const failedJobs: FailedSearchJob[] = settled.map((result, index) => {
-  const fallbackSearchTerm = jobs[index]?.searchTerm ?? "Unknown search";
- 
-  if (result.status === "fulfilled") {
-  return {
-  searchTerm: fallbackSearchTerm,
-  error: "No usable supplement listings were returned.",
-        };
-      }
- 
-  const raw =
-  result.reason instanceof Error ? result.reason.message : String(result.reason);
-  const separatorIndex = raw.indexOf("|||");
+  await Promise.allSettled(attempts);
  
   return {
-  searchTerm:
-  separatorIndex >= 0 ? raw.slice(0, separatorIndex) : fallbackSearchTerm,
-  error:
-  separatorIndex >= 0 ? raw.slice(separatorIndex + 3) : raw,
-      };
-    });
- 
-  return {
-  completedJobs: [] as CompletedSearchJob[],
+  completedJobs: deduplicateCompletedSearchJobs(completedJobs),
   failedJobs,
     };
   }
   }
+ 
+ function deduplicateCompletedSearchJobs(
+  jobs: CompletedSearchJob[]
+ ) {
+  const seen = new Set<string>();
+ 
+  return jobs.filter((completedJob) => {
+  const key = `${completedJob.job.id}::${completedJob.job.normalizedSearchTerm}`;
+ 
+  if (seen.has(key)) {
+  return false;
+    }
+ 
+  seen.add(key);
+  return true;
+  });
+ }
   
   function getSearchSuggestion(
   intentType:
