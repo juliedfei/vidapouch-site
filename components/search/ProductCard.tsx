@@ -34,140 +34,148 @@ import type {
 } from "./types/searchPlan";
 
 import {
-  trackEvent,
+ trackEvent,
  } from "@/lib/analytics/trackEvent";
 
 
 
 type ProductCardProps = {
  product:
-   SearchProductOption;
+ SearchProductOption;
 
  isInPouch:
-   boolean;
+ boolean;
 
  selectedPlan:
-   SearchPlan | null;
+ SearchPlan | null;
 
  selectedSupplementCount:
-   number;
+ number;
 
 
 
  onAddToPouch: (
-   item:
-     SearchPouchItem
+ item:
+ SearchPouchItem
  ) => void;
 };
 
 type VendorLinkResponse = {
  url?:
-   string;
+ string;
 
  error?:
-   string;
+ string;
 
  matchType?:
-   string;
+ string;
 
  retailer?:
-   string;
+ string;
 
  productTitle?:
-   string;
+ string;
 
  merchantProductTitle?:
-   string;
+ string;
 
  originalBottlePrice?:
-   number | null;
+ number | null;
 
  liveBottlePrice?:
-   number | null;
+ number | null;
 
  priceChanged?:
-   boolean;
+ boolean;
 
  priceDifferenceAmount?:
-   number | null;
+ number | null;
 
  priceDifferencePercentage?:
-   number | null;
+ number | null;
 };
 
 function formatCurrency(
  value:
-   number
+ number
 ) {
  return `$${value.toFixed(
-   2
+ 2
  )}`;
 }
 
+/*
+ * VidaPouch Score is temporarily hidden.
+ *
+ * Keep this helper commented out so the score can be
+ * restored later without rebuilding the calculation.
+ *
 function clampScore(
  value:
-   number
+ number
 ) {
  return Math.max(
-   0,
-   Math.min(
-     100,
-     Math.round(
-       value
+ 0,
+ Math.min(
+ 100,
+ Math.round(
+ value
      )
    )
  );
 }
+*/
+
 
 function formatReviewCount(
  value:
-   number
+ number
 ) {
  return new Intl.NumberFormat(
-   "en-US"
+ "en-US"
  ).format(
-   value
+ value
  );
 }
 
 function getPluralUnitLabel(
  unitLabel:
-   SearchProductUnitLabel,
+ SearchProductUnitLabel,
 
  count:
-   number
+ number
 ) {
  if (
-   count ===
-   1
+ count ===
+ 1
  ) {
-   return unitLabel;
+ return unitLabel;
  }
 
  switch (
-   unitLabel
+ unitLabel
  ) {
-   case "capsule":
-     return "capsules";
+ case "capsule":
+ return "capsules";
 
-   case "tablet":
-     return "tablets";
+ case "tablet":
+ return "tablets";
 
-   case "caplet":
-     return "caplets";
+ case "caplet":
+ return "caplets";
 
-   case "softgel":
-     return "softgels";
+ case "softgel":
+ return "softgels";
 
-   case "gummy":
-     return "gummies";
+ case "gummy":
+ return "gummies";
 
-   case "serving":
-     return "servings";
+ case "serving":
+ return "servings";
 
-   case "unit":
-   default:
-     return "units";
+ case "unit":
+ default:
+ return "units";
  }
 }
 
@@ -175,48 +183,48 @@ function RatingStars({
  rating,
 }: {
  rating:
-   number;
+ number;
 }) {
  const normalizedRating =
-   Math.max(
-     0,
-     Math.min(
-       5,
-       rating
+ Math.max(
+ 0,
+ Math.min(
+ 5,
+ rating
      )
    );
 
  const filledWidth =
-   `${(
-     normalizedRating /
-     5
+ `${(
+ normalizedRating /
+ 5
    ) * 100}%`;
 
  return (
-   <span
-     className="
+ <span
+ className="
        relative
        inline-block
        whitespace-nowrap
        text-[13px]
        leading-none
      "
-     aria-label={`${normalizedRating.toFixed(
-       1
+ aria-label={`${normalizedRating.toFixed(
+ 1
      )} out of 5 stars`}>
 
-     <span
-       className="
+ <span
+ className="
          tracking-[1px]
          text-[#D8D1C8]
        "
-       aria-hidden="true">
+ aria-hidden="true">
 
        ★★★★★
-     </span>
+ </span>
 
-     <span
-       className="
+ <span
+ className="
          absolute
          inset-y-0
          left-0
@@ -225,136 +233,136 @@ function RatingStars({
          tracking-[1px]
          text-[#A46E24]
        "
-       style={{
-         width:
-           filledWidth,
+ style={{
+ width:
+ filledWidth,
        }}
-       aria-hidden="true">
+ aria-hidden="true">
 
        ★★★★★
-     </span>
-   </span>
+ </span>
+ </span>
  );
 }
 
 function CalendarIcon() {
  return (
-   <svg
-     viewBox="0 0 24 24"
-     fill="none"
-     aria-hidden="true"
-     className="h-[16px] w-[16px]">
+ <svg
+ viewBox="0 0 24 24"
+ fill="none"
+ aria-hidden="true"
+ className="h-[16px] w-[16px]">
 
-     <rect
-       x="4.5"
-       y="5.5"
-       width="15"
-       height="14"
-       rx="2"
-       stroke="currentColor"
-       strokeWidth="1.5"
-     />
+ <rect
+ x="4.5"
+ y="5.5"
+ width="15"
+ height="14"
+ rx="2"
+ stroke="currentColor"
+ strokeWidth="1.5"
+ />
 
-     <path
-       d="M8 3.5v4M16 3.5v4M4.5 9.5h15"
-       stroke="currentColor"
-       strokeWidth="1.5"
-       strokeLinecap="round"
-     />
+ <path
+ d="M8 3.5v4M16 3.5v4M4.5 9.5h15"
+ stroke="currentColor"
+ strokeWidth="1.5"
+ strokeLinecap="round"
+ />
 
-     <path
-       d="M9 13h2v2H9z"
-       fill="currentColor"
-     />
-   </svg>
+ <path
+ d="M9 13h2v2H9z"
+ fill="currentColor"
+ />
+ </svg>
  );
 }
 
 function ShieldIcon() {
  return (
-   <svg
-     viewBox="0 0 24 24"
-     fill="none"
-     aria-hidden="true"
-     className="h-[16px] w-[16px]">
+ <svg
+ viewBox="0 0 24 24"
+ fill="none"
+ aria-hidden="true"
+ className="h-[16px] w-[16px]">
 
-     <path
-       d="M12 3.5 19 6v5.2c0 4.4-2.8 7.4-7 9.3-4.2-1.9-7-4.9-7-9.3V6l7-2.5Z"
-       stroke="currentColor"
-       strokeWidth="1.5"
-       strokeLinejoin="round"
-     />
+ <path
+ d="M12 3.5 19 6v5.2c0 4.4-2.8 7.4-7 9.3-4.2-1.9-7-4.9-7-9.3V6l7-2.5Z"
+ stroke="currentColor"
+ strokeWidth="1.5"
+ strokeLinejoin="round"
+ />
 
-     <path
-       d="m9.2 12 1.8 1.8 3.8-4"
-       stroke="currentColor"
-       strokeWidth="1.5"
-       strokeLinecap="round"
-       strokeLinejoin="round"
-     />
-   </svg>
+ <path
+ d="m9.2 12 1.8 1.8 3.8-4"
+ stroke="currentColor"
+ strokeWidth="1.5"
+ strokeLinecap="round"
+ strokeLinejoin="round"
+ />
+ </svg>
  );
 }
 
 function PersonIcon() {
  return (
-   <svg
-     viewBox="0 0 24 24"
-     fill="none"
-     aria-hidden="true"
-     className="h-[16px] w-[16px]">
+ <svg
+ viewBox="0 0 24 24"
+ fill="none"
+ aria-hidden="true"
+ className="h-[16px] w-[16px]">
 
-     <circle
-       cx="12"
-       cy="8"
-       r="3"
-       stroke="currentColor"
-       strokeWidth="1.5"
-     />
+ <circle
+ cx="12"
+ cy="8"
+ r="3"
+ stroke="currentColor"
+ strokeWidth="1.5"
+ />
 
-     <path
-       d="M6.5 19c.4-3.4 2.3-5.2 5.5-5.2s5.1 1.8 5.5 5.2"
-       stroke="currentColor"
-       strokeWidth="1.5"
-       strokeLinecap="round"
-     />
-   </svg>
+ <path
+ d="M6.5 19c.4-3.4 2.3-5.2 5.5-5.2s5.1 1.8 5.5 5.2"
+ stroke="currentColor"
+ strokeWidth="1.5"
+ strokeLinecap="round"
+ />
+ </svg>
  );
 }
 
 function CheckCircleIcon() {
  return (
-   <svg
-     viewBox="0 0 24 24"
-     fill="none"
-     aria-hidden="true"
-     className="h-[16px] w-[16px]">
+ <svg
+ viewBox="0 0 24 24"
+ fill="none"
+ aria-hidden="true"
+ className="h-[16px] w-[16px]">
 
-     <circle
-       cx="12"
-       cy="12"
-       r="8.5"
-       stroke="currentColor"
-       strokeWidth="1.5"
-     />
+ <circle
+ cx="12"
+ cy="12"
+ r="8.5"
+ stroke="currentColor"
+ strokeWidth="1.5"
+ />
 
-     <path
-       d="m8.5 12.2 2.2 2.2 4.8-5"
-       stroke="currentColor"
-       strokeWidth="1.5"
-       strokeLinecap="round"
-       strokeLinejoin="round"
-     />
-   </svg>
+ <path
+ d="m8.5 12.2 2.2 2.2 4.8-5"
+ stroke="currentColor"
+ strokeWidth="1.5"
+ strokeLinecap="round"
+ strokeLinejoin="round"
+ />
+ </svg>
  );
 }
 
 type PlanDetailRowProps = {
  icon:
-   ReactNode;
+ ReactNode;
 
  children:
-   ReactNode;
+ ReactNode;
 };
 
 function PlanDetailRow({
@@ -362,8 +370,8 @@ function PlanDetailRow({
  children,
 }: PlanDetailRowProps) {
  return (
-   <div
-     className="
+ <div
+ className="
        flex
        items-start
        gap-2.5
@@ -372,20 +380,20 @@ function PlanDetailRow({
        text-[#4F5A5E]
      ">
 
-     <span
-       className="
+ <span
+ className="
          mt-[1px]
          shrink-0
          text-[#8C6B55]
        ">
 
-       {icon}
-     </span>
+ {icon}
+ </span>
 
-     <span>
-       {children}
-     </span>
-   </div>
+ <span>
+ {children}
+ </span>
+ </div>
  );
 }
 
@@ -397,206 +405,210 @@ export default function ProductCard({
  onAddToPouch,
 }: ProductCardProps) {
  const [
-   isFindingVendorLink,
-   setIsFindingVendorLink,
+ isFindingVendorLink,
+ setIsFindingVendorLink,
  ] =
-   useState(
-     false
+ useState(
+ false
    );
 
  const [
-   vendorLinkError,
-   setVendorLinkError,
+ vendorLinkError,
+ setVendorLinkError,
  ] =
-   useState(
-     ""
+ useState(
+ ""
    );
 
  const [
-   resolvedBottlePrice,
-   setResolvedBottlePrice,
+ resolvedBottlePrice,
+ setResolvedBottlePrice,
  ] =
-   useState<
-     number | null>
+ useState<
+ number | null>
 (
-     null
+ null
    );
 
  const representative =
-   product
+ product
      .representativeProduct;
 
  const bottleUnitCount =
-   representative
+ representative
      .capsulesPerBottle;
 
  const displayedBottlePrice =
-   resolvedBottlePrice ??
-   representative
+ resolvedBottlePrice ??
+ representative
      .bottlePrice;
 
  const bottlePricePerUnit =
-   bottleUnitCount >
-   0
-     ? displayedBottlePrice /
-       bottleUnitCount
-     : null;
+ bottleUnitCount >
+ 0
+ ? displayedBottlePrice /
+ bottleUnitCount
+ : null;
 
  const pouchUnitsPerDay =
-   product.unitsPerDay ??
-   1;
+ product.unitsPerDay ??
+ 1;
 
  const pouchUnitCount =
-   pouchUnitsPerDay *
-   30;
+ pouchUnitsPerDay *
+ 30;
 
  const unitLabel =
-   product.unitLabel;
+ product.unitLabel;
 
  const pluralUnitLabel =
-   getPluralUnitLabel(
-     unitLabel,
-     bottleUnitCount
+ getPluralUnitLabel(
+ unitLabel,
+ bottleUnitCount
    );
 
  const pouchPluralUnitLabel =
-   getPluralUnitLabel(
-     unitLabel,
-     pouchUnitCount
+ getPluralUnitLabel(
+ unitLabel,
+ pouchUnitCount
    );
 
- const vidaPouchScore =
-   product.score.overall !==
-   null
-     ? clampScore(
-         product.score
-           .overall
-       )
-     : null;
+ /*
+  * VidaPouch Score is temporarily disabled.
+  * Original logic preserved here for easy restoration:
+  *
+  * const vidaPouchScore =
+  * product.score.overall !== null
+  * ? clampScore(product.score.overall)
+  * : null;
+  */
+ const vidaPouchScore:
+ number | null =
+ null;
 
  const retailerRating =
-   representative.rating;
+ representative.rating;
 
  const retailerReviewCount =
-   representative
+ representative
      .reviewCount;
 
  const hasRetailerRating =
-   typeof retailerRating ===
-     "number" &&
-   retailerRating >
-     0;
+ typeof retailerRating ===
+ "number" &&
+ retailerRating >
+ 0;
 
  const productClaims =
-   Array.from(
-     new Set([
-       ...product.certifications,
+ Array.from(
+ new Set([
+ ...product.certifications,
 
-       ...product.qualityClaims,
+ ...product.qualityClaims,
 
-       product
+ product
          .verifiedClaims
          .nsfCertified
-         ? "NSF Certified"
-         : null,
+ ? "NSF Certified"
+ : null,
 
-       product
+ product
          .verifiedClaims
          .uspVerified
-         ? "USP Verified"
-         : null,
+ ? "USP Verified"
+ : null,
 
-       product
+ product
          .verifiedClaims
          .thirdPartyTested
-         ? "Third-Party Tested"
-         : null,
+ ? "Third-Party Tested"
+ : null,
 
-       product
+ product
          .verifiedClaims
          .vegan
-         ? "Vegan"
-         : null,
+ ? "Vegan"
+ : null,
 
-       product
+ product
          .verifiedClaims
          .nonGmo
-         ? "Non-GMO"
-         : null,
+ ? "Non-GMO"
+ : null,
 
-       product
+ product
          .verifiedClaims
          .glutenFree
-         ? "Gluten-Free"
-         : null,
+ ? "Gluten-Free"
+ : null,
      ])
    ).filter(
      (
-       claim
+ claim
      ): claim is string =>
-       typeof claim ===
-         "string" &&
-       claim.trim().length >
-         0
+ typeof claim ===
+ "string" &&
+ claim.trim().length >
+ 0
    );
 
  const dosageLabel =
-   product.dosage ||
-   "Not specified";
+ product.dosage ||
+ "Not specified";
 
  const formLabel =
-   product.form ||
-   "Not specified";
+ product.form ||
+ "Not specified";
 
  const dosageBasisLabel =
-   product
+ product
      .dosageIsPerServing ===
-   true
-     ? "Per serving"
-     : product
+ true
+ ? "Per serving"
+ : product
            .dosageIsPerServing ===
-         false
-       ? `Per ${unitLabel}`
-       : null;
+ false
+ ? `Per ${unitLabel}`
+ : null;
 
  const canAddToVidaPouch =
-   product
+ product
      .vitaPouchFormEligible;
 
  const recommendedPouchTiming =
-   getSearchPouchTiming(
-     product
+ getSearchPouchTiming(
+ product
    );
 
  const pouchItemId =
-   representative
+ representative
      .shoppingProductId ??
-   `${product.brand}-${product.productName}`;
+ `${product.brand}-${product.productName}`;
 
  const nextPlan =
-   selectedPlan
-     ? getNextSearchPlan(
-         selectedPlan.id
+ selectedPlan
+ ? getNextSearchPlan(
+ selectedPlan.id
        )
-     : null;
+ : null;
 
  const reachesCurrentPlanLimit =
-   selectedPlan !==
-     null &&
-   selectedSupplementCount >=
-     selectedPlan
+ selectedPlan !==
+ null &&
+ selectedSupplementCount >=
+ selectedPlan
        .supplementLimit &&
-   !isInPouch;
+ !isInPouch;
 
  const willAutomaticallyUpgrade =
-   reachesCurrentPlanLimit &&
-   nextPlan !==
-     null;
+ reachesCurrentPlanLimit &&
+ nextPlan !==
+ null;
 
  const customRoutineRequired =
-   reachesCurrentPlanLimit &&
-   nextPlan ===
-     null;
+ reachesCurrentPlanLimit &&
+ nextPlan ===
+ null;
 
  /*
   * When the next addition causes an automatic
@@ -604,10 +616,10 @@ export default function ProductCard({
   * against the destination plan.
   */
  const effectivePlan =
-   willAutomaticallyUpgrade &&
-   nextPlan
-     ? nextPlan
-     : selectedPlan;
+ willAutomaticallyUpgrade &&
+ nextPlan
+ ? nextPlan
+ : selectedPlan;
 
  /*
   * This legacy helper now supplies product-cost
@@ -615,61 +627,61 @@ export default function ProductCard({
   * customer-facing individual product surcharge.
   */
  const vidaPouchPricing =
-   effectivePlan
-     ? calculateVitaPouchAddOn({
-         product,
+ effectivePlan
+ ? calculateVitaPouchAddOn({
+ product,
 
-         selectedPlan:
-           effectivePlan,
+ selectedPlan:
+ effectivePlan,
        })
-     : undefined;
+ : undefined;
 
  const addButtonDisabled =
-   isInPouch ||
-   customRoutineRequired;
+ isInPouch ||
+ customRoutineRequired;
 
  function handleAddToPouch() {
-   if (
-     !canAddToVidaPouch ||
-     addButtonDisabled
+ if (
+ !canAddToVidaPouch ||
+ addButtonDisabled
    ) {
-     return;
+ return;
    }
 
 
-   trackEvent(
-    "add_to_pouch_clicked",
+ trackEvent(
+ "add_to_pouch_clicked",
     {
-      product_id:
-        pouchItemId,
-   
-      product_name:
-        product.productName,
-   
-      brand:
-        product.brand,
-   
-      retailer:
-        representative.retailer,
-   
-      dosage:
-        product.dosage,
-   
-      form:
-        product.form,
-   
-      units_per_day:
-        pouchUnitsPerDay,
-   
-      monthly_product_cost:
-        product.displayedMonthlyCost,
-   
-      selected_plan:
-        effectivePlan?.id ??
-        null,
-   
-      automatically_upgrades_plan:
-        willAutomaticallyUpgrade,
+ product_id:
+ pouchItemId,
+ 
+ product_name:
+ product.productName,
+ 
+ brand:
+ product.brand,
+ 
+ retailer:
+ representative.retailer,
+ 
+ dosage:
+ product.dosage,
+ 
+ form:
+ product.form,
+ 
+ units_per_day:
+ pouchUnitsPerDay,
+ 
+ monthly_product_cost:
+ product.displayedMonthlyCost,
+ 
+ selected_plan:
+ effectivePlan?.id ??
+ null,
+ 
+ automatically_upgrades_plan:
+ willAutomaticallyUpgrade,
     }
    );
 
@@ -677,148 +689,148 @@ export default function ProductCard({
 
 
 
-   onAddToPouch({
-     id:
-       pouchItemId,
+ onAddToPouch({
+ id:
+ pouchItemId,
 
 
 
-     shoppingProductId:
-       representative
+ shoppingProductId:
+ representative
          .shoppingProductId ??
-       null,
+ null,
 
-       immersiveProductPageToken:
-       representative
+ immersiveProductPageToken:
+ representative
          .immersiveProductPageToken ??
-       null,
-      
-      serpApiImmersiveProductUrl:
-       representative
+ null,
+ 
+ serpApiImmersiveProductUrl:
+ representative
          .serpApiImmersiveProductUrl ??
-       null,
+ null,
 
 
 
-     productName:
-       product.productName,
+ productName:
+ product.productName,
 
-     brand:
-       product.brand,
+ brand:
+ product.brand,
 
-     dosage:
-       product.dosage,
+ dosage:
+ product.dosage,
 
-     form:
-       product.form,
+ form:
+ product.form,
 
-     unitLabel:
-       product.unitLabel,
+ unitLabel:
+ product.unitLabel,
 
-     unitsPerDay:
-       pouchUnitsPerDay,
+ unitsPerDay:
+ pouchUnitsPerDay,
 
-     monthlyUnitCount:
-       pouchUnitCount,
+ monthlyUnitCount:
+ pouchUnitCount,
 
-     monthlyPrice:
-       product
+ monthlyPrice:
+ product
          .displayedMonthlyCost,
 
-     baselineUnitsPerDay:
-       product
+ baselineUnitsPerDay:
+ product
          .baselineUnitsPerDay ??
-       pouchUnitsPerDay,
+ pouchUnitsPerDay,
 
-     baselineMonthlyPrice:
-       product
+ baselineMonthlyPrice:
+ product
          .baselineMonthlyCost ??
-       product
+ product
          .displayedMonthlyCost,
 
-     pricing:
-       vidaPouchPricing,
+ pricing:
+ vidaPouchPricing,
 
 
 
-     bottlePrice:
-       representative
+ bottlePrice:
+ representative
          .bottlePrice,
 
-         bottleUnitCount:
-         representative
+ bottleUnitCount:
+ representative
            .capsulesPerBottle,
 
 
-     retailer:
-       representative
+ retailer:
+ representative
          .retailer,
 
-     imageUrl:
-       representative
+ imageUrl:
+ representative
          .imageUrl ??
-       null,
+ null,
 
-     vitaPouchScore:
-       vidaPouchScore,
+ vitaPouchScore:
+ vidaPouchScore,
 
-     certifications:
-       product.certifications,
+ certifications:
+ product.certifications,
 
-     qualityClaims:
-       product.qualityClaims,
+ qualityClaims:
+ product.qualityClaims,
 
-     timing:
-       recommendedPouchTiming
+ timing:
+ recommendedPouchTiming
          .timing,
 
-     recommendedTiming:
-       recommendedPouchTiming
+ recommendedTiming:
+ recommendedPouchTiming
          .timing,
 
-     timingPreference:
-       "vidapouch",
+ timingPreference:
+ "vidapouch",
 
-     timingReason:
-       recommendedPouchTiming
+ timingReason:
+ recommendedPouchTiming
          .reason,
    });
  }
 
  async function handleBuyBottle() {
-   if (
-     isFindingVendorLink
+ if (
+ isFindingVendorLink
    ) {
-     return;
+ return;
    }
 
 
-   trackEvent(
-    "retailer_link_clicked",
+ trackEvent(
+ "retailer_link_clicked",
     {
-      product_id:
-        pouchItemId,
-   
-      product_name:
-        product.productName,
-   
-      brand:
-        product.brand,
-   
-      retailer:
-        representative.retailer,
-   
-      bottle_price:
-        displayedBottlePrice,
-   
-      bottle_unit_count:
-        bottleUnitCount,
-   
-      unit_label:
-        product.unitLabel,
-   
-      vita_pouch_score:
-        vidaPouchScore,
+ product_id:
+ pouchItemId,
+ 
+ product_name:
+ product.productName,
+ 
+ brand:
+ product.brand,
+ 
+ retailer:
+ representative.retailer,
+ 
+ bottle_price:
+ displayedBottlePrice,
+ 
+ bottle_unit_count:
+ bottleUnitCount,
+ 
+ unit_label:
+ product.unitLabel,
+ 
+ vita_pouch_score:
+ vidaPouchScore,
     }
    );
 
@@ -826,46 +838,46 @@ export default function ProductCard({
 
 
 
-   const immersiveProductPageToken =
-     representative
+ const immersiveProductPageToken =
+ representative
        .immersiveProductPageToken;
 
-   if (
-     !immersiveProductPageToken
+ if (
+ !immersiveProductPageToken
    ) {
-     setVendorLinkError(
-       "The exact Google Shopping product token is missing for this listing."
+ setVendorLinkError(
+ "The exact Google Shopping product token is missing for this listing."
      );
 
-     return;
+ return;
    }
 
-   setVendorLinkError(
-     ""
+ setVendorLinkError(
+ ""
    );
 
-   setIsFindingVendorLink(
-     true
+ setIsFindingVendorLink(
+ true
    );
 
-   /*
+ /*
     * Open during the original click so Safari
     * does not block the new tab.
     */
-   const vendorWindow =
-     window.open(
-       "",
-       "_blank"
+ const vendorWindow =
+ window.open(
+ "",
+ "_blank"
      );
 
-   if (
-     vendorWindow
+ if (
+ vendorWindow
    ) {
-     vendorWindow.document.title =
-       `Opening ${representative.retailer}…`;
+ vendorWindow.document.title =
+ `Opening ${representative.retailer}…`;
 
-     vendorWindow.document.body.innerHTML =
-       `
+ vendorWindow.document.body.innerHTML =
+ `
          <div style="
            min-height: 100vh;
            display: flex;
@@ -879,212 +891,212 @@ export default function ProductCard({
            text-align: center;
          ">
            Confirming the exact
-           ${representative.retailer}
+ ${representative.retailer}
            product and current price…
          </div>
        `;
    }
 
-   try {
-     const response =
-       await fetch(
-         "/api/search/vendor-link",
+ try {
+ const response =
+ await fetch(
+ "/api/search/vendor-link",
          {
-           method:
-             "POST",
+ method:
+ "POST",
 
-           headers: {
-             "Content-Type":
-               "application/json",
+ headers: {
+ "Content-Type":
+ "application/json",
            },
 
-           body:
-             JSON.stringify({
-               retailer:
-                 representative
+ body:
+ JSON.stringify({
+ retailer:
+ representative
                    .retailer,
 
-               productTitle:
-                 product
+ productTitle:
+ product
                    .productName,
 
-               bottlePrice:
-                 representative
+ bottlePrice:
+ representative
                    .bottlePrice,
 
-               shoppingProductId:
-                 representative
+ shoppingProductId:
+ representative
                    .shoppingProductId,
 
-               immersiveProductPageToken:
-                 representative
+ immersiveProductPageToken:
+ representative
                    .immersiveProductPageToken,
 
-               serpApiImmersiveProductUrl:
-                 representative
+ serpApiImmersiveProductUrl:
+ representative
                    .serpApiImmersiveProductUrl,
              }),
          }
        );
 
-     let data:
-       VendorLinkResponse;
+ let data:
+ VendorLinkResponse;
 
-     try {
-       data =
+ try {
+ data =
          (await response.json()) as
-           VendorLinkResponse;
+ VendorLinkResponse;
      } catch {
-       throw new Error(
-         "The vendor-link service returned an invalid response."
+ throw new Error(
+ "The vendor-link service returned an invalid response."
        );
      }
 
-     if (
-       !response.ok ||
-       !data.url
+ if (
+ !response.ok ||
+ !data.url
      ) {
-       throw new Error(
-         data.error ||
-           `The exact ${representative.retailer} offer could not be found.`
+ throw new Error(
+ data.error ||
+ `The exact ${representative.retailer} offer could not be found.`
        );
      }
 
-     const liveBottlePrice =
-       typeof data
+ const liveBottlePrice =
+ typeof data
          .liveBottlePrice ===
-         "number" &&
-       Number.isFinite(
-         data.liveBottlePrice
+ "number" &&
+ Number.isFinite(
+ data.liveBottlePrice
        ) &&
-       data.liveBottlePrice >
-         0
-         ? data.liveBottlePrice
-         : null;
+ data.liveBottlePrice >
+ 0
+ ? data.liveBottlePrice
+ : null;
 
-     if (
-       liveBottlePrice !==
-       null
+ if (
+ liveBottlePrice !==
+ null
      ) {
-       setResolvedBottlePrice(
-         liveBottlePrice
+ setResolvedBottlePrice(
+ liveBottlePrice
        );
      }
 
 
 
 
-     trackEvent(
-      "retailer_link_opened",
+ trackEvent(
+ "retailer_link_opened",
       {
-        product_id:
-          pouchItemId,
-     
-        product_name:
-          product.productName,
-     
-        brand:
-          product.brand,
-     
-        retailer:
-          representative.retailer,
-     
-        resolved_url:
-          data.url,
-     
-        match_type:
-          data.matchType ??
-          null,
-     
-        original_bottle_price:
-          representative.bottlePrice,
-     
-        live_bottle_price:
-          liveBottlePrice,
-     
-        price_changed:
-          data.priceChanged ??
-          false,
+ product_id:
+ pouchItemId,
+ 
+ product_name:
+ product.productName,
+ 
+ brand:
+ product.brand,
+ 
+ retailer:
+ representative.retailer,
+ 
+ resolved_url:
+ data.url,
+ 
+ match_type:
+ data.matchType ??
+ null,
+ 
+ original_bottle_price:
+ representative.bottlePrice,
+ 
+ live_bottle_price:
+ liveBottlePrice,
+ 
+ price_changed:
+ data.priceChanged ??
+ false,
         },
         {
-          sendInstantly: true,
+ sendInstantly: true,
         }
        );
-     
+ 
 
 
 
-     if (
-       vendorWindow
+ if (
+ vendorWindow
      ) {
-       vendorWindow.opener =
-         null;
+ vendorWindow.opener =
+ null;
 
-       vendorWindow.location.href =
-         data.url;
+ vendorWindow.location.href =
+ data.url;
      } else {
-       window.location.href =
-         data.url;
+ window.location.href =
+ data.url;
      }
 
 
 
 
    } catch (
-     error
+ error
    ) {
-     if (
-       vendorWindow &&
-       !vendorWindow.closed
+ if (
+ vendorWindow &&
+ !vendorWindow.closed
      ) {
-       vendorWindow.close();
+ vendorWindow.close();
      }
 
-     const message =
-       error instanceof Error
-         ? error.message
-         : "The exact vendor offer could not be found.";
+ const message =
+ error instanceof Error
+ ? error.message
+ : "The exact vendor offer could not be found.";
 
-     console.error(
-       "VidaSearch Buy Bottle failed:",
+ console.error(
+ "VidaSearch Buy Bottle failed:",
        {
-         retailer:
-           representative
+ retailer:
+ representative
              .retailer,
 
-         productTitle:
-           product
+ productTitle:
+ product
              .productName,
 
-         shoppingProductId:
-           representative
+ shoppingProductId:
+ representative
              .shoppingProductId ??
-           null,
+ null,
 
-         hasImmersiveProductPageToken:
-           Boolean(
-             representative
+ hasImmersiveProductPageToken:
+ Boolean(
+ representative
                .immersiveProductPageToken
            ),
 
-         error:
-           message,
+ error:
+ message,
        }
      );
 
-     setVendorLinkError(
-       message
+ setVendorLinkError(
+ message
      );
    } finally {
-     setIsFindingVendorLink(
-       false
+ setIsFindingVendorLink(
+ false
      );
    }
  }
 
  return (
-   <article
-     className="
+ <article
+ className="
        grid
        w-full
        min-w-0
@@ -1097,10 +1109,10 @@ export default function ProductCard({
        lg:grid-cols-[minmax(0,1.65fr)_minmax(155px,0.68fr)_minmax(190px,0.82fr)]
      ">
 
-     {/* Product and score */}
+ {/* Product and score */}
 
-     <div
-       className="
+ <div
+ className="
          flex
          min-w-0
          gap-4
@@ -1111,8 +1123,8 @@ export default function ProductCard({
          lg:border-b-0
        ">
 
-       <div
-         className="
+ <div
+ className="
            flex
            w-[88px]
            flex-none
@@ -1120,9 +1132,9 @@ export default function ProductCard({
            justify-center
          ">
 
-         {representative.imageUrl ? (
-           <div
-             className="
+ {representative.imageUrl ? (
+ <div
+ className="
                flex
                h-[122px]
                w-[82px]
@@ -1133,24 +1145,24 @@ export default function ProductCard({
                p-1
              ">
 
-             <img
-               src={
-                 representative
+ <img
+ src={
+ representative
                    .imageUrl
-               }
-               alt={`${product.productName} product`}
-               className="
+ }
+ alt={`${product.productName} product`}
+ className="
                  h-full
                  w-full
                  object-contain
                "
-               loading="lazy"
-               referrerPolicy="no-referrer"
-             />
-           </div>
+ loading="lazy"
+ referrerPolicy="no-referrer"
+ />
+ </div>
          ) : (
-           <div
-             className="
+ <div
+ className="
                flex
                h-[122px]
                w-[82px]
@@ -1167,25 +1179,25 @@ export default function ProductCard({
                text-[#8C1D40]
              ">
 
-             {product.brand}
-           </div>
+ {product.brand}
+ </div>
          )}
-       </div>
+ </div>
 
-       <div className="min-w-0 flex-1">
-         <h3
-           className="
+ <div className="min-w-0 flex-1">
+ <h3
+ className="
              text-[15px]
              font-semibold
              leading-[1.3]
              text-[#081620]
            ">
 
-           {product.productName}
-         </h3>
+ {product.productName}
+ </h3>
 
-         <div
-           className="
+ <div
+ className="
              mt-1.5
              flex
              min-w-0
@@ -1195,19 +1207,19 @@ export default function ProductCard({
              gap-y-1.5
            ">
 
-           <span
-             className="
+ <span
+ className="
                text-[12px]
                leading-5
                text-[#30383B]
              ">
 
-             {product.brand}
-           </span>
+ {product.brand}
+ </span>
 
-           {product.recommended && (
-             <span
-               className="
+ {product.recommended && (
+ <span
+ className="
                  whitespace-nowrap
                  rounded-md
                  bg-[#EEF0E8]
@@ -1221,12 +1233,12 @@ export default function ProductCard({
                ">
 
                Best Overall
-             </span>
+ </span>
            )}
-         </div>
+ </div>
 
-         <div
-           className="
+ <div
+ className="
              mt-3
              grid
              max-w-[300px]
@@ -1234,8 +1246,8 @@ export default function ProductCard({
              gap-2
            ">
 
-           <div
-             className="
+ <div
+ className="
                rounded-[8px]
                border
                border-[#E8E0D8]
@@ -1244,8 +1256,8 @@ export default function ProductCard({
                py-2
              ">
 
-             <p
-               className="
+ <p
+ className="
                  text-[9px]
                  font-semibold
                  uppercase
@@ -1254,34 +1266,34 @@ export default function ProductCard({
                ">
 
                Dosage
-             </p>
+ </p>
 
-             <p
-               className="
+ <p
+ className="
                  mt-1
                  text-[14px]
                  font-semibold
                  text-[#17252C]
                ">
 
-               {dosageLabel}
-             </p>
+ {dosageLabel}
+ </p>
 
-             {dosageBasisLabel && (
-               <p
-                 className="
+ {dosageBasisLabel && (
+ <p
+ className="
                    mt-0.5
                    text-[9px]
                    text-[#697276]
                  ">
 
-                 {dosageBasisLabel}
-               </p>
+ {dosageBasisLabel}
+ </p>
              )}
-           </div>
+ </div>
 
-           <div
-             className="
+ <div
+ className="
                rounded-[8px]
                border
                border-[#E8E0D8]
@@ -1290,8 +1302,8 @@ export default function ProductCard({
                py-2
              ">
 
-             <p
-               className="
+ <p
+ className="
                  text-[9px]
                  font-semibold
                  uppercase
@@ -1300,91 +1312,43 @@ export default function ProductCard({
                ">
 
                Form
-             </p>
+ </p>
 
-             <p
-               className="
+ <p
+ className="
                  mt-1
                  text-[14px]
                  font-semibold
                  text-[#17252C]
                ">
 
-               {formLabel}
-             </p>
-           </div>
-         </div>
+ {formLabel}
+ </p>
+ </div>
+ </div>
 
-         <div
-           className="
-             mt-3
-             flex
-             min-w-0
-             items-center
-             gap-3
-           ">
-
-           <div
-             className="
-               flex
-               h-[48px]
-               w-[48px]
-               flex-none
-               items-center
-               justify-center
-               rounded-full
-               border-[3px]
-               border-[#8C1D40]
-               bg-[#FCF9F7]
-             "
-             aria-label={
-               vidaPouchScore !==
-               null
-                 ? `VidaPouch score ${vidaPouchScore} out of 100`
-                 : "VidaPouch score not available"
-             }>
-
-             <span
-               className="
-                 text-[15px]
-                 font-bold
-                 leading-none
-                 text-[#8C1D40]
-               ">
-
-               {vidaPouchScore ??
-                 "—"}
-             </span>
-           </div>
-
-           <p
-             className="
-               text-[12px]
-               font-semibold
-               text-[#17252C]
-             ">
-
-             VidaPouch Score
-           </p>
-         </div>
-
-         {productClaims.length >
-           0 && (
-           <div
-             className="
+ {/*
+  * VidaPouch Score UI temporarily hidden.
+  *
+  * Original score display can be restored later.
+  */}
+ {productClaims.length >
+ 0 && (
+ <div
+ className="
                mt-3
                flex
                flex-wrap
                gap-1.5
              ">
 
-             {productClaims.map(
+ {productClaims.map(
                (claim) => (
-                 <span
-                   key={
-                     claim
-                   }
-                   className="
+ <span
+ key={
+ claim
+ }
+ className="
                      whitespace-nowrap
                      rounded
                      bg-[#F1F3EC]
@@ -1395,19 +1359,19 @@ export default function ProductCard({
                      text-[#3D4548]
                    ">
 
-                   {claim}
-                 </span>
+ {claim}
+ </span>
                )
              )}
-           </div>
+ </div>
          )}
-       </div>
-     </div>
+ </div>
+ </div>
 
-     {/* Buy bottle */}
+ {/* Buy bottle */}
 
-     <div
-       className="
+ <div
+ className="
          flex
          min-w-0
          flex-col
@@ -1419,21 +1383,21 @@ export default function ProductCard({
          lg:border-l
        ">
 
-       <div className="min-w-0">
-         <p
-           className="
+ <div className="min-w-0">
+ <p
+ className="
              whitespace-nowrap
              text-[11px]
              leading-5
              text-[#485256]
            ">
 
-           {bottleUnitCount}{" "}
-           {pluralUnitLabel}
-         </p>
+ {bottleUnitCount}{" "}
+ {pluralUnitLabel}
+ </p>
 
-         <p
-           className="
+ <p
+ className="
              mt-1
              whitespace-nowrap
              text-[23px]
@@ -1443,15 +1407,15 @@ export default function ProductCard({
              text-[#081620]
            ">
 
-           {formatCurrency(
-             displayedBottlePrice
+ {formatCurrency(
+ displayedBottlePrice
            )}
-         </p>
+ </p>
 
-         {bottlePricePerUnit !==
-           null && (
-           <p
-             className="
+ {bottlePricePerUnit !==
+ null && (
+ <p
+ className="
                mt-2
                whitespace-nowrap
                text-[11px]
@@ -1459,23 +1423,23 @@ export default function ProductCard({
                text-[#596367]
              ">
 
-             {formatCurrency(
-               bottlePricePerUnit
+ {formatCurrency(
+ bottlePricePerUnit
              )}{" "}
              / {unitLabel}
-           </p>
+ </p>
          )}
 
-         <div
-           className="
+ <div
+ className="
              mt-4
              text-[11px]
              leading-[1.55]
              text-[#4F5A5E]
            ">
 
-           <div
-             className="
+ <div
+ className="
                flex
                min-w-0
                items-center
@@ -1483,35 +1447,35 @@ export default function ProductCard({
                gap-2
              ">
 
-             <span
-               className="
+ <span
+ className="
                  truncate
                  font-semibold
                  text-[#4F5A5E]
                ">
 
-               {
-                 representative
+ {
+ representative
                    .retailer
-               }
-             </span>
+ }
+ </span>
 
-             <span
-               className="
+ <span
+ className="
                  flex-none
                  text-[14px]
                  leading-none
                  text-[#4F5A5E]
                "
-               aria-hidden="true">
+ aria-hidden="true">
 
                →
-             </span>
-           </div>
+ </span>
+ </div>
 
-           {hasRetailerRating && (
-             <div
-               className="
+ {hasRetailerRating && (
+ <div
+ className="
                  mt-1.5
                  flex
                  flex-wrap
@@ -1519,57 +1483,57 @@ export default function ProductCard({
                  gap-1.5
                ">
 
-               <RatingStars
-                 rating={
-                   retailerRating
-                 }
-               />
+ <RatingStars
+ rating={
+ retailerRating
+ }
+ />
 
-               <span
-                 className="
+ <span
+ className="
                    font-semibold
                    text-[#3F494D]
                  ">
 
-                 {retailerRating.toFixed(
-                   1
+ {retailerRating.toFixed(
+ 1
                  )}
-               </span>
+ </span>
 
-               {typeof retailerReviewCount ===
-                 "number" &&
-                 retailerReviewCount >
-                   0 && (
-                 <span
-                   className="
+ {typeof retailerReviewCount ===
+ "number" &&
+ retailerReviewCount >
+ 0 && (
+ <span
+ className="
                      text-[#697276]
                    ">
 
                    (
-                   {formatReviewCount(
-                     retailerReviewCount
+ {formatReviewCount(
+ retailerReviewCount
                    )}
                    )
-                 </span>
+ </span>
                )}
-             </div>
+ </div>
            )}
 
-           <p className="mt-1">
+ <p className="mt-1">
              Buy directly
-           </p>
-         </div>
-       </div>
+ </p>
+ </div>
+ </div>
 
-       <button
-         type="button"
-         onClick={
-           handleBuyBottle
-         }
-         disabled={
-           isFindingVendorLink
-         }
-         className="
+ <button
+ type="button"
+ onClick={
+ handleBuyBottle
+ }
+ disabled={
+ isFindingVendorLink
+ }
+ className="
            mt-auto
            flex
            h-[38px]
@@ -1593,30 +1557,30 @@ export default function ProductCard({
            disabled:text-[#9A6D7D]
          ">
 
-         {isFindingVendorLink
+ {isFindingVendorLink
            ? `Finding ${representative.retailer} link…`
            : `Buy at ${representative.retailer}`}
-       </button>
+ </button>
 
-       {vendorLinkError && (
-         <p
-           className="
+ {vendorLinkError && (
+ <p
+ className="
              mt-2
              text-[10px]
              leading-[1.4]
              text-[#A23636]
            "
-           role="alert">
+ role="alert">
 
-           {vendorLinkError}
-         </p>
+ {vendorLinkError}
+ </p>
        )}
-     </div>
+ </div>
 
-     {/* Add to VidaPouch */}
+ {/* Add to VidaPouch */}
 
-     <div
-       className="
+ <div
+ className="
          flex
          min-w-0
          flex-col
@@ -1626,33 +1590,33 @@ export default function ProductCard({
          lg:border-[#EEE7DF]
        ">
 
-       {canAddToVidaPouch ? (
-         <>
-           <div className="min-w-0">
-             <div
-               className="
+ {canAddToVidaPouch ? (
+ <>
+ <div className="min-w-0">
+ <div
+ className="
                  flex
                  items-center
                  gap-2
                  text-[#4F5A5E]
                ">
 
-               <CalendarIcon />
+ <CalendarIcon />
 
-               <p
-                 className="
+ <p
+ className="
                    text-[11px]
                    font-medium
                  ">
 
-                 {pouchUnitCount}{" "}
-                 {pouchPluralUnitLabel} monthly
-               </p>
-             </div>
+ {pouchUnitCount}{" "}
+ {pouchPluralUnitLabel} monthly
+ </p>
+ </div>
 
-             {effectivePlan && (
-               <div
-                 className="
+ {effectivePlan && (
+ <div
+ className="
                    mt-3
                    inline-flex
                    rounded-[7px]
@@ -1667,43 +1631,43 @@ export default function ProductCard({
                  ">
 
                  Eligible for{" "}
-                 {effectivePlan.name}
-               </div>
+ {effectivePlan.name}
+ </div>
              )}
 
-             <div className="mt-4 space-y-3">
-               {effectivePlan && (
-                 <PlanDetailRow
-                   icon={
-                     <PersonIcon />
-                   }>
+ <div className="mt-4 space-y-3">
+ {effectivePlan && (
+ <PlanDetailRow
+ icon={
+ <PersonIcon />
+ }>
 
                    Uses 1 of{" "}
-                   {effectivePlan.supplementLimit} supplement slots
-                 </PlanDetailRow>
+ {effectivePlan.supplementLimit} supplement slots
+ </PlanDetailRow>
                )}
 
-               <PlanDetailRow
-                 icon={
-                   <CheckCircleIcon />
-                 }>
+ <PlanDetailRow
+ icon={
+ <CheckCircleIcon />
+ }>
 
                  Exact brand and dosage supported
-               </PlanDetailRow>
+ </PlanDetailRow>
 
-               <PlanDetailRow
-                 icon={
-                   <ShieldIcon />
-                 }>
+ <PlanDetailRow
+ icon={
+ <ShieldIcon />
+ }>
 
                  Ships in your personalized pouch
-               </PlanDetailRow>
-             </div>
+ </PlanDetailRow>
+ </div>
 
-             {willAutomaticallyUpgrade &&
-               nextPlan && (
-               <div
-                 className="
+ {willAutomaticallyUpgrade &&
+ nextPlan && (
+ <div
+ className="
                    mt-4
                    rounded-[7px]
                    border
@@ -1713,8 +1677,8 @@ export default function ProductCard({
                    py-2.5
                  ">
 
-                 <p
-                   className="
+ <p
+ className="
                      text-[10px]
                      font-semibold
                      leading-[1.45]
@@ -1723,17 +1687,17 @@ export default function ProductCard({
 
                    Adding this supplement will
                    update your plan to{" "}
-                   {nextPlan.name} at{" "}
-                   {formatCurrency(
-                     nextPlan.monthlyPrice
+ {nextPlan.name} at{" "}
+ {formatCurrency(
+ nextPlan.monthlyPrice
                    )} per month.
-                 </p>
-               </div>
+ </p>
+ </div>
              )}
 
-             {customRoutineRequired && (
-               <div
-                 className="
+ {customRoutineRequired && (
+ <div
+ className="
                    mt-4
                    rounded-[7px]
                    border
@@ -1743,8 +1707,8 @@ export default function ProductCard({
                    py-2.5
                  ">
 
-                 <p
-                   className="
+ <p
+ className="
                      text-[10px]
                      font-semibold
                      leading-[1.45]
@@ -1755,11 +1719,11 @@ export default function ProductCard({
                    supplements. Build a custom
                    routine for additional
                    supplements or pouch times.
-                 </p>
+ </p>
 
-                 <a
-                   href="https://vitapouch.com"
-                   className="
+ <a
+ href="https://vitapouch.com"
+ className="
                      mt-2
                      inline-flex
                      text-[10px]
@@ -1770,20 +1734,20 @@ export default function ProductCard({
                    ">
 
                    Build a Custom VidaPouch →
-                 </a>
-               </div>
+ </a>
+ </div>
              )}
-           </div>
+ </div>
 
-           <button
-             type="button"
-             onClick={
-               handleAddToPouch
-             }
-             disabled={
-               addButtonDisabled
-             }
-             className={`
+ <button
+ type="button"
+ onClick={
+ handleAddToPouch
+ }
+ disabled={
+ addButtonDisabled
+ }
+ className={`
                mt-auto
                flex
                min-h-[42px]
@@ -1798,8 +1762,8 @@ export default function ProductCard({
                text-[11px]
                font-semibold
                transition
-               ${
-                 isInPouch
+ ${
+ isInPouch
                    ? `
                        cursor-default
                        border
@@ -1820,38 +1784,38 @@ export default function ProductCard({
                          text-white
                          hover:bg-[#741935]
                        `
-               }
+ }
              `}>
 
-             <span
-               className="
+ <span
+ className="
                  text-[16px]
                  leading-none
                "
-               aria-hidden="true">
+ aria-hidden="true">
 
-               {isInPouch
+ {isInPouch
                  ? "✓"
                  : customRoutineRequired
                    ? "!"
                    : "+"}
-             </span>
+ </span>
 
-             <span>
-               {isInPouch
+ <span>
+ {isInPouch
                  ? "Added to VidaPouch"
                  : customRoutineRequired
                    ? "Custom Routine Required"
                    : willAutomaticallyUpgrade &&
-                       nextPlan
+ nextPlan
                      ? `Add & Upgrade to ${nextPlan.name}`
                      : "Add to VidaPouch"}
-             </span>
-           </button>
-         </>
+ </span>
+ </button>
+ </>
        ) : (
-         <div
-           className="
+ <div
+ className="
              flex
              h-full
              min-h-[150px]
@@ -1860,18 +1824,18 @@ export default function ProductCard({
              justify-center
            ">
 
-           <p
-             className="
+ <p
+ className="
                text-[12px]
                font-semibold
                text-[#17252C]
              ">
 
              Bottle purchase only
-           </p>
+ </p>
 
-           <p
-             className="
+ <p
+ className="
                mt-2
                text-[11px]
                leading-[1.55]
@@ -1880,10 +1844,10 @@ export default function ProductCard({
 
              This product form is not currently
              available for VidaPouch packaging.
-           </p>
-         </div>
+ </p>
+ </div>
        )}
-     </div>
-   </article>
+ </div>
+ </article>
  );
 }

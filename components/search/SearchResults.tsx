@@ -1950,11 +1950,12 @@ useEffect(
   ]
 );
 
+const safeQuery = typeof query === "string" ? query.trim() : "";
+
 const resultLabel =
-  query.trim().length >
-    0
-    ? query.trim()
-    : "";
+ safeQuery.length > 0
+   ? safeQuery
+   : "";
 
 
 
