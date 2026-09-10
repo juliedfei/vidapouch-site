@@ -64,10 +64,13 @@ import {
   400;
   
   const MAX_SEARCH_JOBS =
-  14;
+  20;
  
   const INITIAL_SEARCH_CANDIDATE_LIMIT =
-  8;
+  10;
+ 
+  const MAX_COMMA_SEARCH_TERMS =
+  5;
   
   type SearchPhase =
   | "initial"
@@ -342,6 +345,232 @@ import {
  
   kind:
   "HEALTH_GOAL_FALLBACK",
+      })
+  );
+  }
+ 
+ 
+  function splitCommaSearchTerms(
+  value:
+  string
+  ) {
+  return Array.from(
+  new Set(
+  value
+         .split(",")
+         .map(
+           (part) =>
+  part.trim()
+         )
+         .filter(
+  Boolean
+         )
+         .slice(
+  0,
+  MAX_COMMA_SEARCH_TERMS
+         )
+       )
+    );
+  }
+ 
+  function prefixSearchJob(
+  job:
+  SearchJob,
+  prefix:
+  string
+  ): SearchJob {
+  return {
+  ...job,
+ 
+  id:
+  `${prefix}:${job.id}`,
+    };
+  }
+ 
+  function buildBrandFallbackJobs({
+  originalQuery,
+  displayName,
+  }: {
+  originalQuery:
+  string;
+ 
+  displayName:
+  string;
+  }) {
+  const cleaned =
+  originalQuery.trim();
+ 
+  const canonicalName =
+  displayName.trim() ||
+  cleaned;
+ 
+  const variations = [
+    {
+  id:
+  "brand-supplements",
+  searchTerm:
+  `${cleaned} supplements`,
+  priority:
+  -1100,
+    },
+    {
+  id:
+  "brand-vitamins",
+  searchTerm:
+  `${cleaned} vitamins`,
+  priority:
+  -1080,
+    },
+    {
+  id:
+  "brand-capsules",
+  searchTerm:
+  `${cleaned} supplement capsules`,
+  priority:
+  -1060,
+    },
+    {
+  id:
+  "brand-tablets",
+  searchTerm:
+  `${cleaned} supplement tablets`,
+  priority:
+  -1040,
+    },
+    {
+  id:
+  "brand-dietary-supplements",
+  searchTerm:
+  `${cleaned} dietary supplements`,
+  priority:
+  -1020,
+    },
+  ];
+ 
+  return variations.map(
+    (
+  variation
+    ) =>
+  createSearchJob({
+  id:
+  variation.id,
+ 
+  displayName:
+  canonicalName,
+ 
+  searchTerm:
+  variation.searchTerm,
+ 
+  reason:
+  "Brand-specific supplement marketplace fallback.",
+ 
+  searchMode:
+  "direct-marketplace",
+ 
+  expandAliases:
+  false,
+ 
+  maxPages:
+  EXPANDED_SEARCH_MAX_PAGES,
+ 
+  maxRetailListings:
+  EXPANDED_MAX_RETAIL_LISTINGS_PER_SEARCH,
+ 
+  priority:
+  variation.priority,
+ 
+  kind:
+  "BRAND_FALLBACK",
+      })
+  );
+  }
+ 
+  function buildExactProductFallbackJobs({
+  originalQuery,
+  displayName,
+  }: {
+  originalQuery:
+  string;
+ 
+  displayName:
+  string;
+  }) {
+  const cleaned =
+  originalQuery.trim();
+ 
+  const canonicalName =
+  displayName.trim() ||
+  cleaned;
+ 
+  const variations = [
+    {
+  id:
+  "exact-product",
+  searchTerm:
+  cleaned,
+  priority:
+  -1200,
+    },
+    {
+  id:
+  "exact-product-supplement",
+  searchTerm:
+  `${cleaned} supplement`,
+  priority:
+  -1180,
+    },
+    {
+  id:
+  "exact-product-capsules",
+  searchTerm:
+  `${cleaned} capsules`,
+  priority:
+  -1160,
+    },
+    {
+  id:
+  "exact-product-tablets",
+  searchTerm:
+  `${cleaned} tablets`,
+  priority:
+  -1140,
+    },
+  ];
+ 
+  return variations.map(
+    (
+  variation
+    ) =>
+  createSearchJob({
+  id:
+  variation.id,
+ 
+  displayName:
+  canonicalName,
+ 
+  searchTerm:
+  variation.searchTerm,
+ 
+  reason:
+  "Exact-product fallback for customers searching for something they already take.",
+ 
+  searchMode:
+  "direct-marketplace",
+ 
+  expandAliases:
+  false,
+ 
+  maxPages:
+  EXPANDED_SEARCH_MAX_PAGES,
+ 
+  maxRetailListings:
+  EXPANDED_MAX_RETAIL_LISTINGS_PER_SEARCH,
+ 
+  priority:
+  variation.priority,
+ 
+  kind:
+  "EXACT_PRODUCT_FALLBACK",
       })
   );
   }
@@ -876,6 +1105,26 @@ import {
   displayName,
         })
   : []),
+ 
+  ...(intentType ===
+  SearchIntentType
+         .BRAND
+  ? buildBrandFallbackJobs({
+  originalQuery,
+ 
+  displayName,
+        })
+  : []),
+ 
+  ...(intentType ===
+  SearchIntentType
+         .SUPPLEMENT
+  ? buildExactProductFallbackJobs({
+  originalQuery,
+ 
+  displayName,
+        })
+  : []),
      ];
   
   const marketplacePolicy =
@@ -1114,22 +1363,25 @@ import {
   phase ===
   "initial"
    ) {
-  /*
-   * Broad wellness goals such as Mood should not depend
-   * on one generic Google Shopping request. Prefer the
-   * resolver's specific RELATED_SUPPLEMENT jobs first
-   * because those may already exist in the DB cache.
-   *
-   * Then try several supplement-only goal phrases and,
-   * finally, the broad direct query. The candidates run
-   * concurrently, so any successful/cache-backed job can
-   * satisfy the initial response.
-   */
+  const exactProductJobs =
+  completeJobs.filter(
+        (job) =>
+  job.kind ===
+  "EXACT_PRODUCT_FALLBACK"
+      );
+ 
   const supplementJobs =
   completeJobs.filter(
         (job) =>
   job.searchMode ===
   "supplement"
+      );
+ 
+  const brandFallbackJobs =
+  completeJobs.filter(
+        (job) =>
+  job.kind ===
+  "BRAND_FALLBACK"
       );
  
   const goalFallbackJobs =
@@ -1145,12 +1397,18 @@ import {
   job.searchMode !==
   "supplement" &&
   job.kind !==
+  "EXACT_PRODUCT_FALLBACK" &&
+  job.kind !==
+  "BRAND_FALLBACK" &&
+  job.kind !==
   "HEALTH_GOAL_FALLBACK"
       );
  
   const candidateJobs =
   deduplicateSearchJobs([
+  ...exactProductJobs,
   ...supplementJobs,
+  ...brandFallbackJobs,
   ...goalFallbackJobs,
   ...(initialJob ? [initialJob] : []),
   ...remainingJobs,
@@ -1579,104 +1837,82 @@ import {
   
   const intentStartedAt =
   Date.now();
-  
-  const resolvedIntent =
-  await resolveSearchIntent(
+ 
+  const searchTerms =
+  splitCommaSearchTerms(
   originalQuery
        );
-  
-  console.log(
-  "VidaSearch resolved intent:",
-       {
-  query:
-  originalQuery,
-  
-  phase,
-  
-  normalizedKey:
-  resolvedIntent
-             .normalizedKey,
-  
-  intentType:
-  resolvedIntent
-             .intentType,
-  
-  cacheStatus:
-  resolvedIntent
-             .cacheStatus,
-  
-  source:
-  resolvedIntent.source,
-  
-  confidence:
-  resolvedIntent
-             .confidence,
-  
-  expansionCount:
-  resolvedIntent
-             .expansions
-             .length,
-  
-  durationMs:
-  Date.now() -
-  intentStartedAt,
+ 
+  const resolvedSearches =
+  await Promise.all(
+  searchTerms.map(
+  async (
+  searchTerm,
+  index
+         ) => {
+  const intent =
+  await resolveSearchIntent(
+  searchTerm
+           );
+ 
+  return {
+  searchTerm,
+  index,
+  intent,
+         };
        }
+       )
      );
-  
-  if (
-  resolvedIntent
-         .intentType ===
+ 
+  const supportedSearches =
+  resolvedSearches.filter(
+       ({
+  intent,
+       }) =>
+  intent.intentType !==
   SearchIntentType
-           .INVALID ||
-  resolvedIntent
-         .intentType ===
+           .INVALID &&
+  intent.intentType !==
   SearchIntentType
            .DOCTOR_TYPE
+     );
+ 
+  if (
+  supportedSearches.length ===
+  0
      ) {
+  const firstResolved =
+  resolvedSearches[0]
+           ?.intent;
+ 
   return NextResponse.json(
          {
   error:
-  resolvedIntent
-               .intentType ===
+  firstResolved
+               ?.intentType ===
   SearchIntentType
                  .DOCTOR_TYPE
   ? "Practitioner search is not available yet."
-  : "We couldn’t identify this as a supplement, health goal, health condition, or life stage.",
-  
+  : "We couldn’t identify this as a supplement, brand, health goal, health condition, or life stage.",
+ 
   code:
-  resolvedIntent
-               .intentType ===
+  firstResolved
+               ?.intentType ===
   SearchIntentType
                  .DOCTOR_TYPE
   ? "PRACTITIONER_SEARCH_UNAVAILABLE"
   : "UNSUPPORTED_SEARCH",
-  
+ 
   query:
   originalQuery,
-  
+ 
   suggestion:
   getSearchSuggestion(
-  resolvedIntent
-                 .intentType
-             ),
-  
-  intent: {
-  type:
-  resolvedIntent
-                 .intentType,
-  
-  normalizedKey:
-  resolvedIntent
-                 .normalizedKey,
-  
-  displayName:
-  resolvedIntent
-                 .displayName,
-  
-  cacheStatus:
-  resolvedIntent
-                 .cacheStatus,
-           },
+  firstResolved
+               ?.intentType ??
+  SearchIntentType
+                 .INVALID
+           ),
          },
          {
   status:
@@ -1684,7 +1920,57 @@ import {
          }
        );
      }
-  
+ 
+  const primarySearch =
+  supportedSearches[0];
+ 
+  const resolvedIntent =
+  primarySearch.intent;
+ 
+  console.log(
+  "VidaSearch resolved intent:",
+       {
+  query:
+  originalQuery,
+ 
+  phase,
+ 
+  searchTerms,
+ 
+  resolvedTerms:
+  supportedSearches.map(
+           ({
+  searchTerm,
+  intent,
+           }) => ({
+  searchTerm,
+ 
+  normalizedKey:
+  intent.normalizedKey,
+ 
+  intentType:
+  intent.intentType,
+ 
+  cacheStatus:
+  intent.cacheStatus,
+ 
+  source:
+  intent.source,
+ 
+  confidence:
+  intent.confidence,
+ 
+  expansionCount:
+  intent.expansions.length,
+           })
+         ),
+ 
+  durationMs:
+  Date.now() -
+  intentStartedAt,
+       }
+     );
+ 
   const capsulesPerDay =
   typeof body
          .capsulesPerDay ===
@@ -1696,55 +1982,119 @@ import {
   0
   ? body.capsulesPerDay
   : 1;
-  
+ 
   const brand =
   body.brand
          ?.trim() ||
   undefined;
-  
+ 
   const completeJobs =
+  deduplicateSearchJobs(
+  supportedSearches.flatMap(
+         ({
+  searchTerm,
+  index,
+  intent,
+         }) =>
   buildCompleteSearchJobs({
-  originalQuery,
-  
+  originalQuery:
+  searchTerm,
+ 
   intentType:
-  resolvedIntent
-             .intentType,
-  
+  intent.intentType,
+ 
   displayName:
-  resolvedIntent
-             .displayName,
-  
+  intent.displayName,
+ 
   expansions:
-  resolvedIntent
-             .expansions,
-       });
-  
-  const initialJob =
+  intent.expansions,
+           }).map(
+             (
+  job
+             ) =>
+  prefixSearchJob(
+  job,
+  `term-${index + 1}`
+             )
+           )
+       )
+     );
+ 
+  const initialJobs =
+  supportedSearches.flatMap(
+       ({
+  searchTerm,
+  index,
+  intent,
+       }) => {
+  const initial =
   buildInitialSearchJob({
-  originalQuery,
-  
+  originalQuery:
+  searchTerm,
+ 
   intentType:
-  resolvedIntent
-             .intentType,
-  
+  intent.intentType,
+ 
   displayName:
-  resolvedIntent
-             .displayName,
-  
+  intent.displayName,
+ 
   expansions:
-  resolvedIntent
-             .expansions,
-       });
-  
+  intent.expansions,
+         });
+ 
+  return initial
+  ? [
+  prefixSearchJob(
+  initial,
+  `term-${index + 1}`
+           ),
+         ]
+  : [];
+       }
+     );
+ 
   const searchJobs =
-  selectSearchJobsForPhase({
+  phase ===
+  "initial"
+  ? deduplicateSearchJobs(
+  supportedSearches.flatMap(
+           ({
+  index,
+           }) => {
+  const prefix =
+  `term-${index + 1}:`;
+ 
+  const termCompleteJobs =
+  completeJobs.filter(
+               (job) =>
+  job.id.startsWith(
+  prefix
+                 )
+             );
+ 
+  const termInitialJob =
+  initialJobs.find(
+               (job) =>
+  job.id.startsWith(
+  prefix
+                 )
+             ) ??
+  null;
+ 
+  return selectSearchJobsForPhase({
   phase,
-  
-  initialJob,
-  
-  completeJobs,
-       });
-  
+ 
+  initialJob:
+  termInitialJob,
+ 
+  completeJobs:
+  termCompleteJobs,
+             });
+           }
+         )
+       )
+  : completeJobs;
+ 
   if (
   searchJobs.length ===
   0
@@ -2062,6 +2412,8 @@ import {
          ),
   
   originalQuery,
+ 
+  searchTerms,
   
   normalizedQuery:
   resolvedIntent
@@ -2105,6 +2457,11 @@ import {
   
   metadata: {
   phase,
+ 
+  multiSearch:
+  searchTerms.length > 1,
+ 
+  searchTerms,
   
   intentId:
   resolvedIntent.id,

@@ -768,7 +768,7 @@ import {
     }
   
   if (
-  /\b(?:vegcaps?|veg\s+caps?|vegetarian\s+capsules?|veggie\s+capsules?|capsules?|caps?)\b/.test(
+  /\b(?:vegcaps?|v-?caps?|veg(?:etable)?\s+caps?|vegetarian\s+capsules?|veggie\s+capsules?|capsules?|caps?)\b/.test(
   text
       )
     ) {
@@ -789,39 +789,87 @@ import {
   return explicitForm;
    }
  
-  const text = searchableText.toLowerCase();
+  const text =
+  searchableText.toLowerCase();
  
   /*
-   * Never infer an encapsulatable form when the listing gives a
-   * clear signal for a non-pouch format.
+   * Explicit incompatible-format evidence always wins.
    */
   if (
-  /\b(?:gummies|gummy|chewables?|chews?|powder|powdered|drink\s+mix|stick\s+packs?|sachets?|liquid|drops?|dropper|spray)\b/i.test(
+  /\b(?:gummies|gummy|chewables?|chews?|powder|powdered|drink\s+mix|beverage|energy\s+drink|ready\s+to\s+drink|stick\s+packs?|sachets?|liquid|drops?|dropper|spray|effervescent|syrup)\b/i.test(
   text
      )
    ) {
   return explicitForm;
    }
  
-  /*
-   * Marketplace titles often include strength and count but omit the
-   * word "tablet" or "capsule". For VidaPouch discovery, treat these
-   * conventional solid-dose supplement listings as tablets instead of
-   * automatically disqualifying them as "Not specified".
-   *
-   * This is intentionally conservative: we require a supplement signal
-   * plus either a dosage strength or a bottle-count signal.
-   */
   const hasStrength =
-  /\b\d+(?:\.\d+)?\s*(?:mg|mcg|ug|µg|iu)\b/i.test(text);
-  const hasCount =
-  /\b\d{1,4}\s*(?:ct|count)\b/i.test(text);
+  /\b\d+(?:\.\d+)?\s*(?:mg|mcg|ug|µg|iu|g)\b/i.test(
+  text
+     );
  
-  if (hasSupplementProductSignal(searchableText) && (hasStrength || hasCount)) {
+  const hasCount =
+  /\b\d{1,4}\s*(?:ct|count|caps?|vcaps?|vegcaps?|tabs?|tablets?|capsules?|softgels?|caplets?|servings?)\b/i.test(
+  text
+     );
+ 
+  const hasBottleLanguage =
+  /\b(?:bottle|count|ct|caps?|vcaps?|vegcaps?|tabs?|tablets?|capsules?|softgels?|caplets?)\b/i.test(
+  text
+     );
+ 
+  if (
+  hasSupplementProductSignal(
+  searchableText
+     ) &&
+  (
+  hasStrength ||
+  hasCount ||
+  hasBottleLanguage
+     )
+   ) {
   return "Tablet";
    }
  
   return explicitForm;
+ }
+ 
+  function isVidaPouchLikelyCompatibleUnknown({
+  form,
+  searchableText,
+ }: {
+  form: SearchProductForm;
+  searchableText: string;
+ }) {
+  if (
+  form !== "Unknown" &&
+  form !== "Other"
+   ) {
+  return false;
+   }
+ 
+  const text =
+  searchableText.toLowerCase();
+ 
+  if (
+  /\b(?:gummies|gummy|chewables?|chews?|powder|powdered|drink\s+mix|beverage|energy\s+drink|ready\s+to\s+drink|stick\s+packs?|sachets?|liquid|drops?|dropper|spray|effervescent|syrup)\b/i.test(
+  text
+     )
+   ) {
+  return false;
+   }
+ 
+  return (
+  hasSupplementProductSignal(
+  searchableText
+     ) ||
+  /\b\d+(?:\.\d+)?\s*(?:mg|mcg|ug|µg|iu|g)\b/i.test(
+  text
+     ) ||
+  /\b\d{1,4}\s*(?:ct|count|caps?|vcaps?|vegcaps?|tabs?|tablets?|capsules?|softgels?|caplets?)\b/i.test(
+  text
+     )
+   );
  }
  
  function getUnitLabel(
@@ -860,11 +908,14 @@ import {
     }
    }
   
-  function isVitaPouchFormEligible(
-  form:
-  SearchProductForm
-   ) {
-  return (
+  function isVitaPouchFormEligible({
+  form,
+  searchableText,
+ }: {
+  form: SearchProductForm;
+  searchableText: string;
+ }) {
+  if (
   form ===
   "Capsule" ||
   form ===
@@ -873,11 +924,16 @@ import {
   "Caplet" ||
   form ===
   "Softgel"
-  
-  
-    );
+   ) {
+  return true;
    }
-  
+ 
+  return isVidaPouchLikelyCompatibleUnknown({
+  form,
+  searchableText,
+   });
+  }
+ 
   function extractCount(
   searchableText:
   string
@@ -1619,9 +1675,11 @@ import {
         ),
   
   vitaPouchFormEligible:
-  isVitaPouchFormEligible(
-  form
-        ),
+  isVitaPouchFormEligible({
+  form,
+ 
+  searchableText,
+        }),
   
   retailer,
   
