@@ -55,13 +55,22 @@ import {
    * before creating the final customer charge.
    */
   const DEFAULT_CACHE_TTL_MINUTES =
-  60;
+  1440;
   
   const MIN_CACHE_TTL_MINUTES =
   1;
   
   const MAX_CACHE_TTL_MINUTES =
   1440;
+ 
+  /*
+   * Search discovery can safely use older marketplace
+   * snapshots because checkout/live-offer flows revalidate
+   * the selected product price. Keeping a stale window
+   * makes common searches resilient to provider outages.
+   */
+  const STALE_CACHE_MAX_AGE_DAYS =
+  30;
   
   const DEFAULT_MAX_PAGES =
   3;
@@ -2062,24 +2071,44 @@ import {
           .expiresAt <=
   now
       ) {
+  const staleAgeMs =
+  now.getTime() -
+  cachedPage.expiresAt.getTime();
+ 
+  const staleMaxAgeMs =
+  STALE_CACHE_MAX_AGE_DAYS *
+  24 * 60 * 60 * 1000;
+ 
+  if (
+  staleAgeMs >
+  staleMaxAgeMs
+        ) {
   console.log(
-  "VidaSearch SerpApi cache entry expired:",
+  "VidaSearch SerpApi cache entry too old to reuse:",
+            {
+  query,
+  pageNumber,
+  fetchedAt: cachedPage.fetchedAt,
+  expiresAt: cachedPage.expiresAt,
+  staleAgeDays:
+  Math.round(staleAgeMs / (24 * 60 * 60 * 1000)),
+            }
+          );
+ 
+  return null;
+        }
+ 
+  console.log(
+  "VidaSearch SerpApi stale cache reused:",
           {
   query,
-  
   pageNumber,
-  
-  fetchedAt:
-  cachedPage
-                .fetchedAt,
-  
-  expiresAt:
-  cachedPage
-                .expiresAt,
+  fetchedAt: cachedPage.fetchedAt,
+  expiresAt: cachedPage.expiresAt,
+  staleAgeDays:
+  Math.max(0, Math.round(staleAgeMs / (24 * 60 * 60 * 1000))),
           }
         );
-  
-  return null;
       }
   
   const parsedPayload =

@@ -1010,32 +1010,25 @@ import {
   phase ===
   "initial"
    ) {
-  if (
-  initialJob
-     ) {
-  return [
-  initialJob,
-       ];
-     }
-  
-  return completeJobs
-       .slice(
-  0,
-  1
-       )
-       .map(
-         (
-  job
-         ) => ({
+  /*
+    * Try several relevant supplement queries in parallel.
+    * This gives the database cache multiple chances to
+    * satisfy the request instantly and prevents one bad
+    * Google Shopping query from taking down the search.
+    */
+  const candidateJobs =
+  deduplicateSearchJobs([
+  ...(initialJob ? [initialJob] : []),
+  ...completeJobs,
+      ])
+       .slice(0, 4)
+       .map((job) => ({
   ...job,
-  
-  maxPages:
-  INITIAL_SEARCH_MAX_PAGES,
-  
-  maxRetailListings:
-  INITIAL_MAX_RETAIL_LISTINGS,
-         })
-       );
+  maxPages: INITIAL_SEARCH_MAX_PAGES,
+  maxRetailListings: INITIAL_MAX_RETAIL_LISTINGS,
+        }));
+ 
+  return candidateJobs;
    }
   
   return completeJobs;
@@ -1269,6 +1262,76 @@ import {
   
   failedJobs,
    };
+  }
+ 
+ 
+  async function runInitialSearchJobs({
+  jobs,
+  brand,
+  }: {
+  jobs: SearchJob[];
+  brand: string | undefined;
+  }) {
+  /*
+   * Initial search is a race: return the first query that
+   * produces usable supplement listings. Cached jobs will
+   * normally win in milliseconds. A failed/slow provider
+   * request therefore cannot block a cached sibling query.
+   */
+  const attempts = jobs.map(async (job) => {
+  try {
+  const result = await runSearchJob({ job, brand });
+ 
+  if (result.listings.length === 0) {
+  throw new Error(`No usable supplement listings for "${job.searchTerm}".`);
+      }
+ 
+  return result;
+    } catch (error) {
+  const message =
+  error instanceof Error ? error.message : String(error);
+ 
+  throw new Error(`${job.searchTerm}|||${message}`);
+    }
+  });
+ 
+  try {
+  const firstCompleted = await Promise.any(attempts);
+ 
+  return {
+  completedJobs: [firstCompleted],
+  failedJobs: [] as FailedSearchJob[],
+    };
+  } catch {
+  const settled = await Promise.allSettled(attempts);
+ 
+  const failedJobs: FailedSearchJob[] = settled.map((result, index) => {
+  const fallbackSearchTerm = jobs[index]?.searchTerm ?? "Unknown search";
+ 
+  if (result.status === "fulfilled") {
+  return {
+  searchTerm: fallbackSearchTerm,
+  error: "No usable supplement listings were returned.",
+        };
+      }
+ 
+  const raw =
+  result.reason instanceof Error ? result.reason.message : String(result.reason);
+  const separatorIndex = raw.indexOf("|||");
+ 
+  return {
+  searchTerm:
+  separatorIndex >= 0 ? raw.slice(0, separatorIndex) : fallbackSearchTerm,
+  error:
+  separatorIndex >= 0 ? raw.slice(separatorIndex + 3) : raw,
+      };
+    });
+ 
+  return {
+  completedJobs: [] as CompletedSearchJob[],
+  failedJobs,
+    };
+  }
   }
   
   function getSearchSuggestion(
@@ -1629,12 +1692,15 @@ import {
   completedJobs,
   failedJobs,
      } =
-  await runSearchJobs({
-  jobs:
-  searchJobs,
-  
+  await (phase === "initial"
+  ? runInitialSearchJobs({
+  jobs: searchJobs,
   brand,
-       });
+        })
+  : runSearchJobs({
+  jobs: searchJobs,
+  brand,
+        }));
   
   if (
   failedJobs.length >
