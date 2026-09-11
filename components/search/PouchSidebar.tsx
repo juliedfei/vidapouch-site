@@ -2692,8 +2692,7 @@ export default function PouchSidebar({
               ">
 
               Can't find what you're looking for?
-              Talk with a VidaPouch
-              concierge.
+              Contact us.
             </p>
 
             <a
