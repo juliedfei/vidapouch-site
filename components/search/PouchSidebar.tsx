@@ -1178,7 +1178,8 @@ function ShippingRow() {
           text-[#6E6862]
         ">
 
-        Calculated at checkout
+        {/*Calculated at checkout*/}
+        Included
       </span>
     </div>
   );
@@ -2462,7 +2463,7 @@ export default function PouchSidebar({
             </p>
 
             <p className="mt-1 text-[10px] leading-[15px] text-[#716A63]">
-              Enter your contact information. We will save your selected plan and complete supplement routine without charging you.
+              Enter your contact information. We will save your selected plan and complete supplement routine without charging you. We'll prepare your first free month of VidaPouch.
             </p>
 
             <label
@@ -2579,7 +2580,7 @@ export default function PouchSidebar({
 
                 {waitlistSubmitting
                   ? "Saving..."
-                  : "Join waitlist"}
+                  : "Prepare My VidaPouch"}
               </button>
             </div>
           </div>
@@ -2679,7 +2680,7 @@ export default function PouchSidebar({
                 text-[#2F2925]
               ">
 
-              Need help choosing?
+              Need help?
             </p>
 
             <p
@@ -2690,6 +2691,7 @@ export default function PouchSidebar({
                 text-[#716A63]
               ">
 
+              Can't find what you're looking for?
               Talk with a VidaPouch
               concierge.
             </p>
@@ -2707,7 +2709,8 @@ export default function PouchSidebar({
                 hover:underline
               ">
 
-              1 (800) GET-POUCH
+              {/*1 (800) GET-POUCH*/}
+              (508) 243-8404
             </a>
           </div>
         </div>
