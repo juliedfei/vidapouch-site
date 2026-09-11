@@ -788,6 +788,91 @@ export default function SearchWorkspace({
     );
   }
 
+  function updatePouchItemQuantity(
+    itemId:
+      string,
+
+    requestedUnitsPerDay:
+      number
+  ) {
+    const unitsPerDay =
+      Math.min(
+        20,
+        Math.max(
+          1,
+          Math.round(
+            requestedUnitsPerDay
+          )
+        )
+      );
+
+    setPouchItems(
+      (currentItems) =>
+        currentItems.map(
+          (item) => {
+            if (
+              item.id !==
+              itemId
+            ) {
+              return item;
+            }
+
+            const monthlyUnitCount =
+              unitsPerDay *
+              30;
+
+            const hasUsableBottleCost =
+              Number.isFinite(
+                item.bottlePrice
+              ) &&
+              item.bottlePrice >
+                0 &&
+              Number.isFinite(
+                item.bottleUnitCount
+              ) &&
+              item.bottleUnitCount >
+                0;
+
+            const monthlyPrice =
+              hasUsableBottleCost
+                ? Math.round(
+                    (
+                      (
+                        item.bottlePrice /
+                        item.bottleUnitCount
+                      ) *
+                        monthlyUnitCount +
+                      Number.EPSILON
+                    ) *
+                      100
+                  ) /
+                  100
+                : item.monthlyPrice;
+
+            return {
+              ...item,
+
+              unitsPerDay,
+
+              monthlyUnitCount,
+
+              monthlyPrice,
+
+              pricing:
+                item.pricing
+                  ? {
+                      ...item.pricing,
+
+                      monthlyProductCost:
+                        monthlyPrice,
+                    }
+                  : item.pricing,
+            };
+          }
+        )
+    );
+  }
+
   const filterWidth =
     layout.filtersOpen
       ? "290px"
@@ -1077,6 +1162,9 @@ export default function SearchWorkspace({
                           }
                           onTimingChange={
                             updatePouchItemTiming
+                          }
+                          onQuantityChange={
+                            updatePouchItemQuantity
                           }
                         />
                       </div>
@@ -1512,6 +1600,9 @@ export default function SearchWorkspace({
                   }
                   onTimingChange={
                     updatePouchItemTiming
+                  }
+                  onQuantityChange={
+                    updatePouchItemQuantity
                   }
                 />
               </div>

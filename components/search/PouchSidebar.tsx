@@ -69,6 +69,14 @@ type PouchSidebarProps = {
     timingPreference:
       SearchPouchTimingPreference
   ) => void;
+
+  onQuantityChange: (
+    itemId:
+      string,
+
+    unitsPerDay:
+      number
+  ) => void;
 };
 
 type VidaPouchSalesMode =
@@ -450,6 +458,14 @@ type ItemRowProps = {
     timingPreference:
       SearchPouchTimingPreference
   ) => void;
+
+  onQuantityChange: (
+    itemId:
+      string,
+
+    unitsPerDay:
+      number
+  ) => void;
 };
 
 function ItemRow({
@@ -457,10 +473,19 @@ function ItemRow({
   timingConfirmation,
   onRemoveItem,
   onSelectTiming,
+  onQuantityChange,
 }: ItemRowProps) {
   const [
     menuOpen,
     setMenuOpen,
+  ] =
+    useState(
+      false
+    );
+
+  const [
+    quantityEditorOpen,
+    setQuantityEditorOpen,
   ] =
     useState(
       false
@@ -487,6 +512,40 @@ function ItemRow({
 
     onRemoveItem(
       item.id
+    );
+  }
+
+  function openQuantityEditor() {
+    setMenuOpen(
+      false
+    );
+
+    setQuantityEditorOpen(
+      true
+    );
+  }
+
+  function decreaseQuantity() {
+    onQuantityChange(
+      item.id,
+
+      Math.max(
+        1,
+        item.unitsPerDay -
+          1
+      )
+    );
+  }
+
+  function increaseQuantity() {
+    onQuantityChange(
+      item.id,
+
+      Math.min(
+        20,
+        item.unitsPerDay +
+          1
+      )
     );
   }
 
@@ -652,6 +711,13 @@ function ItemRow({
                   ">
 
                   <TimingMenuOption
+                    label="Change quantity"
+                    onSelect={
+                      openQuantityEditor
+                    }
+                  />
+
+                  <TimingMenuOption
                     label={
                       oppositeTimingLabel
                     }
@@ -733,9 +799,176 @@ function ItemRow({
             </p>
 
             <p>
-              {item.monthlyUnitCount} units monthly
+              {item.monthlyUnitCount}{" "}
+              {getPluralUnitLabel(
+                item.unitLabel,
+                item.monthlyUnitCount
+              )} monthly
             </p>
           </div>
+
+          {quantityEditorOpen && (
+            <div
+              className="
+                mt-2.5
+                rounded-[8px]
+                border
+                border-[#DED4CA]
+                bg-[#FFFDF9]
+                px-3
+                py-3
+              ">
+
+              <div
+                className="
+                  flex
+                  items-center
+                  justify-between
+                  gap-2
+                ">
+
+                <button
+                  type="button"
+                  onClick={
+                    decreaseQuantity
+                  }
+                  disabled={
+                    item.unitsPerDay <=
+                    1
+                  }
+                  aria-label={`Decrease ${item.productName} daily quantity`}
+                  className="
+                    flex
+                    h-[32px]
+                    w-[32px]
+                    items-center
+                    justify-center
+                    rounded-[7px]
+                    border
+                    border-[#D8CEC4]
+                    bg-white
+                    text-[18px]
+                    font-medium
+                    text-[#493F39]
+                    transition
+                    hover:border-[#BCA799]
+                    disabled:cursor-not-allowed
+                    disabled:opacity-35
+                  ">
+
+                  −
+                </button>
+
+                <div
+                  className="
+                    min-w-0
+                    flex-1
+                    text-center
+                  ">
+
+                  <p
+                    className="
+                      text-[11px]
+                      font-semibold
+                      text-[#2C2723]
+                    ">
+
+                    {item.unitsPerDay}{" "}
+                    {getPluralUnitLabel(
+                      item.unitLabel,
+                      item.unitsPerDay
+                    )} per day
+                  </p>
+
+                  <p
+                    className="
+                      mt-0.5
+                      text-[9px]
+                      text-[#756E68]
+                    ">
+
+                    {item.monthlyUnitCount}{" "}
+                    {getPluralUnitLabel(
+                      item.unitLabel,
+                      item.monthlyUnitCount
+                    )} per 30 days
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={
+                    increaseQuantity
+                  }
+                  disabled={
+                    item.unitsPerDay >=
+                    20
+                  }
+                  aria-label={`Increase ${item.productName} daily quantity`}
+                  className="
+                    flex
+                    h-[32px]
+                    w-[32px]
+                    items-center
+                    justify-center
+                    rounded-[7px]
+                    border
+                    border-[#D8CEC4]
+                    bg-white
+                    text-[18px]
+                    font-medium
+                    text-[#493F39]
+                    transition
+                    hover:border-[#BCA799]
+                    disabled:cursor-not-allowed
+                    disabled:opacity-35
+                  ">
+
+                  +
+                </button>
+              </div>
+
+              <div
+                className="
+                  mt-2
+                  flex
+                  items-center
+                  justify-between
+                  gap-3
+                ">
+
+                <p
+                  className="
+                    text-[9px]
+                    leading-[1.4]
+                    text-[#756E68]
+                  ">
+
+                  Monthly pricing updates automatically.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={
+                    () =>
+                      setQuantityEditorOpen(
+                        false
+                      )
+                  }
+                  className="
+                    shrink-0
+                    text-[10px]
+                    font-semibold
+                    text-[#7D0E1C]
+                    hover:underline
+                    hover:underline-offset-2
+                  ">
+
+                  Done
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -792,6 +1025,14 @@ type PouchSectionProps = {
       string
   ) => void;
 
+  onQuantityChange: (
+    itemId:
+      string,
+
+    unitsPerDay:
+      number
+  ) => void;
+
   onSelectTiming: (
     item:
       SearchPouchItem,
@@ -807,6 +1048,7 @@ function PouchSection({
   items,
   timingConfirmations,
   onRemoveItem,
+  onQuantityChange,
   onSelectTiming,
 }: PouchSectionProps) {
   if (
@@ -896,6 +1138,9 @@ function PouchSection({
               onRemoveItem={
                 onRemoveItem
               }
+              onQuantityChange={
+                onQuantityChange
+              }
               onSelectTiming={
                 onSelectTiming
               }
@@ -949,6 +1194,7 @@ export default function PouchSidebar({
   onPurchaseOptionChange,
   onRemoveItem,
   onTimingChange,
+  onQuantityChange,
 }: PouchSidebarProps) {
   const [
     timingConfirmations,
@@ -1847,6 +2093,9 @@ export default function PouchSidebar({
         onRemoveItem={
           handleRemoveItem
         }
+        onQuantityChange={
+          onQuantityChange
+        }
         onSelectTiming={
           handleSelectTiming
         }
@@ -1877,6 +2126,9 @@ export default function PouchSidebar({
         }
         onRemoveItem={
           handleRemoveItem
+        }
+        onQuantityChange={
+          onQuantityChange
         }
         onSelectTiming={
           handleSelectTiming

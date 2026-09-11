@@ -48,28 +48,20 @@ const TESTING_OPTIONS:
    "NPA GMP Certified",
  ];
 
+type FilterSidebarProps = {
+ filters:
+   SearchFilterState;
 
+ onFiltersChange:
+   Dispatch<
+     SetStateAction<
+       SearchFilterState
+     >
+   >;
 
-
- type FilterSidebarProps = {
-  filters:
-    SearchFilterState;
- 
-  onFiltersChange:
-    Dispatch<
-      SetStateAction<
-        SearchFilterState
- >
- >;
- 
-  availableBrands:
-    string[];
- };
- 
-
-
-
-
+ availableBrands:
+   string[];
+};
 
 function InfoIcon() {
  return (
@@ -216,19 +208,11 @@ function FilterSection({
  );
 }
 
-
-
-
 export default function FilterSidebar({
-  filters,
-  onFiltersChange,
-  availableBrands,
- }: FilterSidebarProps) {
- 
-
-
-
-
+ filters,
+ onFiltersChange,
+ availableBrands,
+}: FilterSidebarProps) {
  function toggleForm(
    form:
      SearchFormFilter
@@ -368,6 +352,19 @@ export default function FilterSidebar({
      </div>
 
      <div className="mt-[22px] space-y-[19px]">
+
+       {/*
+        * Daily Dose was intentionally removed from the
+        * search-filter UI.
+        *
+        * Quantity is now selected where the customer
+        * adds a product to VidaPouch and can be changed
+        * again from the My Pouch menu.
+        *
+        * The old control is preserved here so it can
+        * be restored later if VidaSearch needs dose-
+        * based search filtering again.
+        *
        <FilterSection
          number={1}
          title="Daily Dose (per day)"
@@ -421,9 +418,10 @@ export default function FilterSidebar({
            Examples: 2 capsules, 400 mg, 1 tsp
          </p>
        </FilterSection>
+       */}
 
        <FilterSection
-         number={2}
+         number={1}
          title="Form">
 
          <div className="space-y-[1px]">
@@ -450,7 +448,7 @@ export default function FilterSidebar({
        </FilterSection>
 
        <FilterSection
-         number={3}
+         number={2}
          title="Dietary Preference">
 
          <div className="space-y-[1px]">
@@ -479,7 +477,7 @@ export default function FilterSidebar({
        </FilterSection>
 
        <FilterSection
-         number={4}
+         number={3}
          title="Third-Party Tested">
 
          <div className="space-y-[1px]">
@@ -505,9 +503,8 @@ export default function FilterSidebar({
          </div>
        </FilterSection>
 
-       
        <FilterSection
-         number={5}
+         number={4}
          title="VidaPouch Availability">
 
          <FilterCheckbox
@@ -531,10 +528,8 @@ export default function FilterSidebar({
          />
        </FilterSection>
 
-
-       
        <FilterSection
-         number={6}
+         number={5}
          title="Brand">
 
          <div className="relative">
@@ -572,28 +567,22 @@ export default function FilterSidebar({
                focus:border-[#8A1423]
              ">
 
-
-
-
              <option value="all">
                All Brands
              </option>
 
-
-
-
              {availableBrands.map(
- (brand) => (
-   <option
-     key={brand}
-     value={brand
-       .toLowerCase()
-       .trim()}>
+               (brand) => (
+                 <option
+                   key={brand}
+                   value={brand
+                     .toLowerCase()
+                     .trim()}>
 
-     {brand}
-   </option>
- )
-)}
+                   {brand}
+                 </option>
+               )
+             )}
            </select>
 
            <svg
@@ -623,7 +612,7 @@ export default function FilterSidebar({
        </FilterSection>
 
        <FilterSection
-         number={7}
+         number={6}
          title="Price Range (per month)">
 
          <div className="flex items-center gap-[7px]">

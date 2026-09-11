@@ -360,6 +360,14 @@ export default function ProductCard({
 (
  null
    );
+
+ const [
+ quantityEditorOpen,
+ setQuantityEditorOpen,
+ ] =
+ useState(
+ false
+   );
  const representative =
  product
      .representativeProduct;
@@ -376,12 +384,53 @@ export default function ProductCard({
  ? displayedBottlePrice /
  bottleUnitCount
  : null;
- const pouchUnitsPerDay =
+ const defaultPouchUnitsPerDay =
+ Math.max(
+ 1,
+ Math.round(
  product.unitsPerDay ??
- 1;
+ 1
+     )
+   );
+
+ const [
+ pouchUnitsPerDay,
+ setPouchUnitsPerDay,
+ ] =
+ useState(
+ defaultPouchUnitsPerDay
+   );
+
  const pouchUnitCount =
  pouchUnitsPerDay *
  30;
+
+ const displayedMonthlyProductCost =
+ bottlePricePerUnit !==
+ null
+ ? Math.round(
+       (
+         bottlePricePerUnit *
+         pouchUnitCount +
+         Number.EPSILON
+       ) *
+         100
+     ) /
+     100
+ : product
+       .displayedMonthlyCost;
+
+ const quantityAdjustedProduct:
+ SearchProductOption =
+ {
+   ...product,
+
+   unitsPerDay:
+   pouchUnitsPerDay,
+
+   displayedMonthlyCost:
+   displayedMonthlyProductCost,
+ };
  const unitLabel =
  product.unitLabel;
  const pluralUnitLabel =
@@ -532,7 +581,9 @@ export default function ProductCard({
  const vidaPouchPricing =
  effectivePlan
  ? calculateVitaPouchAddOn({
- product,
+ product:
+ quantityAdjustedProduct,
+
  selectedPlan:
  effectivePlan,
        })
@@ -540,6 +591,29 @@ export default function ProductCard({
  const addButtonDisabled =
  isInPouch ||
  customRoutineRequired;
+
+ function decreasePouchQuantity() {
+ setPouchUnitsPerDay(
+ current =>
+ Math.max(
+ 1,
+ current -
+ 1
+       )
+     );
+ }
+
+ function increasePouchQuantity() {
+ setPouchUnitsPerDay(
+ current =>
+ Math.min(
+ 20,
+ current +
+ 1
+       )
+     );
+ }
+
  function handleAddToPouch() {
  if (
  !canAddToVidaPouch ||
@@ -572,7 +646,7 @@ export default function ProductCard({
  pouchUnitsPerDay,
  
  monthly_product_cost:
- product.displayedMonthlyCost,
+ displayedMonthlyProductCost,
  
  selected_plan:
  effectivePlan?.id ??
@@ -613,8 +687,7 @@ export default function ProductCard({
  monthlyUnitCount:
  pouchUnitCount,
  monthlyPrice:
- product
-         .displayedMonthlyCost,
+ displayedMonthlyProductCost,
  baselineUnitsPerDay:
  product
          .baselineUnitsPerDay ??
@@ -627,8 +700,7 @@ export default function ProductCard({
  pricing:
  vidaPouchPricing,
  bottlePrice:
- representative
-         .bottlePrice,
+ displayedBottlePrice,
  bottleUnitCount:
  representative
            .capsulesPerBottle,
@@ -1423,15 +1495,206 @@ export default function ProductCard({
                  text-[#4F5A5E]
                ">
  <CalendarIcon />
- <p
+
+ <button
+ type="button"
+ onClick={
+ () =>
+ setQuantityEditorOpen(
+ current =>
+ !current
+                 )
+ }
+ aria-expanded={
+ quantityEditorOpen
+ }
  className="
+                   inline-flex
+                   items-center
+                   gap-1.5
+                   rounded-[6px]
+                   px-1
+                   py-1
                    text-[11px]
                    font-medium
+                   text-[#4F5A5E]
+                   transition
+                   hover:bg-[#F6F0EA]
+                   hover:text-[#7D0E1C]
+                   focus:outline-none
+                   focus-visible:ring-2
+                   focus-visible:ring-[#8C1D40]
+                   focus-visible:ring-offset-1
                  ">
+
  {pouchUnitCount}{" "}
  {pouchPluralUnitLabel} monthly
+
+ <svg
+ viewBox="0 0 24 24"
+ fill="none"
+ aria-hidden="true"
+ className="h-[13px] w-[13px]">
+
+ <path
+ d="m5 16.5-.5 3 3-.5L18 8.5 15.5 6 5 16.5Z"
+ stroke="currentColor"
+ strokeWidth="1.6"
+ strokeLinejoin="round"
+ />
+
+ <path
+ d="m13.8 7.7 2.5 2.5"
+ stroke="currentColor"
+ strokeWidth="1.6"
+ />
+ </svg>
+ </button>
+ </div>
+
+ {quantityEditorOpen && (
+ <div
+ className="
+                   mt-2.5
+                   rounded-[8px]
+                   border
+                   border-[#DED4CA]
+                   bg-[#FFFDF9]
+                   px-3
+                   py-3
+                 ">
+
+ <p
+ className="
+                     text-[9px]
+                     font-semibold
+                     uppercase
+                     tracking-[0.07em]
+                     text-[#766F68]
+                   ">
+
+                   Daily quantity
+ </p>
+
+ <div
+ className="
+                     mt-2
+                     flex
+                     items-center
+                     justify-between
+                     gap-2
+                   ">
+
+ <button
+ type="button"
+ onClick={
+ decreasePouchQuantity
+ }
+ disabled={
+ pouchUnitsPerDay <=
+ 1
+ }
+ aria-label={`Decrease ${unitLabel} quantity`}
+ className="
+                       flex
+                       h-[32px]
+                       w-[32px]
+                       items-center
+                       justify-center
+                       rounded-[7px]
+                       border
+                       border-[#D8CEC4]
+                       bg-white
+                       text-[18px]
+                       font-medium
+                       text-[#493F39]
+                       transition
+                       hover:border-[#BCA799]
+                       disabled:cursor-not-allowed
+                       disabled:opacity-35
+                     ">
+
+                   −
+ </button>
+
+ <div
+ className="
+                       min-w-0
+                       flex-1
+                       text-center
+                     ">
+
+ <p
+ className="
+                         text-[12px]
+                         font-semibold
+                         text-[#241F1C]
+                       ">
+
+ {pouchUnitsPerDay}{" "}
+ {getPluralUnitLabel(
+ unitLabel,
+ pouchUnitsPerDay
+                         )} per day
+ </p>
+
+ <p
+ className="
+                         mt-0.5
+                         text-[9px]
+                         text-[#756E68]
+                       ">
+
+ {pouchUnitCount}{" "}
+ {pouchPluralUnitLabel} per 30 days
  </p>
  </div>
+
+ <button
+ type="button"
+ onClick={
+ increasePouchQuantity
+ }
+ disabled={
+ pouchUnitsPerDay >=
+ 20
+ }
+ aria-label={`Increase ${unitLabel} quantity`}
+ className="
+                       flex
+                       h-[32px]
+                       w-[32px]
+                       items-center
+                       justify-center
+                       rounded-[7px]
+                       border
+                       border-[#D8CEC4]
+                       bg-white
+                       text-[18px]
+                       font-medium
+                       text-[#493F39]
+                       transition
+                       hover:border-[#BCA799]
+                       disabled:cursor-not-allowed
+                       disabled:opacity-35
+                     ">
+
+                   +
+ </button>
+ </div>
+
+ <p
+ className="
+                     mt-2
+                     text-[9px]
+                     leading-[1.4]
+                     text-[#756E68]
+                   ">
+
+                   Your VidaPouch price updates from this daily quantity.
+ </p>
+ </div>
+             )}
  {effectivePlan && (
  <button
  type="button"
