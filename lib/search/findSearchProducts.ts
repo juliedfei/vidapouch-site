@@ -1505,6 +1505,98 @@ import {
     }
   
   /*
+    * Only keep retailer listings for which VidaSearch has
+    * a known, retailer-owned fallback path.
+    *
+    * This deliberately favors reliability over breadth:
+    * unsupported manufacturers/marketplaces are removed
+    * from search results instead of presenting a Buy Bottle
+    * button that can dead-end after the click.
+    *
+    * Keep this list aligned with resolveLiveMerchantOffer.ts.
+    */
+  const SAFE_BUY_BOTTLE_RETAILER_ALIASES =
+  [
+    "walmart",
+    "walmart.com",
+    "cvs",
+    "cvs pharmacy",
+    "cvs.com",
+    "gnc",
+    "gnc.com",
+    "walgreens",
+    "walgreens.com",
+    "target",
+    "target.com",
+    "amazon",
+    "amazon.com",
+    "iherb",
+    "iherb.com",
+    "the vitamin shoppe",
+    "vitamin shoppe",
+    "vitaminshoppe",
+    "swanson",
+    "swanson vitamins",
+    "swanson health products",
+    "vitacost",
+    "vitacost.com",
+  ] as const;
+ 
+  function normalizeBuyBottleRetailer(
+  retailer:
+  string
+    ) {
+  return normalizeText(
+  retailer
+     )
+       .replace(
+  /\b(?:com|inc|llc|online|marketplace|store|stores|shop|pharmacy|seller)\b/g,
+  " "
+       )
+       .replace(
+  /\s+/g,
+  " "
+       )
+       .trim();
+    }
+ 
+  function hasSafeBuyBottlePath(
+  retailer:
+  string
+    ) {
+  const normalizedRetailer =
+  normalizeBuyBottleRetailer(
+  retailer
+       );
+ 
+  if (
+  !normalizedRetailer
+     ) {
+  return false;
+     }
+ 
+  return SAFE_BUY_BOTTLE_RETAILER_ALIASES.some(
+  alias => {
+  const normalizedAlias =
+  normalizeBuyBottleRetailer(
+  alias
+           );
+ 
+  return (
+  normalizedRetailer ===
+  normalizedAlias ||
+  normalizedRetailer.includes(
+  normalizedAlias
+             ) ||
+  normalizedAlias.includes(
+  normalizedRetailer
+             )
+           );
+         }
+       );
+    }
+ 
+  /*
     * This stage converts the SerpApi payload into the
     * internal product structure but deliberately leaves
     * the brand unresolved.
@@ -1618,6 +1710,20 @@ import {
   result.source
        ) ||
   "Google Shopping";
+ 
+  /*
+    * Do not surface a marketplace listing unless the
+    * retailer has a safe Buy Bottle path.
+    */
+  if (
+  !hasSafeBuyBottlePath(
+  retailer
+       )
+     ) {
+  return null;
+     }
+ 
+ 
   
   const imageUrl =
   stringValue(
