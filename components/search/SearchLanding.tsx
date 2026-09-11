@@ -228,7 +228,7 @@ export default function SearchLanding({
              />
            </div>
 
-           <div
+           {/*<div
              className=
                "mt-7">
 
@@ -277,7 +277,7 @@ export default function SearchLanding({
                  )
                )}
              </div>
-           </div>
+           </div>*/}
 
            <div
              className=
