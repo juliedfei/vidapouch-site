@@ -158,6 +158,9 @@ import {
     ) ||
   message.includes(
   "could not be found"
+    ) ||
+  message.includes(
+  "could not be confirmed quickly"
     )
   ) {
   status =

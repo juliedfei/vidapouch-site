@@ -685,8 +685,9 @@ export default function ProductCard({
    );
  /*
   * Do not require an immersive token here. The vendor-link
-  * resolver can now fall back to shoppingProductId and, if
-  * needed, an exact product-title marketplace lookup.
+  * resolver can use either the saved immersive token or the
+  * saved shoppingProductId. It deliberately does not run a slow
+  * fresh Google Shopping search during the customer click.
   */
  setVendorLinkError(
  ""
@@ -722,9 +723,9 @@ export default function ProductCard({
            background: #faf8f6;
            text-align: center;
          ">
-           Confirming the exact
+           Opening the best available
  ${representative.retailer}
-           product and current price…
+           bottle link…
          </div>
        `;
    }

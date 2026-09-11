@@ -4,7 +4,7 @@ const SERP_API_ENDPOINT =
  "https://serpapi.com/search.json";
 
 const PRIMARY_LOOKUP_TIMEOUT_MS =
- 7000;
+ 4000;
 
 const FALLBACK_SEARCH_TIMEOUT_MS =
  5000;
@@ -1930,126 +1930,18 @@ export async function resolveLiveMerchantOffer({
  }
 
  /*
-  * Final fallback:
-  * search Google Shopping by the exact product title + retailer,
-  * then use the result's current product ID/token to resolve the
-  * merchant purchase page. This path is intentionally used only
-  * after the identifiers supplied by the original search result
-  * have failed.
+  * Do not run a fresh Google Shopping search in the customer
+  * click path. SerpApi Google Shopping can take tens of seconds
+  * (or longer) before timing out, which makes Buy Bottle feel
+  * broken.
+  *
+  * The saved immersive token and shopping product ID above are
+  * the only live checks performed synchronously. If neither can
+  * produce a valid merchant URL quickly, fail cleanly so the UI
+  * can tell the customer this bottle link is temporarily
+  * unavailable rather than leaving them waiting.
   */
- const shoppingResult =
- await searchExactShoppingProduct({
- apiKey,
-
- retailer:
- normalizedRetailer,
-
- productTitle:
- normalizedProductTitle,
-   });
-
- if (!shoppingResult) {
  throw new Error(
- `No current purchase offer was found for ${normalizedProductTitle || normalizedRetailer}.`
-   );
- }
-
- const directShoppingOffer =
- buildDirectShoppingOffer(
- shoppingResult
-   );
-
- if (directShoppingOffer) {
- return buildResolvedOffer({
- selectedOffer:
- directShoppingOffer,
-
- productTitle:
- stringValue(
- shoppingResult.title
-   ),
-
- fallbackProductTitle:
- normalizedProductTitle,
-
- bottlePrice,
-
- matchType:
- "shopping-fallback",
-   });
- }
-
- const fallbackToken =
- stringValue(
- shoppingResult
-   .immersive_product_page_token
- ) ||
- extractTokenFromSerpApiUrl(
- stringValue(
- shoppingResult
-     .serpapi_immersive_product_api
-   )
- );
-
- const fallbackProductId =
- stringValue(
- shoppingResult.product_id
- );
-
- const fallbackLookups:
- Array<
- Promise<OfferBundle>
- > = [];
-
- if (fallbackToken) {
- fallbackLookups.push(
- lookupImmersiveProduct({
- apiKey,
-
- token:
- fallbackToken,
-   })
- );
- }
-
- if (fallbackProductId) {
- fallbackLookups.push(
- lookupGoogleProduct({
- apiKey,
-
- productId:
- fallbackProductId,
-   })
- );
- }
-
- const fallbackResolved =
- await resolveFromBundles({
- bundlePromises:
- fallbackLookups,
-
- retailer:
- normalizedRetailer,
-
- productTitle:
- normalizedProductTitle,
-
- bottlePrice,
- });
-
- if (fallbackResolved) {
- return {
- ...fallbackResolved,
-
- matchType:
- fallbackResolved.matchType ===
- "immersive-store"
- ? "shopping-fallback"
- : fallbackResolved.matchType,
-   };
- }
-
- throw new Error(
- `No current purchasable merchant offer was found for ${normalizedProductTitle || normalizedRetailer}.`
+ `A current bottle link could not be confirmed quickly for ${normalizedProductTitle || normalizedRetailer}. Please choose another retailer or try this product again later.`
  );
 }
