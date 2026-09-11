@@ -1,33 +1,33 @@
 import {
   createHash,
-   } from "node:crypto";
+    } from "node:crypto";
   
   import {
   Prisma,
-   } from "@/lib/generated/prisma/client";
+    } from "@/lib/generated/prisma/client";
   
   import {
   prisma,
-   } from "@/lib/db";
+    } from "@/lib/db";
   
   import type {
   SearchDosageUnit,
   SearchProductForm,
   SearchRetailProduct,
-   } from "./searchRetailProduct";
+    } from "./searchRetailProduct";
   
   import {
   getSupplementAliases,
   getSupplementSearchTerms,
-   } from "@/lib/pricing/supplementAliases";
+    } from "@/lib/pricing/supplementAliases";
   
   import {
   resolveSearchListingBrands,
-   } from "@/lib/search/brand/resolveSearchListingBrands";
+    } from "@/lib/search/brand/resolveSearchListingBrands";
   
   import type {
   ProductSearchRequest,
-   } from "@/app/api/pricing/providers/providerTypes";
+    } from "@/app/api/pricing/providers/providerTypes";
   
   const SERP_API_ENDPOINT =
   "https://serpapi.com/search.json";
@@ -48,12 +48,12 @@ import {
   "serpapi-google-shopping-page-v1";
   
   /*
-   * Search browsing results are reused briefly to
-   * reduce paid SerpApi usage.
-   *
-   * Checkout must still revalidate the selected offer
-   * before creating the final customer charge.
-   */
+    * Search browsing results are reused briefly to
+    * reduce paid SerpApi usage.
+    *
+    * Checkout must still revalidate the selected offer
+    * before creating the final customer charge.
+    */
   const DEFAULT_CACHE_TTL_MINUTES =
   1440;
   
@@ -62,13 +62,13 @@ import {
   
   const MAX_CACHE_TTL_MINUTES =
   1440;
- 
+  
   /*
-   * Search discovery can safely use older marketplace
-   * snapshots because checkout/live-offer flows revalidate
-   * the selected product price. Keeping a stale window
-   * makes common searches resilient to provider outages.
-   */
+    * Search discovery can safely use older marketplace
+    * snapshots because checkout/live-offer flows revalidate
+    * the selected product price. Keeping a stale window
+    * makes common searches resilient to provider outages.
+    */
   const STALE_CACHE_MAX_AGE_DAYS =
   30;
   
@@ -86,18 +86,18 @@ import {
   
   const MAX_INTERNAL_ALIAS_QUERIES =
   4;
- 
+  
   /*
-   * Keep a slow marketplace request from holding the
-   * customer-facing search open indefinitely. Expanded
-   * searches still run after the first results are visible.
-   */
+    * Keep a slow marketplace request from holding the
+    * customer-facing search open indefinitely. Expanded
+    * searches still run after the first results are visible.
+    */
   const DEFAULT_SERP_API_TIMEOUT_MS =
   4500;
- 
+  
   const MIN_SERP_API_TIMEOUT_MS =
   1500;
- 
+  
   const MAX_SERP_API_TIMEOUT_MS =
   15000;
   
@@ -109,11 +109,11 @@ import {
   unknown;
   
   /*
-     * Google Shopping destination links frequently
-     * point to Google rather than directly to the
-     * merchant, so they must not be treated as
-     * merchant URLs.
-     */
+      * Google Shopping destination links frequently
+      * point to Google rather than directly to the
+      * merchant, so they must not be treated as
+      * merchant URLs.
+      */
   link?:
   unknown;
   
@@ -158,12 +158,12 @@ import {
   
   extensions?:
   unknown;
-   };
+    };
   
   type SerpApiPagination = {
   next?:
   unknown;
-   };
+    };
   
   type SerpApiResponse = {
   shopping_results?:
@@ -174,7 +174,7 @@ import {
   
   error?:
   unknown;
-   };
+    };
   
   type ShoppingPageResult = {
   results:
@@ -185,7 +185,7 @@ import {
   
   cacheStatus:
   "HIT" | "MISS" | "BYPASS";
-   };
+    };
   
   type ShoppingQueryResult = {
   results:
@@ -205,118 +205,258 @@ import {
   
   pagesFetched:
   number;
-   };
+    };
   
   function normalizeText(
   value:
   string
-   ) {
+    ) {
   return value
-      .toLowerCase()
-      .replace(
+       .toLowerCase()
+       .replace(
   /[®™©]/g,
   " "
-      )
-      .replace(
+       )
+       .replace(
   /['’]/g,
   ""
-      )
-      .replace(
+       )
+       .replace(
   /[^a-z0-9]+/g,
   " "
-      )
-      .replace(
+       )
+       .replace(
   /\s+/g,
   " "
-      )
-      .trim();
-   }
+       )
+       .trim();
+    }
   
   function normalizeCompact(
   value:
   string
-   ) {
+    ) {
   return normalizeText(
   value
-    ).replace(
+     ).replace(
   /\s+/g,
   ""
-    );
-   }
+     );
+    }
   
   function stringValue(
   value:
   unknown
-   ): string {
+    ): string {
   return typeof value ===
   "string"
   ? value.trim()
   : "";
-   }
+    }
+ 
+ 
+  /*
+    * Return a real merchant destination URL when Google
+    * Shopping already supplied one in the search result.
+    *
+    * We deliberately reject Google/SerpApi product pages
+    * themselves. When a Google redirect contains a merchant
+    * destination in a query parameter, unwrap it first.
+    */
+  function extractDirectMerchantUrl(
+  value:
+  unknown
+    ): string | undefined {
+  const rawValue =
+  stringValue(
+  value
+       );
+ 
+  if (
+  !rawValue
+     ) {
+  return undefined;
+     }
+ 
+  let candidate =
+  rawValue;
+ 
+  for (
+  let depth =
+  0;
+  depth <
+  4;
+  depth +=
+  1
+     ) {
+  let parsed:
+  URL;
+ 
+  try {
+  parsed =
+  new URL(
+  candidate
+         );
+       } catch {
+  return undefined;
+       }
+ 
+  if (
+  parsed.protocol !==
+  "http:" &&
+  parsed.protocol !==
+  "https:"
+       ) {
+  return undefined;
+       }
+ 
+  const hostname =
+  parsed.hostname
+         .toLowerCase()
+         .replace(
+  /^www\./,
+  ""
+         );
+ 
+  const isGoogleHost =
+  hostname ===
+  "google.com" ||
+  hostname.endsWith(
+  ".google.com"
+         ) ||
+  hostname ===
+  "googleadservices.com" ||
+  hostname.endsWith(
+  ".googleadservices.com"
+         );
+ 
+  const isSerpApiHost =
+  hostname ===
+  "serpapi.com" ||
+  hostname.endsWith(
+  ".serpapi.com"
+         );
+ 
+  if (
+  !isGoogleHost &&
+  !isSerpApiHost
+       ) {
+  return parsed.toString();
+       }
+ 
+  const redirectKeys =
+       [
+  "url",
+  "q",
+  "adurl",
+  "redirect",
+  "redirect_url",
+  "dest",
+  "destination",
+  "u",
+       ];
+ 
+  let nestedUrl =
+  "";
+ 
+  for (
+  const key of
+  redirectKeys
+       ) {
+  const nestedValue =
+  parsed.searchParams.get(
+  key
+         );
+ 
+  if (
+  nestedValue &&
+  /^https?:\/\//i.test(
+  nestedValue
+           )
+         ) {
+  nestedUrl =
+  nestedValue;
+ 
+  break;
+         }
+       }
+ 
+  if (
+  !nestedUrl
+       ) {
+  return undefined;
+       }
+ 
+  candidate =
+  nestedUrl;
+     }
+ 
+  return undefined;
+    }
   
   function numberValue(
   value:
   unknown
-   ): number | null {
+    ): number | null {
   if (
   typeof value ===
   "number" &&
   Number.isFinite(
   value
-      )
-    ) {
+       )
+     ) {
   return value;
-    }
+     }
   
   if (
   typeof value !==
   "string"
-    ) {
+     ) {
   return null;
-    }
+     }
   
   const parsed =
   Number(
   value.replace(
   /[^0-9.]/g,
   ""
-        )
-      );
+         )
+       );
   
   return Number.isFinite(
   parsed
-    )
+     )
   ? parsed
   : null;
-   }
+    }
   
   function booleanValue(
   value:
   unknown
-   ) {
+    ) {
   if (
   typeof value ===
   "boolean"
-    ) {
+     ) {
   return value;
-    }
+     }
   
   if (
   typeof value ===
   "number"
-    ) {
+     ) {
   return value >
   0;
-    }
+     }
   
   if (
   typeof value ===
   "string"
-    ) {
+     ) {
   const normalized =
   value
-          .trim()
-          .toLowerCase();
+           .trim()
+           .toLowerCase();
   
   return (
   normalized ===
@@ -325,27 +465,27 @@ import {
   "1" ||
   normalized ===
   "yes"
-      );
-    }
+       );
+     }
   
   if (
   Array.isArray(
   value
-      )
-    ) {
+       )
+     ) {
   return value.length >
   1;
-    }
+     }
   
   return false;
-   }
+    }
   
   function clampInteger({
   value,
   fallback,
   minimum,
   maximum,
-   }: {
+    }: {
   value:
   number | undefined;
   
@@ -357,16 +497,16 @@ import {
   
   maximum:
   number;
-   }) {
+    }) {
   if (
   typeof value !==
   "number" ||
   !Number.isFinite(
   value
-      )
-    ) {
+       )
+     ) {
   return fallback;
-    }
+     }
   
   return Math.max(
   minimum,
@@ -374,84 +514,84 @@ import {
   maximum,
   Math.round(
   value
-        )
-      )
-    );
-   }
+         )
+       )
+     );
+    }
   
   function parsePositiveInteger(
   value:
   string | undefined
-   ) {
+    ) {
   if (
   !value
-    ) {
+     ) {
   return undefined;
-    }
+     }
   
   const parsed =
   Number(
   value
-      );
+       );
   
   if (
   !Number.isFinite(
   parsed
-      ) ||
+       ) ||
   parsed <=
   0
-    ) {
+     ) {
   return undefined;
-    }
+     }
   
   return Math.round(
   parsed
-    );
-   }
+     );
+    }
   
   function getSerpApiTimeoutMs() {
   return clampInteger({
   value:
   parsePositiveInteger(
   process.env
-        .SERPAPI_SEARCH_TIMEOUT_MS
-      ),
- 
+         .SERPAPI_SEARCH_TIMEOUT_MS
+       ),
+  
   fallback:
   DEFAULT_SERP_API_TIMEOUT_MS,
- 
+  
   minimum:
   MIN_SERP_API_TIMEOUT_MS,
- 
+  
   maximum:
   MAX_SERP_API_TIMEOUT_MS,
-    });
-  }
- 
+     });
+   }
+  
   function getSerpApiKey() {
   /*
-   * The codebase historically used both names. Accept
-   * either so an existing Vercel environment variable
-   * cannot silently break VidaSearch.
-   */
+    * The codebase historically used both names. Accept
+    * either so an existing Vercel environment variable
+    * cannot silently break VidaSearch.
+    */
   return (
   process.env
-        .SERPAPI_API_KEY
-        ?.trim() ||
+         .SERPAPI_API_KEY
+         ?.trim() ||
   process.env
-        .SERP_API_KEY
-        ?.trim() ||
+         .SERP_API_KEY
+         ?.trim() ||
   ""
-    );
-  }
- 
+     );
+   }
+  
   function getCacheTtlMinutes() {
   return clampInteger({
   value:
   parsePositiveInteger(
   process.env
-            .SERPAPI_SEARCH_CACHE_TTL_MINUTES
-        ),
+             .SERPAPI_SEARCH_CACHE_TTL_MINUTES
+         ),
   
   fallback:
   DEFAULT_CACHE_TTL_MINUTES,
@@ -461,15 +601,15 @@ import {
   
   maximum:
   MAX_CACHE_TTL_MINUTES,
-    });
-   }
+     });
+    }
   
   function isSearchCacheBypassed() {
   const configuredValue =
   process.env
-        .SERPAPI_SEARCH_CACHE_BYPASS
-        ?.trim()
-        .toLowerCase();
+         .SERPAPI_SEARCH_CACHE_BYPASS
+         ?.trim()
+         .toLowerCase();
   
   return (
   configuredValue ===
@@ -478,17 +618,17 @@ import {
   "1" ||
   configuredValue ===
   "yes"
-    );
-   }
+     );
+    }
   
   function containsSupplementShoppingWord(
   value:
   string
-   ) {
+    ) {
   const normalized =
   normalizeText(
   value
-      );
+       );
   
   return [
   "supplement",
@@ -503,36 +643,36 @@ import {
   "tablets",
   "softgel",
   "softgels",
-    ].some(
-      (word) =>
+     ].some(
+       (word) =>
   normalized ===
   word ||
   normalized.startsWith(
   `${word} `
-        ) ||
+         ) ||
   normalized.endsWith(
   ` ${word}`
-        ) ||
+         ) ||
   normalized.includes(
   ` ${word} `
-        )
-    );
-   }
+         )
+     );
+    }
   
   
   /*
-   * VidaSearch is a supplement marketplace, not a
-   * general Google Shopping search.
-   *
-   * These checks intentionally run before brand
-   * resolution or any enrichment so obviously
-   * irrelevant products never enter the expensive
-   * part of the pipeline.
-   */
+    * VidaSearch is a supplement marketplace, not a
+    * general Google Shopping search.
+    *
+    * These checks intentionally run before brand
+    * resolution or any enrichment so obviously
+    * irrelevant products never enter the expensive
+    * part of the pipeline.
+    */
   function isClearlyNonSupplementProduct(
   searchableText:
   string
-   ) {
+    ) {
   const text =
   searchableText.toLowerCase();
   
@@ -552,335 +692,335 @@ import {
   /\bgranola\b/i,
   /\bcandy\b/i,
   /\bchocolate\b/i,
-    ].some(
-      (pattern) =>
+     ].some(
+       (pattern) =>
   pattern.test(
   text
-        )
-    );
-   }
+         )
+     );
+    }
   
   function hasSupplementProductSignal(
   searchableText:
   string
-   ) {
+    ) {
   const text =
   searchableText.toLowerCase();
   
   return (
   /\b(?:dietary\s+)?supplements?\b/i.test(
   text
-      ) ||
+       ) ||
   /\bvitamins?\b/i.test(
   text
-      ) ||
+       ) ||
   /\bminerals?\b/i.test(
   text
-      ) ||
+       ) ||
   /\b(?:capsules?|tablets?|caplets?|softgels?|gummies|gummy|chewables?|vegcaps?|veggie\s+capsules?)\b/i.test(
   text
-      ) ||
+       ) ||
   /\b(?:powder|powdered|drink\s+mix|stick\s+packs?|sachets?|drops?|dropper)\b/i.test(
   text
-      ) ||
+       ) ||
   /\b\d+(?:\.\d+)?\s*(?:mg|mcg|ug|µg|iu)\b/i.test(
   text
-      )
-    );
-   }
+       )
+     );
+    }
   
   function buildRequestedQuery({
   supplement,
   brand,
-   }: ProductSearchRequest) {
+    }: ProductSearchRequest) {
   const cleanedSupplement =
   supplement.trim();
- 
+  
   /*
-   * VidaSearch is supplement-only. Even direct-marketplace
-   * searches such as "energy" or "sleep" are explicitly
-   * scoped before they ever reach Google Shopping. This
-   * prevents the provider from spending its first page on
-   * energy drinks, food, or other unrelated products.
-   */
+    * VidaSearch is supplement-only. Even direct-marketplace
+    * searches such as "energy" or "sleep" are explicitly
+    * scoped before they ever reach Google Shopping. This
+    * prevents the provider from spending its first page on
+    * energy drinks, food, or other unrelated products.
+    */
   const supplementQuery =
   containsSupplementShoppingWord(
   cleanedSupplement
-      )
+       )
   ? cleanedSupplement
   : `${cleanedSupplement} supplements`;
- 
+  
   return [
   brand?.trim(),
   supplementQuery,
-    ]
-      .filter(
+     ]
+       .filter(
   Boolean
-      )
-      .join(
+       )
+       .join(
   " "
-      );
-  }
- 
+       );
+   }
+  
   function buildSearchQueries(
   request:
   ProductSearchRequest
-   ) {
+    ) {
   const requestedQuery =
   buildRequestedQuery(
   request
-      );
+       );
   
   /*
-     * Direct marketplace searches have already been
-     * expanded by the search-intent resolver.
-     */
+      * Direct marketplace searches have already been
+      * expanded by the search-intent resolver.
+      */
   if (
   request.searchMode ===
   "direct-marketplace" ||
   request.expandAliases ===
   false
-    ) {
+     ) {
   return [
   requestedQuery,
-      ];
-    }
+       ];
+     }
   
   const expandedQueries =
   getSupplementSearchTerms(
   request.supplement
-      ).map(
-        (searchTerm) =>
-          [
+       ).map(
+         (searchTerm) =>
+           [
   request.brand?.trim(),
   searchTerm,
-          ]
-            .filter(
+           ]
+             .filter(
   Boolean
-            )
-            .join(
+             )
+             .join(
   " "
-            )
-      );
+             )
+       );
   
   return Array.from(
   new Set(
-        [
+         [
   requestedQuery,
   ...expandedQueries,
-        ].filter(
+         ].filter(
   Boolean
-        )
-      )
-    ).slice(
+         )
+       )
+     ).slice(
   0,
   MAX_INTERNAL_ALIAS_QUERIES
-    );
-   }
+     );
+    }
   
   function getExtensionsText(
   extensions:
   unknown
-   ) {
+    ) {
   if (
   !Array.isArray(
   extensions
-      )
-    ) {
+       )
+     ) {
   return "";
-    }
+     }
   
   return extensions
-      .filter(
-        (
+       .filter(
+         (
   value
-        ): value is string =>
+         ): value is string =>
   typeof value ===
   "string"
-      )
-      .join(
+       )
+       .join(
   " "
-      );
-   }
+       );
+    }
   
   function extractForm(
   searchableText:
   string
-   ): SearchProductForm {
+    ): SearchProductForm {
   const text =
   searchableText
-        .toLowerCase();
+         .toLowerCase();
   
   if (
   /\bsoft[\s-]?gels?\b/.test(
   text
-      )
-    ) {
+       )
+     ) {
   return "Softgel";
-    }
+     }
   
   if (
   /\b(?:gummy|gummies)\b/.test(
   text
-      )
-    ) {
+       )
+     ) {
   return "Gummy";
-    }
+     }
   
   if (
   /\b(?:chewable|chewables|chews?)\b/.test(
   text
-      )
-    ) {
+       )
+     ) {
   return "Chewable";
-    }
+     }
   
   if (
   /\b(?:liquid|drops?|dropper|spray)\b/.test(
   text
-      )
-    ) {
+       )
+     ) {
   return "Liquid";
-    }
+     }
   
   if (
   /\b(?:powder|powdered|drink mix|stick packs?|sachets?)\b/.test(
   text
-      )
-    ) {
+       )
+     ) {
   return "Powder";
-    }
+     }
   
   if (
   /\bcaplets?\b/.test(
   text
-      )
-    ) {
+       )
+     ) {
   return "Caplet";
-    }
+     }
   
   if (
   /\b(?:tablets?|tabs?)\b/.test(
   text
-      )
-    ) {
+       )
+     ) {
   return "Tablet";
-    }
+     }
   
   if (
   /\b(?:vegcaps?|v-?caps?|veg(?:etable)?\s+caps?|vegetarian\s+capsules?|veggie\s+capsules?|capsules?|caps?)\b/.test(
   text
-      )
-    ) {
+       )
+     ) {
   return "Capsule";
-    }
+     }
   
   return "Unknown";
-   }
+    }
   
   function inferVidaPouchForm({
   explicitForm,
   searchableText,
- }: {
+  }: {
   explicitForm: SearchProductForm;
   searchableText: string;
- }): SearchProductForm {
+  }): SearchProductForm {
   if (explicitForm !== "Unknown" && explicitForm !== "Other") {
   return explicitForm;
-   }
- 
+    }
+  
   const text =
   searchableText.toLowerCase();
- 
+  
   /*
-   * Explicit incompatible-format evidence always wins.
-   */
+    * Explicit incompatible-format evidence always wins.
+    */
   if (
   /\b(?:gummies|gummy|chewables?|chews?|powder|powdered|drink\s+mix|beverage|energy\s+drink|ready\s+to\s+drink|stick\s+packs?|sachets?|liquid|drops?|dropper|spray|effervescent|syrup)\b/i.test(
   text
-     )
-   ) {
+      )
+    ) {
   return explicitForm;
-   }
- 
+    }
+  
   const hasStrength =
   /\b\d+(?:\.\d+)?\s*(?:mg|mcg|ug|µg|iu|g)\b/i.test(
   text
-     );
- 
+      );
+  
   const hasCount =
   /\b\d{1,4}\s*(?:ct|count|caps?|vcaps?|vegcaps?|tabs?|tablets?|capsules?|softgels?|caplets?|servings?)\b/i.test(
   text
-     );
- 
+      );
+  
   const hasBottleLanguage =
   /\b(?:bottle|count|ct|caps?|vcaps?|vegcaps?|tabs?|tablets?|capsules?|softgels?|caplets?)\b/i.test(
   text
-     );
- 
+      );
+  
   if (
   hasSupplementProductSignal(
   searchableText
-     ) &&
-  (
+      ) &&
+   (
   hasStrength ||
   hasCount ||
   hasBottleLanguage
-     )
-   ) {
+      )
+    ) {
   return "Tablet";
-   }
- 
+    }
+  
   return explicitForm;
- }
- 
+  }
+  
   function isVidaPouchLikelyCompatibleUnknown({
   form,
   searchableText,
- }: {
+  }: {
   form: SearchProductForm;
   searchableText: string;
- }) {
+  }) {
   if (
   form !== "Unknown" &&
   form !== "Other"
-   ) {
+    ) {
   return false;
-   }
- 
+    }
+  
   const text =
   searchableText.toLowerCase();
- 
+  
   if (
   /\b(?:gummies|gummy|chewables?|chews?|powder|powdered|drink\s+mix|beverage|energy\s+drink|ready\s+to\s+drink|stick\s+packs?|sachets?|liquid|drops?|dropper|spray|effervescent|syrup)\b/i.test(
   text
-     )
-   ) {
+      )
+    ) {
   return false;
-   }
- 
+    }
+  
   return (
   hasSupplementProductSignal(
   searchableText
-     ) ||
+      ) ||
   /\b\d+(?:\.\d+)?\s*(?:mg|mcg|ug|µg|iu|g)\b/i.test(
   text
-     ) ||
+      ) ||
   /\b\d{1,4}\s*(?:ct|count|caps?|vcaps?|vegcaps?|tabs?|tablets?|capsules?|softgels?|caplets?)\b/i.test(
   text
-     )
-   );
- }
- 
- function getUnitLabel(
+      )
+    );
+  }
+  
+  function getUnitLabel(
   form:
   SearchProductForm
-   ): SearchRetailProduct[
+    ): SearchRetailProduct[
   "unitLabel"
-   ] {
+    ] {
   switch (
   form
-    ) {
+     ) {
   case "Capsule":
   return "capsule";
   
@@ -905,16 +1045,16 @@ import {
   case "Unknown":
   default:
   return "unit";
+     }
     }
-   }
   
   function isVitaPouchFormEligible({
   form,
   searchableText,
- }: {
+  }: {
   form: SearchProductForm;
   searchableText: string;
- }) {
+  }) {
   if (
   form ===
   "Capsule" ||
@@ -924,20 +1064,20 @@ import {
   "Caplet" ||
   form ===
   "Softgel"
-   ) {
+    ) {
   return true;
-   }
- 
+    }
+  
   return isVidaPouchLikelyCompatibleUnknown({
   form,
   searchableText,
-   });
-  }
- 
+    });
+   }
+  
   function extractCount(
   searchableText:
   string
-   ): number | null {
+    ): number | null {
   const patterns = [
   /\b(\d{1,4})\s*(?:veg\s+capsules?|veg\s+caps?|veggie\s+capsules?|vegetarian\s+capsules?|vegcaps?)\b/i,
   
@@ -960,48 +1100,48 @@ import {
   /\b(\d{1,4})\s*(?:count|ct)\b/i,
   
   /\b(?:bottle of|contains)\s*(\d{1,4})\b/i,
-    ];
+     ];
   
   for (
   const pattern of
   patterns
-    ) {
+     ) {
   const match =
   searchableText.match(
   pattern
-        );
+         );
   
   if (
   !match
-      ) {
+       ) {
   continue;
-      }
+       }
   
   const count =
   Number(
   match[1]
-        );
+         );
   
   if (
   Number.isInteger(
   count
-        ) &&
+         ) &&
   count >
   0 &&
   count <=
   2000
-      ) {
+       ) {
   return count;
-      }
-    }
+       }
+     }
   
   return null;
-   }
+    }
   
   function extractServingSize(
   searchableText:
   string
-   ) {
+    ) {
   const patterns = [
   /\bserving size[:\s]+(\d+)\s*(?:capsules?|caps|tablets?|tabs|soft[\s-]?gels?|caplets?|gummies|gummy|chewables?|chews?)\b/i,
   
@@ -1012,45 +1152,45 @@ import {
   /\b(?:one|1)\s+scoop\s+per serving\b/i,
   
   /\bserving size[:\s]+(\d+)\s*(?:scoops?|packets?|sticks?|teaspoons?|tablespoons?|ml)\b/i,
-    ];
+     ];
   
   for (
   const pattern of
   patterns
-    ) {
+     ) {
   const match =
   searchableText.match(
   pattern
-        );
+         );
   
   if (
   !match
-      ) {
+       ) {
   continue;
-      }
+       }
   
   const servingSize =
   match[1]
   ? Number(
   match[1]
-            )
+             )
   : 1;
   
   if (
   Number.isInteger(
   servingSize
-        ) &&
+         ) &&
   servingSize >
   0 &&
   servingSize <=
   20
-      ) {
+       ) {
   return servingSize;
-      }
-    }
+       }
+     }
   
   return 1;
-   }
+    }
   
   type ExtractedDosage = {
   displayValue:
@@ -1064,15 +1204,15 @@ import {
   
   isPerServing:
   boolean | null;
-   };
+    };
   
   function normalizeDosageUnit(
   unit:
   string
-   ): SearchDosageUnit {
+    ): SearchDosageUnit {
   switch (
   unit.toLowerCase()
-    ) {
+     ) {
   case "mg":
   return "mg";
   
@@ -1087,13 +1227,13 @@ import {
   
   default:
   return null;
+     }
     }
-   }
   
   function formatDosageDisplay({
   amount,
   unit,
-   }: {
+    }: {
   amount:
   number;
   
@@ -1101,24 +1241,24 @@ import {
   Exclude<
   SearchDosageUnit,
   null>
-   ;
-   }) {
+    ;
+    }) {
   const formattedAmount =
   Number.isInteger(
   amount
-      )
+       )
   ? String(
   amount
-          )
+           )
   : String(
   amount
-          ).replace(
+           ).replace(
   /\.0+$/,
   ""
-          );
+           );
   
   return `${formattedAmount} ${unit}`;
-   }
+    }
   
   function extractDosage(
   searchableText:
@@ -1126,43 +1266,43 @@ import {
   
   requestedDosage?:
   string
-   ): ExtractedDosage {
+    ): ExtractedDosage {
   const perServingMatch =
   searchableText.match(
   /\b(\d[\d,]*(?:\.\d+)?)\s*(mcg|mg|g|iu)\s+per\s+serving\b/i
-      );
+       );
   
   if (
   perServingMatch
-    ) {
+     ) {
   const amount =
   Number(
   perServingMatch[1]
-            .replace(
+             .replace(
   /,/g,
   ""
-            )
-        );
+             )
+         );
   
   const unit =
   normalizeDosageUnit(
   perServingMatch[2]
-        );
+         );
   
   if (
   Number.isFinite(
   amount
-        ) &&
+         ) &&
   amount >
   0 &&
   unit
-      ) {
+       ) {
   return {
   displayValue:
   formatDosageDisplay({
   amount,
   unit,
-            }),
+             }),
   
   amount,
   
@@ -1170,68 +1310,68 @@ import {
   
   isPerServing:
   true,
-        };
-      }
-    }
+         };
+       }
+     }
   
   const dosageMatch =
   searchableText.match(
   /\b(\d[\d,]*(?:\.\d+)?)\s*(mcg|mg|g|iu)\b/i
-      );
+       );
   
   if (
   dosageMatch
-    ) {
+     ) {
   const amount =
   Number(
   dosageMatch[1]
-            .replace(
+             .replace(
   /,/g,
   ""
-            )
-        );
+             )
+         );
   
   const unit =
   normalizeDosageUnit(
   dosageMatch[2]
-        );
+         );
   
   if (
   Number.isFinite(
   amount
-        ) &&
+         ) &&
   amount >
   0 &&
   unit
-      ) {
+       ) {
   const amountPattern =
   dosageMatch[1]
-            .replace(
+             .replace(
   /[.*+?^${}()|[\]\\]/g,
   "\\$&"
-            );
+             );
   
   const unitPattern =
   dosageMatch[2]
-            .replace(
+             .replace(
   /[.*+?^${}()|[\]\\]/g,
   "\\$&"
-            );
+             );
   
   const explicitlyPerUnit =
   new RegExp(
   `\\b${amountPattern}\\s*${unitPattern}\\s+(?:per\\s+)?(?:capsule|tablet|caplet|softgel|gummy)\\b`,
   "i"
-          ).test(
+           ).test(
   searchableText
-          );
+           );
   
   return {
   displayValue:
   formatDosageDisplay({
   amount,
   unit,
-            }),
+             }),
   
   amount,
   
@@ -1241,51 +1381,51 @@ import {
   explicitlyPerUnit
   ? false
   : null,
-        };
-      }
-    }
+         };
+       }
+     }
   
   const requested =
   requestedDosage
-        ?.trim() ||
+         ?.trim() ||
   "";
   
   const requestedMatch =
   requested.match(
   /^(\d[\d,]*(?:\.\d+)?)\s*(mcg|mg|g|iu)$/i
-      );
+       );
   
   if (
   requestedMatch
-    ) {
+     ) {
   const amount =
   Number(
   requestedMatch[1]
-            .replace(
+             .replace(
   /,/g,
   ""
-            )
-        );
+             )
+         );
   
   const unit =
   normalizeDosageUnit(
   requestedMatch[2]
-        );
+         );
   
   if (
   Number.isFinite(
   amount
-        ) &&
+         ) &&
   amount >
   0 &&
   unit
-      ) {
+       ) {
   return {
   displayValue:
   formatDosageDisplay({
   amount,
   unit,
-            }),
+             }),
   
   amount,
   
@@ -1293,9 +1433,9 @@ import {
   
   isPerServing:
   null,
-        };
-      }
-    }
+         };
+       }
+     }
   
   return {
   displayValue:
@@ -1309,49 +1449,49 @@ import {
   
   isPerServing:
   null,
-    };
-   }
+     };
+    }
   
   function extractShipping(
   delivery:
   string
-   ) {
+    ) {
   if (
   !delivery
-    ) {
+     ) {
   return 0;
-    }
+     }
   
   if (
   /\bfree\b/i.test(
   delivery
-      )
-    ) {
+       )
+     ) {
   return 0;
-    }
+     }
   
   const match =
   delivery.match(
   /\$([0-9]+(?:\.[0-9]{1,2})?)/
-      );
+       );
   
   if (
   !match
-    ) {
+     ) {
   return 0;
-    }
+     }
   
   const shipping =
   Number(
   match[1]
-      );
+       );
   
   return Number.isFinite(
   shipping
-    )
+     )
   ? shipping
   : 0;
-   }
+    }
   
   function supplementMatches(
   searchableText:
@@ -1359,78 +1499,78 @@ import {
   
   requestedSupplement:
   string
-   ) {
+    ) {
   const normalizedResult =
   normalizeText(
   searchableText
-      );
+       );
   
   const aliases =
   getSupplementAliases(
   requestedSupplement
-      );
+       );
   
   return aliases.some(
-      (alias) => {
+       (alias) => {
   const normalizedAlias =
   normalizeText(
   alias
-          );
+           );
   
   return (
   normalizedAlias.length >
   0 &&
   normalizedResult.includes(
   normalizedAlias
-          )
-        );
-      }
-    );
-   }
+           )
+         );
+       }
+     );
+    }
   
   function shouldKeepMarketplaceResult({
   searchableText,
   request,
-   }: {
+    }: {
   searchableText:
   string;
   
   request:
   ProductSearchRequest;
-   }) {
+    }) {
   /*
-    * Never allow obvious beverages, snacks, or other
-    * conventional foods into VidaSearch.
-    */
+     * Never allow obvious beverages, snacks, or other
+     * conventional foods into VidaSearch.
+     */
   if (
   isClearlyNonSupplementProduct(
   searchableText
-      )
-    ) {
+       )
+     ) {
   return false;
-    }
+     }
   
   /*
-    * Health-goal and other direct marketplace searches
-    * still have to look like actual supplement products.
-    *
-    * This is the key guardrail that prevents a query
-    * such as "energy" from returning energy drinks.
-    */
+     * Health-goal and other direct marketplace searches
+     * still have to look like actual supplement products.
+     *
+     * This is the key guardrail that prevents a query
+     * such as "energy" from returning energy drinks.
+     */
   if (
   request.searchMode ===
   "direct-marketplace"
-    ) {
+     ) {
   return hasSupplementProductSignal(
   searchableText
-      );
-    }
+       );
+     }
   
   return supplementMatches(
   searchableText,
   request.supplement
-    );
-   }
+     );
+    }
   
   function brandMatches(
   searchableText:
@@ -1438,230 +1578,229 @@ import {
   
   requestedBrand?:
   string
-   ) {
+    ) {
   if (
   !requestedBrand
-        ?.trim()
-    ) {
+         ?.trim()
+     ) {
   return true;
-    }
+     }
   
   return normalizeCompact(
   searchableText
-    ).includes(
+     ).includes(
   normalizeCompact(
   requestedBrand
-      )
-    );
-   }
+       )
+     );
+    }
   
   function extractListingClaims(
   searchableText:
   string
-   ) {
+    ) {
   return {
   nsfCertified:
   /\bnsf(?:\s+certified|\s+certification)?\b/i.test(
   searchableText
-        )
+         )
   ? true
   : undefined,
   
   uspVerified:
   /\busp(?:\s+verified|\s+certified)?\b/i.test(
   searchableText
-        )
+         )
   ? true
   : undefined,
   
   thirdPartyTested:
   /\bthird[\s-]?party\s+(?:tested|verified|certified)\b/i.test(
   searchableText
-        )
+         )
   ? true
   : undefined,
   
   vegan:
   /\bvegan\b/i.test(
   searchableText
-        )
+         )
   ? true
   : undefined,
   
   nonGmo:
   /\bnon[\s-]?gmo\b/i.test(
   searchableText
-        )
+         )
   ? true
   : undefined,
   
   glutenFree:
   /\bgluten[\s-]?free\b/i.test(
   searchableText
-        )
+         )
   ? true
   : undefined,
-    };
-   }
+     };
+    }
   
   /*
-   * This stage converts the SerpApi payload into the
-   * internal product structure but deliberately leaves
-   * the brand unresolved.
-   *
-   * Brand resolution is asynchronous and occurs after
-   * all valid listings have been mapped.
-   */
+    * This stage converts the SerpApi payload into the
+    * internal product structure but deliberately leaves
+    * the brand unresolved.
+    *
+    * Brand resolution is asynchronous and occurs after
+    * all valid listings have been mapped.
+    */
   function mapShoppingResult(
   result:
   SerpApiShoppingResult,
   
   request:
   ProductSearchRequest
-   ): SearchRetailProduct | null {
+    ): SearchRetailProduct | null {
   const title =
   stringValue(
   result.title
-      );
+       );
   
   if (
   !title
-    ) {
+     ) {
   return null;
-    }
+     }
   
   const snippet =
   stringValue(
   result.snippet
-      );
+       );
   
   const extensions =
   getExtensionsText(
   result.extensions
-      );
+       );
   
   const searchableText =
-      [
+       [
   title,
   snippet,
   extensions,
-      ]
-        .filter(
+       ]
+         .filter(
   Boolean
-        )
-        .join(
+         )
+         .join(
   " "
-        );
+         );
   
   if (
   !shouldKeepMarketplaceResult({
   searchableText,
   request,
-      })
-    ) {
+       })
+     ) {
   return null;
-    }
+     }
   
   if (
   !brandMatches(
   searchableText,
   request.brand
-      )
-    ) {
+       )
+     ) {
   return null;
-    }
+     }
   
   const bottlePrice =
   numberValue(
   result.extracted_price
-      ) ??
+       ) ??
   numberValue(
   result.price
-      );
+       );
   
   if (
   bottlePrice ===
   null ||
   bottlePrice <=
   0
-    ) {
+     ) {
   return null;
-    }
+     }
   
   const extractedForm =
   extractForm(
   searchableText
-      );
- 
+       );
+  
   const form =
   inferVidaPouchForm({
   explicitForm:
   extractedForm,
- 
+  
   searchableText,
-      });
+       });
   
   const extractedDosage =
   extractDosage(
   searchableText,
   request.dosage
-      );
+       );
   
   const capsulesPerBottle =
   extractCount(
   searchableText
-      ) ??
+       ) ??
   100;
   
   const retailer =
   stringValue(
   result.source
-      ) ||
+       ) ||
   "Google Shopping";
   
   const imageUrl =
   stringValue(
   result.thumbnail
-      ) ||
+       ) ||
   stringValue(
   result
-          .serpapi_thumbnail
-      ) ||
+           .serpapi_thumbnail
+       ) ||
   undefined;
   
   const listingClaims =
   extractListingClaims(
   searchableText
-      );
+       );
   
   const shoppingProductId =
   stringValue(
   result.product_id
-      ) ||
+       ) ||
   undefined;
   
   const immersiveProductPageToken =
   stringValue(
   result
-          .immersive_product_page_token
-      ) ||
+           .immersive_product_page_token
+       ) ||
   undefined;
   
   const serpApiImmersiveProductUrl =
   stringValue(
   result
-          .serpapi_immersive_product_api
-      ) ||
+           .serpapi_immersive_product_api
+       ) ||
   undefined;
   
-  const googleShoppingUrl =
-  stringValue(
-  result.product_link
-      ) ||
-  stringValue(
+  const directMerchantUrl =
+  extractDirectMerchantUrl(
   result.link
-      ) ||
-  undefined;
+       ) ||
+  extractDirectMerchantUrl(
+  result.product_link
+       );
   
   const product = {
   productTitle:
@@ -1672,34 +1811,34 @@ import {
   unitLabel:
   getUnitLabel(
   form
-        ),
+         ),
   
   vitaPouchFormEligible:
   isVitaPouchFormEligible({
   form,
- 
+  
   searchableText,
-        }),
+         }),
   
   retailer,
   
   /*
-       * This temporary value is replaced by the
-       * database-first brand resolver before the
-       * listing is returned.
-       */
+        * This temporary value is replaced by the
+        * database-first brand resolver before the
+        * listing is returned.
+        */
   brand:
   request.brand
-          ?.trim() ||
+           ?.trim() ||
   "Unknown Brand",
   
   supplement:
   request.supplement
-          .trim(),
+           .trim(),
   
   dosage:
   extractedDosage
-          .displayValue,
+           .displayValue,
   
   dosageAmount:
   extractedDosage.amount,
@@ -1709,7 +1848,7 @@ import {
   
   dosageIsPerServing:
   extractedDosage
-          .isPerServing,
+           .isPerServing,
   
   bottlePrice,
   
@@ -1718,21 +1857,26 @@ import {
   servingSize:
   extractServingSize(
   searchableText
-        ),
+         ),
   
   estimatedShipping:
   extractShipping(
   stringValue(
   result.delivery
-          )
-        ),
+           )
+         ),
   
   /*
-       * The direct merchant URL is resolved only when
-       * the customer selects Buy Bottle.
-       */
+        * Preserve a real merchant destination when Google
+        * Shopping already supplied one. ProductCard can use
+        * this immediately instead of asking SerpApi to
+        * rediscover the seller after the customer clicks.
+        *
+        * Google/SerpApi product pages are filtered out by
+        * extractDirectMerchantUrl().
+        */
   url:
-  undefined,
+  directMerchantUrl,
   
   imageUrl,
   
@@ -1745,22 +1889,22 @@ import {
   multipleSourcesAvailable:
   booleanValue(
   result.multiple_sources
-        ),
+         ),
   
   rating:
   numberValue(
   result.rating
-        ) ??
+         ) ??
   undefined,
   
   reviewCount:
   numberValue(
   result.reviews
-        ) ??
+         ) ??
   undefined,
   
   ...listingClaims,
-    } satisfies SearchRetailProduct;
+     } satisfies SearchRetailProduct;
   
   
   
@@ -1772,78 +1916,78 @@ import {
   
   
   return product;
-   }
+    }
   
   function getListingTotalPrice(
   product:
   SearchRetailProduct
-   ) {
+    ) {
   return (
   product.bottlePrice +
-      (
+       (
   product.estimatedShipping ??
   0
-      )
-    );
-   }
+       )
+     );
+    }
   
   function normalizeRetailer(
   retailer:
   string
-   ) {
+    ) {
   return normalizeText(
   retailer
-    )
-      .replace(
+     )
+       .replace(
   /\b(?:com|inc|llc|online|marketplace|store|stores|shop)\b/g,
   " "
-      )
-      .replace(
+       )
+       .replace(
   /\s+/g,
   " "
-      )
-      .trim();
-   }
+       )
+       .trim();
+    }
   
   function buildFallbackProductIdentity(
   product:
   SearchRetailProduct
-   ) {
+    ) {
   return [
   normalizeCompact(
   product.productTitle
-      ),
+       ),
   
   normalizeCompact(
   product.brand
-      ),
+       ),
   
   normalizeCompact(
   product.dosage
-      ),
+       ),
   
   normalizeCompact(
   product.form
-      ),
+       ),
   
   product.capsulesPerBottle,
-    ].join(
+     ].join(
   "|"
-    );
-   }
+     );
+    }
   
   /*
-   * Keep one offer for each exact product and retailer
-   * combination.
-   *
-   * When the same retailer appears multiple times for
-   * the same Google Shopping product, retain the least
-   * expensive landed-price offer.
-   */
+    * Keep one offer for each exact product and retailer
+    * combination.
+    *
+    * When the same retailer appears multiple times for
+    * the same Google Shopping product, retain the least
+    * expensive landed-price offer.
+    */
   function deduplicateListings(
   products:
   SearchRetailProduct[]
-   ) {
+    ) {
   const uniqueProducts =
   new Map<
   string,
@@ -1853,68 +1997,68 @@ import {
   for (
   const product of
   products
-    ) {
+     ) {
   const productIdentity =
   product.shoppingProductId
   ? `shopping:${product.shoppingProductId}`
   : buildFallbackProductIdentity(
   product
-            );
+             );
   
   const key =
-        [
+         [
   productIdentity,
   
   normalizeRetailer(
   product.retailer
-          ),
-        ].join(
+           ),
+         ].join(
   "|"
-        );
+         );
   
   const current =
   uniqueProducts.get(
   key
-        );
+         );
   
   if (
   !current ||
   getListingTotalPrice(
   product
-        ) <
+         ) <
   getListingTotalPrice(
   current
-          )
-      ) {
+           )
+       ) {
   uniqueProducts.set(
   key,
   product
-        );
-      }
-    }
+         );
+       }
+     }
   
   return Array.from(
   uniqueProducts.values()
-    );
-   }
+     );
+    }
   
   function sanitizeProviderUrl(
   url:
   string
-   ) {
+    ) {
   try {
   const parsedUrl =
   new URL(
   url
-        );
+         );
   
   /*
-       * Never place the private SerpApi key inside the
-       * cache key or database response payload.
-       */
+        * Never place the private SerpApi key inside the
+        * cache key or database response payload.
+        */
   parsedUrl.searchParams.delete(
   "api_key"
-      );
+       );
   
   parsedUrl.hash =
   "";
@@ -1922,67 +2066,67 @@ import {
   parsedUrl.searchParams.sort();
   
   return parsedUrl.toString();
-    } catch {
+     } catch {
   return url
-        .replace(
+         .replace(
   /([?&])api_key=[^&]*/gi,
   "$1"
-        )
-        .replace(
+         )
+         .replace(
   /\?&/,
   "?"
-        )
-        .replace(
+         )
+         .replace(
   /[?&]$/,
   ""
-        );
+         );
+     }
     }
-   }
   
   function ensureApiKeyOnPaginationUrl({
   url,
   apiKey,
-   }: {
+    }: {
   url:
   string;
   
   apiKey:
   string;
-   }) {
+    }) {
   try {
   const parsedUrl =
   new URL(
   url
-        );
+         );
   
   parsedUrl.searchParams.set(
   "api_key",
   apiKey
-      );
+       );
   
   return parsedUrl.toString();
-    } catch {
+     } catch {
   return url;
+     }
     }
-   }
   
   function buildCacheKey({
   url,
   pageNumber,
-   }: {
+    }: {
   url:
   string;
   
   pageNumber:
   number;
-   }) {
+    }) {
   const sanitizedUrl =
   sanitizeProviderUrl(
   url
-      );
+       );
   
   const identity =
-      [
+       [
   SERP_API_CACHE_VERSION,
   SERP_API_SOURCE_PROVIDER,
   SERP_API_SEARCH_ENGINE,
@@ -1990,25 +2134,25 @@ import {
   SERP_API_LANGUAGE,
   pageNumber,
   sanitizedUrl,
-      ].join(
+       ].join(
   "|"
-      );
+       );
   
   return createHash(
   "sha256"
-    )
-      .update(
+     )
+       .update(
   identity
-      )
-      .digest(
+       )
+       .digest(
   "hex"
-      );
-   }
+       );
+    }
   
   function getCacheExpiration(
   fetchedAt =
   new Date()
-   ) {
+    ) {
   const ttlMilliseconds =
   getCacheTtlMinutes() *
   60 *
@@ -2017,51 +2161,51 @@ import {
   return new Date(
   fetchedAt.getTime() +
   ttlMilliseconds
-    );
-   }
+     );
+    }
   
   function parseCachedShoppingPage(
   payload:
   Prisma.JsonValue
-   ): {
+    ): {
   results:
   SerpApiShoppingResult[];
   
   nextUrl:
   string | null;
-   } | null {
+    } | null {
   if (
   !payload ||
   typeof payload !==
   "object" ||
   Array.isArray(
   payload
-      )
-    ) {
+       )
+     ) {
   return null;
-    }
+     }
   
   const candidate =
   payload as Record<
   string,
   unknown
-   >;
+    >;
   
   const shoppingResults =
   candidate
-        .shopping_results;
+         .shopping_results;
   
   if (
   !Array.isArray(
   shoppingResults
-      )
-    ) {
+       )
+     ) {
   return null;
-    }
+     }
   
   const pagination =
   candidate
-        .serpapi_pagination;
+         .serpapi_pagination;
   
   let nextUrl:
   string | null =
@@ -2073,19 +2217,19 @@ import {
   "object" &&
   !Array.isArray(
   pagination
-      )
-    ) {
+       )
+     ) {
   nextUrl =
   stringValue(
-          (
+           (
   pagination as Record<
   string,
   unknown>
   
-          ).next
-        ) ||
+           ).next
+         ) ||
   null;
-    }
+     }
   
   return {
   results:
@@ -2096,29 +2240,29 @@ import {
   nextUrl
   ? sanitizeProviderUrl(
   nextUrl
-            )
+             )
   : null,
-    };
-   }
+     };
+    }
   
   
   
   function buildCachePayload({
   results,
   nextUrl,
-   }: {
+    }: {
   results:
   SerpApiShoppingResult[];
   
   nextUrl:
   string | null;
-   }): Prisma.InputJsonObject {
+    }): Prisma.InputJsonObject {
   /*
-     * SerpApi results originate from parsed JSON, but
-     * their local TypeScript fields are typed as
-     * unknown. Convert them into Prisma's JSON input
-     * type before writing them to PostgreSQL.
-     */
+      * SerpApi results originate from parsed JSON, but
+      * their local TypeScript fields are typed as
+      * unknown. Convert them into Prisma's JSON input
+      * type before writing them to PostgreSQL.
+      */
   const jsonResults =
   results as unknown as
   Prisma.InputJsonArray;
@@ -2133,11 +2277,11 @@ import {
   next:
   sanitizeProviderUrl(
   nextUrl
-                ),
-            }
+                 ),
+             }
   : {},
-    };
-   }
+     };
+    }
   
   
   
@@ -2147,7 +2291,7 @@ import {
   cacheKey,
   query,
   pageNumber,
-   }: {
+    }: {
   cacheKey:
   string;
   
@@ -2156,107 +2300,107 @@ import {
   
   pageNumber:
   number;
-   }): Promise<
+    }): Promise<
   ShoppingPageResult | null
-   >{
+    >{
   try {
   const cachedPage =
   await prisma
-          .marketplaceSearchCache
-          .findUnique({
+           .marketplaceSearchCache
+           .findUnique({
   where: {
   cacheKey,
-            },
-          });
+             },
+           });
   
   if (
   !cachedPage
-      ) {
+       ) {
   return null;
-      }
+       }
   
   const now =
   new Date();
   
   if (
   cachedPage
-          .expiresAt <=
+           .expiresAt <=
   now
-      ) {
+       ) {
   const staleAgeMs =
   now.getTime() -
   cachedPage.expiresAt.getTime();
- 
+  
   const staleMaxAgeMs =
   STALE_CACHE_MAX_AGE_DAYS *
   24 * 60 * 60 * 1000;
- 
+  
   if (
   staleAgeMs >
   staleMaxAgeMs
-        ) {
+         ) {
   console.log(
   "VidaSearch SerpApi cache entry too old to reuse:",
-            {
+             {
   query,
   pageNumber,
   fetchedAt: cachedPage.fetchedAt,
   expiresAt: cachedPage.expiresAt,
   staleAgeDays:
   Math.round(staleAgeMs / (24 * 60 * 60 * 1000)),
-            }
-          );
- 
+             }
+           );
+  
   return null;
-        }
- 
+         }
+  
   console.log(
   "VidaSearch SerpApi stale cache reused:",
-          {
+           {
   query,
   pageNumber,
   fetchedAt: cachedPage.fetchedAt,
   expiresAt: cachedPage.expiresAt,
   staleAgeDays:
   Math.max(0, Math.round(staleAgeMs / (24 * 60 * 60 * 1000))),
-          }
-        );
-      }
+           }
+         );
+       }
   
   const parsedPayload =
   parseCachedShoppingPage(
   cachedPage
-            .responsePayload
-        );
+             .responsePayload
+         );
   
   if (
   !parsedPayload
-      ) {
+       ) {
   console.warn(
   "VidaSearch SerpApi cache payload was invalid:",
-          {
+           {
   query,
   
   pageNumber,
   
   cacheKey,
-          }
-        );
+           }
+         );
   
   return null;
-      }
+       }
   
   /*
-       * Cache access accounting is useful for measuring
-       * actual SerpApi savings. It must never block or
-       * fail the customer search.
-       */
+        * Cache access accounting is useful for measuring
+        * actual SerpApi savings. It must never block or
+        * fail the customer search.
+        */
   void prisma
-        .marketplaceSearchCache
-        .update({
+         .marketplaceSearchCache
+         .update({
   where: {
   cacheKey,
-          },
+           },
   
   data: {
   lastAccessedAt:
@@ -2265,14 +2409,14 @@ import {
   accessCount: {
   increment:
   1,
-            },
-          },
-        })
-        .catch(
-          (error) => {
+             },
+           },
+         })
+         .catch(
+           (error) => {
   console.warn(
   "VidaSearch SerpApi cache access update failed:",
-              {
+               {
   query,
   
   pageNumber,
@@ -2283,66 +2427,66 @@ import {
   ? error.message
   : String(
   error
-                      ),
-              }
-            );
-          }
-        );
+                       ),
+               }
+             );
+           }
+         );
   
   console.log(
   "VidaSearch SerpApi cache hit:",
-        {
+         {
   query,
   
   pageNumber,
   
   rawResultCount:
   parsedPayload
-              .results
-              .length,
+               .results
+               .length,
   
   hasNextPage:
   Boolean(
   parsedPayload
-                .nextUrl
-            ),
+                 .nextUrl
+             ),
   
   fetchedAt:
   cachedPage
-              .fetchedAt,
+               .fetchedAt,
   
   expiresAt:
   cachedPage
-              .expiresAt,
+               .expiresAt,
   
   previousAccessCount:
   cachedPage
-              .accessCount,
-        }
-      );
+               .accessCount,
+         }
+       );
   
   return {
   results:
   parsedPayload
-            .results,
+             .results,
   
   nextUrl:
   parsedPayload
-            .nextUrl,
+             .nextUrl,
   
   cacheStatus:
   "HIT",
-      };
-    } catch (
+       };
+     } catch (
   error
-    ) {
+     ) {
   /*
-       * The cache is an optimization only. Database
-       * cache errors must fall through to live SerpApi.
-       */
+        * The cache is an optimization only. Database
+        * cache errors must fall through to live SerpApi.
+        */
   console.error(
   "VidaSearch SerpApi cache lookup failed:",
-        {
+         {
   query,
   
   pageNumber,
@@ -2353,13 +2497,13 @@ import {
   ? error.message
   : String(
   error
-                ),
-        }
-      );
+                 ),
+         }
+       );
   
   return null;
+     }
     }
-   }
   
   async function writeCachedShoppingPage({
   cacheKey,
@@ -2367,7 +2511,7 @@ import {
   pageNumber,
   results,
   nextUrl,
-   }: {
+    }: {
   cacheKey:
   string;
   
@@ -2382,29 +2526,29 @@ import {
   
   nextUrl:
   string | null;
-   }) {
+    }) {
   const fetchedAt =
   new Date();
   
   const expiresAt =
   getCacheExpiration(
   fetchedAt
-      );
+       );
   
   const responsePayload =
   buildCachePayload({
   results,
   
   nextUrl,
-      });
+       });
   
   try {
   await prisma
-        .marketplaceSearchCache
-        .upsert({
+         .marketplaceSearchCache
+         .upsert({
   where: {
   cacheKey,
-          },
+           },
   
   create: {
   cacheKey,
@@ -2420,7 +2564,7 @@ import {
   normalizedQuery:
   normalizeText(
   query
-              ),
+               ),
   
   countryCode:
   SERP_API_COUNTRY_CODE,
@@ -2444,7 +2588,7 @@ import {
   
   accessCount:
   0,
-          },
+           },
   
   update: {
   query,
@@ -2452,7 +2596,7 @@ import {
   normalizedQuery:
   normalizeText(
   query
-              ),
+               ),
   
   pageNumber,
   
@@ -2470,12 +2614,12 @@ import {
   
   accessCount:
   0,
-          },
-        });
+           },
+         });
   
   console.log(
   "VidaSearch SerpApi cache stored:",
-        {
+         {
   query,
   
   pageNumber,
@@ -2486,21 +2630,21 @@ import {
   hasNextPage:
   Boolean(
   nextUrl
-            ),
+             ),
   
   expiresAt,
-        }
-      );
-    } catch (
+         }
+       );
+     } catch (
   error
-    ) {
+     ) {
   /*
-       * A cache write failure must not discard the live
-       * marketplace response already obtained.
-       */
+        * A cache write failure must not discard the live
+        * marketplace response already obtained.
+        */
   console.error(
   "VidaSearch SerpApi cache write failed:",
-        {
+         {
   query,
   
   pageNumber,
@@ -2511,18 +2655,18 @@ import {
   ? error.message
   : String(
   error
-                ),
-        }
-      );
+                 ),
+         }
+       );
+     }
     }
-   }
   
   async function fetchShoppingPage({
   url,
   query,
   pageNumber,
   apiKey,
-   }: {
+    }: {
   url:
   string;
   
@@ -2534,13 +2678,13 @@ import {
   
   apiKey:
   string;
-   }): Promise<
+    }): Promise<
   ShoppingPageResult
-   >{
+    >{
   const sanitizedUrl =
   sanitizeProviderUrl(
   url
-      );
+       );
   
   const cacheKey =
   buildCacheKey({
@@ -2548,14 +2692,14 @@ import {
   sanitizedUrl,
   
   pageNumber,
-      });
+       });
   
   const bypassCache =
   isSearchCacheBypassed();
   
   if (
   !bypassCache
-    ) {
+     ) {
   const cachedPage =
   await readCachedShoppingPage({
   cacheKey,
@@ -2563,28 +2707,28 @@ import {
   query,
   
   pageNumber,
-        });
+         });
   
   if (
   cachedPage
-      ) {
+       ) {
   return cachedPage;
-      }
-    }
+       }
+     }
   
   console.log(
   bypassCache
   ? "VidaSearch SerpApi cache bypassed:"
   : "VidaSearch SerpApi cache miss:",
-      {
+       {
   query,
   
   pageNumber,
   
   cacheTtlMinutes:
   getCacheTtlMinutes(),
-      }
-    );
+       }
+     );
   
   const requestUrl =
   ensureApiKeyOnPaginationUrl({
@@ -2592,98 +2736,98 @@ import {
   sanitizedUrl,
   
   apiKey,
-      });
+       });
   
   const timeoutMs =
   getSerpApiTimeoutMs();
- 
+  
   const controller =
   new AbortController();
- 
+  
   const timeout =
   setTimeout(
-      () => controller.abort(),
+       () => controller.abort(),
   timeoutMs
-    );
- 
+     );
+  
   let response:
   Response;
- 
+  
   try {
   response =
   await fetch(
   requestUrl,
-        {
+         {
   method:
   "GET",
- 
+  
   cache:
   "no-store",
- 
+  
   signal:
   controller.signal,
- 
+  
   headers: {
   Accept:
   "application/json",
-          },
-        }
-      );
-    } catch (error) {
+           },
+         }
+       );
+     } catch (error) {
   if (
   error instanceof DOMException &&
   error.name === "AbortError"
-      ) {
+       ) {
   throw new Error(
   `SerpApi timed out after ${timeoutMs}ms for "${query}" on page ${pageNumber}.`
-        );
-      }
- 
+         );
+       }
+  
   throw error;
-    } finally {
+     } finally {
   clearTimeout(
   timeout
-      );
-    }
+       );
+     }
   
   let data:
   SerpApiResponse;
   
   try {
   data =
-        (await response.json()) as
+         (await response.json()) as
   SerpApiResponse;
-    } catch {
+     } catch {
   throw new Error(
   `SerpApi returned invalid JSON for "${query}" on page ${pageNumber}.`
-      );
-    }
+       );
+     }
   
   if (
   !response.ok
-    ) {
+     ) {
   throw new Error(
   stringValue(
   data.error
-        ) ||
+         ) ||
   `SerpApi search failed with status ${response.status} for "${query}" on page ${pageNumber}.`
-      );
-    }
+       );
+     }
   
   if (
   typeof data.error ===
   "string" &&
   data.error.trim()
-    ) {
+     ) {
   throw new Error(
   data.error.trim()
-      );
-    }
+       );
+     }
   
   const results =
   Array.isArray(
   data.shopping_results
-      )
+       )
   ? data.shopping_results as
   SerpApiShoppingResult[]
   : [];
@@ -2691,21 +2835,21 @@ import {
   const rawNextUrl =
   stringValue(
   data
-          .serpapi_pagination
-          ?.next
-      ) ||
+           .serpapi_pagination
+           ?.next
+       ) ||
   null;
   
   const nextUrl =
   rawNextUrl
   ? sanitizeProviderUrl(
   rawNextUrl
-          )
+           )
   : null;
   
   if (
   !bypassCache
-    ) {
+     ) {
   
   
   
@@ -2719,16 +2863,16 @@ import {
   results,
   
   nextUrl,
-       });
+        });
   
   
   
   
-    }
+     }
   
   console.log(
   "VidaSearch shopping page completed:",
-      {
+       {
   query,
   
   pageNumber,
@@ -2739,14 +2883,14 @@ import {
   hasNextPage:
   Boolean(
   nextUrl
-          ),
+           ),
   
   cacheStatus:
   bypassCache
   ? "BYPASS"
   : "MISS",
-      }
-    );
+       }
+     );
   
   return {
   results,
@@ -2757,15 +2901,15 @@ import {
   bypassCache
   ? "BYPASS"
   : "MISS",
-    };
-   }
+     };
+    }
   
   async function fetchShoppingResults({
   query,
   apiKey,
   maxPages,
   maxRetailListings,
-   }: {
+    }: {
   query:
   string;
   
@@ -2777,9 +2921,9 @@ import {
   
   maxRetailListings:
   number;
-   }): Promise<
+    }): Promise<
   ShoppingQueryResult
-   >{
+    >{
   const params =
   new URLSearchParams({
   engine:
@@ -2796,7 +2940,7 @@ import {
   
   direct_link:
   "true",
-      });
+       });
   
   let nextUrl:
   string | null =
@@ -2804,7 +2948,7 @@ import {
   
   const results:
   SerpApiShoppingResult[] =
-      [];
+       [];
   
   const visitedUrls =
   new Set<string>();
@@ -2833,32 +2977,32 @@ import {
   maxPages &&
   results.length <
   maxRetailListings
-    ) {
+     ) {
   const sanitizedRequestUrl =
   sanitizeProviderUrl(
   nextUrl
-        );
+         );
   
   if (
   visitedUrls.has(
   sanitizedRequestUrl
-        )
-      ) {
+         )
+       ) {
   console.warn(
   "VidaSearch pagination stopped because SerpApi returned a repeated next-page URL:",
-          {
+           {
   query,
   
   pageNumber,
-          }
-        );
+           }
+         );
   
   break;
-      }
+       }
   
   visitedUrls.add(
   sanitizedRequestUrl
-      );
+       );
   
   const page =
   await fetchShoppingPage({
@@ -2870,7 +3014,7 @@ import {
   pageNumber,
   
   apiKey,
-        });
+         });
   
   pagesFetched +=
   1;
@@ -2878,36 +3022,36 @@ import {
   if (
   page.cacheStatus ===
   "HIT"
-      ) {
+       ) {
   cacheHits +=
   1;
-      }
+       }
   
   if (
   page.cacheStatus ===
   "MISS"
-      ) {
+       ) {
   cacheMisses +=
   1;
   
   serpApiRequests +=
   1;
-      }
+       }
   
   if (
   page.cacheStatus ===
   "BYPASS"
-      ) {
+       ) {
   cacheBypasses +=
   1;
   
   serpApiRequests +=
   1;
-      }
+       }
   
   results.push(
   ...page.results
-      );
+       );
   
   nextUrl =
   page.nextUrl;
@@ -2915,23 +3059,23 @@ import {
   if (
   page.results.length ===
   0
-      ) {
+       ) {
   break;
-      }
+       }
   
   pageNumber +=
   1;
-    }
+     }
   
   const limitedResults =
   results.slice(
   0,
   maxRetailListings
-      );
+       );
   
   console.log(
   "VidaSearch paginated query completed:",
-      {
+       {
   query,
   
   requestedMaxPages:
@@ -2949,8 +3093,8 @@ import {
   
   rawResultCount:
   limitedResults.length,
-      }
-    );
+       }
+     );
   
   return {
   results:
@@ -2965,25 +3109,25 @@ import {
   serpApiRequests,
   
   pagesFetched,
-    };
-   }
+     };
+    }
   
   export async function findSearchProducts(
   request:
   ProductSearchRequest
-   ): Promise<
+    ): Promise<
   SearchRetailProduct[]
-   >{
+    >{
   const apiKey =
   getSerpApiKey();
- 
+  
   if (
   !apiKey
-    ) {
+     ) {
   throw new Error(
   "SerpApi API key is not configured. Set SERPAPI_API_KEY or SERP_API_KEY."
-      );
-    }
+       );
+     }
   
   const maxPages =
   clampInteger({
@@ -2998,13 +3142,13 @@ import {
   
   maximum:
   MAX_ALLOWED_PAGES,
-      });
+       });
   
   const maxRetailListings =
   clampInteger({
   value:
   request
-            .maxRetailListings,
+             .maxRetailListings,
   
   fallback:
   DEFAULT_MAX_RETAIL_LISTINGS,
@@ -3014,16 +3158,16 @@ import {
   
   maximum:
   MAX_ALLOWED_RETAIL_LISTINGS,
-      });
+       });
   
   const queries =
   buildSearchQueries(
   request
-      );
+       );
   
   console.log(
   "VidaSearch expanded retailer search started:",
-      {
+       {
   queries,
   
   supplement:
@@ -3050,20 +3194,20 @@ import {
   
   searchCacheTtlMinutes:
   getCacheTtlMinutes(),
- 
+  
   serpApiTimeoutMs:
   getSerpApiTimeoutMs(),
-      }
-    );
+       }
+     );
   
   /*
-     * Pages within one query are fetched sequentially.
-     * Distinct search queries may run concurrently.
-     */
+      * Pages within one query are fetched sequentially.
+      * Distinct search queries may run concurrently.
+      */
   const queryResults =
   await Promise.allSettled(
   queries.map(
-          (query) =>
+           (query) =>
   fetchShoppingResults({
   query,
   
@@ -3072,37 +3216,37 @@ import {
   maxPages,
   
   maxRetailListings,
-            })
-        )
-      );
+             })
+         )
+       );
   
   const successfulQueries =
   queryResults.flatMap(
-        (result) =>
+         (result) =>
   result.status ===
   "fulfilled"
   ? [
   result.value,
-              ]
+               ]
   : []
-      );
+       );
   
   const successfulResults =
   successfulQueries.flatMap(
-        (result) =>
+         (result) =>
   result.results
-      );
+       );
   
   const failedQueries =
   queryResults.flatMap(
-        (
+         (
   result,
   index
-        ) =>
+         ) =>
   result.status ===
   "rejected"
   ? [
-                {
+                 {
   query:
   queries[index],
   
@@ -3110,158 +3254,158 @@ import {
   result.reason instanceof
   Error
   ? result.reason
-                          .message
+                           .message
   : String(
   result.reason
-                        ),
-                },
-              ]
+                         ),
+                 },
+               ]
   : []
-      );
+       );
   
   if (
   failedQueries.length >
   0
-    ) {
+     ) {
   console.error(
   "VidaSearch expanded queries failed:",
   failedQueries
-      );
-    }
+       );
+     }
   
   if (
   successfulResults.length ===
   0 &&
   failedQueries.length ===
   queries.length
-    ) {
+     ) {
   throw new Error(
   failedQueries[0]
-          ?.error ||
+           ?.error ||
   "All supplement searches failed."
-      );
-    }
+       );
+     }
   
   const totalCacheHits =
   successfulQueries.reduce(
-        (
+         (
   total,
   result
-        ) =>
+         ) =>
   total +
   result.cacheHits,
   0
-      );
+       );
   
   const totalCacheMisses =
   successfulQueries.reduce(
-        (
+         (
   total,
   result
-        ) =>
+         ) =>
   total +
   result.cacheMisses,
   0
-      );
+       );
   
   const totalCacheBypasses =
   successfulQueries.reduce(
-        (
+         (
   total,
   result
-        ) =>
+         ) =>
   total +
   result.cacheBypasses,
   0
-      );
+       );
   
   const totalSerpApiRequests =
   successfulQueries.reduce(
-        (
+         (
   total,
   result
-        ) =>
+         ) =>
   total +
   result.serpApiRequests,
   0
-      );
+       );
   
   const totalPagesProcessed =
   successfulQueries.reduce(
-        (
+         (
   total,
   result
-        ) =>
+         ) =>
   total +
   result.pagesFetched,
   0
-      );
+       );
   
   const rawResults =
   successfulResults;
   
   const mappedListings =
   rawResults
-        .map(
-          (result) =>
+         .map(
+           (result) =>
   mapShoppingResult(
   result,
   request
-            )
-        )
-        .filter(
-          (
+             )
+         )
+         .filter(
+           (
   product
-          ): product is SearchRetailProduct =>
+           ): product is SearchRetailProduct =>
   product !==
   null
-        );
+         );
   
   /*
-     * Remove duplicate retailer listings before any
-     * optional live enrichment. This keeps the number
-     * of titles sent for enrichment as small as
-     * possible.
-     */
+      * Remove duplicate retailer listings before any
+      * optional live enrichment. This keeps the number
+      * of titles sent for enrichment as small as
+      * possible.
+      */
   const initiallyUniqueListings =
   deduplicateListings(
   mappedListings
-      ).slice(
+       ).slice(
   0,
   maxRetailListings
-      );
+       );
   
   /*
-     * Apply fast database and parser-based resolution.
-     * This does not call OpenAI.
-     */
+      * Apply fast database and parser-based resolution.
+      * This does not call OpenAI.
+      */
   const brandResolvedListings =
   await resolveSearchListingBrands({
   listings:
   initiallyUniqueListings,
   
   request,
-      });
+       });
   
   /*
-     * Resolve database-backed canonical brand names
-     * before final deduplication and product grouping.
-     *
-     * This ensures aliases such as "NOW Foods" can be
-     * converted to the canonical database name "NOW"
-     * before product identities are constructed.
-     */
+      * Resolve database-backed canonical brand names
+      * before final deduplication and product grouping.
+      *
+      * This ensures aliases such as "NOW Foods" can be
+      * converted to the canonical database name "NOW"
+      * before product identities are constructed.
+      */
   const uniqueListings =
   deduplicateListings(
   brandResolvedListings
-      ).slice(
+       ).slice(
   0,
   maxRetailListings
-      );
+       );
   
   const brandSourceCounts =
   uniqueListings.reduce(
-        (
+         (
   counts:
   Record<
   string,
@@ -3269,30 +3413,30 @@ import {
   >,
   
   listing
-        ) => {
+         ) => {
   const brand =
   listing.brand ||
   "Unknown Brand";
   
   counts[
   brand
-          ] =
-            (
+           ] =
+             (
   counts[
   brand
-              ] ??
+               ] ??
   0
-            ) +
+             ) +
   1;
   
   return counts;
-        },
-        {}
-      );
+         },
+         {}
+       );
   
   console.log(
   "VidaSearch retailer search completed:",
-      {
+       {
   queries,
   
   searchMode:
@@ -3313,33 +3457,33 @@ import {
   0,
   mappedListings.length -
   uniqueListings.length
-          ),
+           ),
   
   uniqueRetailerListingCount:
   uniqueListings.length,
   
   unknownBrandCount:
   uniqueListings.filter(
-            (listing) =>
+             (listing) =>
   listing.brand ===
   "Unknown Brand"
-          ).length,
+           ).length,
   
   listingsWithImmersiveToken:
   uniqueListings.filter(
-            (listing) =>
+             (listing) =>
   Boolean(
   listing
-                  .immersiveProductPageToken
-              )
-          ).length,
+                   .immersiveProductPageToken
+               )
+           ).length,
   
   listingsWithMultipleSources:
   uniqueListings.filter(
-            (listing) =>
+             (listing) =>
   listing
-                .multipleSourcesAvailable
-          ).length,
+                 .multipleSourcesAvailable
+           ).length,
   
   cacheSummary: {
   pagesProcessed:
@@ -3359,14 +3503,14 @@ import {
   
   serpApiRequestsAvoided:
   totalCacheHits,
-        },
+         },
   
   brandCounts:
   brandSourceCounts,
   
   retailerCounts:
   uniqueListings.reduce(
-            (
+             (
   counts:
   Record<
   string,
@@ -3374,25 +3518,25 @@ import {
   >,
   
   listing
-            ) => {
+             ) => {
   counts[
   listing.retailer
-              ] =
-                (
+               ] =
+                 (
   counts[
   listing.retailer
-                  ] ??
+                   ] ??
   0
-                ) +
+                 ) +
   1;
   
   return counts;
-            },
-            {}
-          ),
-      }
-    );
+             },
+             {}
+           ),
+       }
+     );
   
   return uniqueListings;
-   }
+    }
   
