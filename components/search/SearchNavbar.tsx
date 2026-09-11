@@ -29,7 +29,7 @@ export default function SearchNavbar() {
 
          <img
            src=
-             "/vidasearch_logo_2.PNG"
+             "/vidasearch_logo_2.png"
            alt=
              "VidaSearch logo"
            className=
