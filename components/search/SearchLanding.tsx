@@ -211,8 +211,8 @@ export default function SearchLanding({
                lg:text-[16px]
              ">
 
-             {/*Find the highest quality supplements, compare trusted brands, and choose how you want to get them.*/}
-             Your supplement search, simplified.
+             {/*Find the highest quality supplements, compare trusted brands, and choose how you want to get them.
+             Your supplement search, simplified.*/}
            </p>
 
            <div
