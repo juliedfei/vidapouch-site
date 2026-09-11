@@ -655,6 +655,19 @@ export default function ProductCard({
    ) {
  return;
    }
+ const trustedManufacturerDirectUrl = (() => {
+ const directUrl=representative.manufacturerDirectUrl;
+ const sourceDomain=representative.manufacturerSourceDomain;
+ if(typeof directUrl!=="string"||!directUrl.trim()||typeof sourceDomain!=="string"||!sourceDomain.trim()) return null;
+ try {
+ const parsedUrl=new URL(directUrl);
+ const hostname=parsedUrl.hostname.toLowerCase().replace(/^www\./,"");
+ const normalizedSourceDomain=sourceDomain.toLowerCase().replace(/^www\./,"");
+ if(parsedUrl.protocol!=="https:" || !(hostname===normalizedSourceDomain || hostname.endsWith(`.${normalizedSourceDomain}`))) return null;
+ return parsedUrl.toString();
+ } catch { return null; }
+ })();
+
  trackEvent(
  "retailer_link_clicked",
     {
@@ -683,6 +696,17 @@ export default function ProductCard({
  vidaPouchScore,
     }
    );
+
+ if (trustedManufacturerDirectUrl) {
+ trackEvent("retailer_link_opened", {
+ product_id:pouchItemId, product_name:product.productName, brand:product.brand, retailer:representative.retailer,
+ resolved_url:trustedManufacturerDirectUrl, match_type:"manufacturer-direct", original_bottle_price:representative.bottlePrice,
+ live_bottle_price:representative.bottlePrice, price_changed:false,
+ }, {sendInstantly:true});
+ window.open(trustedManufacturerDirectUrl,"_blank","noopener,noreferrer");
+ return;
+ }
+
  /*
   * Do not require an immersive token here. The vendor-link
   * resolver uses the supported immersive-product store lookup

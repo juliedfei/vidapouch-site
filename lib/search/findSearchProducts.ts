@@ -24,6 +24,16 @@ import {
   import {
   resolveSearchListingBrands,
     } from "@/lib/search/brand/resolveSearchListingBrands";
+ 
+  import {
+  discoverManufacturerProducts,
+  type ManufacturerCatalogProduct,
+    } from "@/lib/search/manufacturer/discoverManufacturerProducts";
+ 
+  import {
+  getManufacturerSourceForSearch,
+  type ManufacturerSource,
+    } from "@/lib/search/manufacturer/manufacturerSourceRegistry";
   
   import type {
   ProductSearchRequest,
@@ -1880,6 +1890,36 @@ import {
   return product;
     }
   
+  function mapManufacturerCatalogProduct(
+  product:
+  ManufacturerCatalogProduct,
+  source:
+  ManufacturerSource,
+  request:
+  ProductSearchRequest
+    ): SearchRetailProduct | null {
+  const title = product.title.trim();
+  if (!title || !product.url || !Number.isFinite(product.price) || product.price <= 0) return null;
+  const searchableText = [source.canonicalBrand,title].filter(Boolean).join(" ");
+  const explicitForm = extractForm(searchableText);
+  const form = inferVidaPouchForm({ explicitForm, searchableText });
+  const extractedDosage = extractDosage(searchableText, request.dosage);
+  const capsulesPerBottle = extractCount(searchableText) ?? 100;
+  let manufacturerSourceDomain = "";
+  try { manufacturerSourceDomain = new URL(source.origin).hostname.toLowerCase().replace(/^www\./,""); } catch { return null; }
+  return {
+  productTitle:title, form, unitLabel:getUnitLabel(form),
+  vitaPouchFormEligible:isVitaPouchFormEligible({form,searchableText}),
+  retailer:source.canonicalBrand, brand:source.canonicalBrand,
+  supplement:request.supplement.trim() || source.canonicalBrand,
+  dosage:extractedDosage.displayValue, dosageAmount:extractedDosage.amount, dosageUnit:extractedDosage.unit, dosageIsPerServing:extractedDosage.isPerServing,
+  bottlePrice:product.price, capsulesPerBottle, servingSize:extractServingSize(searchableText), estimatedShipping:undefined,
+  url:product.url, manufacturerDirectUrl:product.url, manufacturerSourceDomain, imageUrl:product.imageUrl,
+  shoppingProductId:undefined, immersiveProductPageToken:undefined, serpApiImmersiveProductUrl:undefined, multipleSourcesAvailable:false,
+  ...extractListingClaims(searchableText),
+  } satisfies SearchRetailProduct;
+    }
+ 
   function getListingTotalPrice(
   product:
   SearchRetailProduct
@@ -3127,6 +3167,15 @@ import {
   request
        );
   
+ 
+  const manufacturerSource =
+  getManufacturerSourceForSearch({ brand:request.brand, supplement:request.supplement });
+  const manufacturerCatalogPromise = manufacturerSource
+  ? discoverManufacturerProducts(manufacturerSource).catch(error => {
+  console.warn("VidaSearch manufacturer catalog lookup failed:",{brand:manufacturerSource.canonicalBrand,error:error instanceof Error?error.message:String(error)});
+  return [];
+  })
+  : Promise.resolve([]);
   console.log(
   "VidaSearch expanded retailer search started:",
        {
@@ -3306,23 +3355,23 @@ import {
   const rawResults =
   successfulResults;
   
-  const mappedListings =
+  const mappedMarketplaceListings =
   rawResults
-         .map(
-           (result) =>
-  mapShoppingResult(
-  result,
-  request
-             )
-         )
-         .filter(
-           (
-  product
-           ): product is SearchRetailProduct =>
-  product !==
-  null
-         );
-  
+         .map((result) => mapShoppingResult(result, request))
+         .filter((product): product is SearchRetailProduct => product !== null);
+ 
+  const manufacturerCatalogProducts = await manufacturerCatalogPromise;
+  const manufacturerListings = manufacturerSource
+  ? manufacturerCatalogProducts
+           .map(product => mapManufacturerCatalogProduct(product, manufacturerSource, request))
+           .filter((product): product is SearchRetailProduct => product !== null)
+  : [];
+ 
+  const mappedListings = [
+  ...manufacturerListings,
+  ...mappedMarketplaceListings,
+  ];
+ 
   /*
       * Remove duplicate retailer listings before any
       * optional live enrichment. This keeps the number
