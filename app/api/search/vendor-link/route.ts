@@ -161,6 +161,9 @@ import {
     ) ||
   message.includes(
   "could not be confirmed quickly"
+    ) ||
+  message.includes(
+  "not available"
     )
   ) {
   status =

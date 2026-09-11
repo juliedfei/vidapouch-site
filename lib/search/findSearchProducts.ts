@@ -253,146 +253,6 @@ import {
   ? value.trim()
   : "";
     }
- 
- 
-  /*
-    * Return a real merchant destination URL when Google
-    * Shopping already supplied one in the search result.
-    *
-    * We deliberately reject Google/SerpApi product pages
-    * themselves. When a Google redirect contains a merchant
-    * destination in a query parameter, unwrap it first.
-    */
-  function extractDirectMerchantUrl(
-  value:
-  unknown
-    ): string | undefined {
-  const rawValue =
-  stringValue(
-  value
-       );
- 
-  if (
-  !rawValue
-     ) {
-  return undefined;
-     }
- 
-  let candidate =
-  rawValue;
- 
-  for (
-  let depth =
-  0;
-  depth <
-  4;
-  depth +=
-  1
-     ) {
-  let parsed:
-  URL;
- 
-  try {
-  parsed =
-  new URL(
-  candidate
-         );
-       } catch {
-  return undefined;
-       }
- 
-  if (
-  parsed.protocol !==
-  "http:" &&
-  parsed.protocol !==
-  "https:"
-       ) {
-  return undefined;
-       }
- 
-  const hostname =
-  parsed.hostname
-         .toLowerCase()
-         .replace(
-  /^www\./,
-  ""
-         );
- 
-  const isGoogleHost =
-  hostname ===
-  "google.com" ||
-  hostname.endsWith(
-  ".google.com"
-         ) ||
-  hostname ===
-  "googleadservices.com" ||
-  hostname.endsWith(
-  ".googleadservices.com"
-         );
- 
-  const isSerpApiHost =
-  hostname ===
-  "serpapi.com" ||
-  hostname.endsWith(
-  ".serpapi.com"
-         );
- 
-  if (
-  !isGoogleHost &&
-  !isSerpApiHost
-       ) {
-  return parsed.toString();
-       }
- 
-  const redirectKeys =
-       [
-  "url",
-  "q",
-  "adurl",
-  "redirect",
-  "redirect_url",
-  "dest",
-  "destination",
-  "u",
-       ];
- 
-  let nestedUrl =
-  "";
- 
-  for (
-  const key of
-  redirectKeys
-       ) {
-  const nestedValue =
-  parsed.searchParams.get(
-  key
-         );
- 
-  if (
-  nestedValue &&
-  /^https?:\/\//i.test(
-  nestedValue
-           )
-         ) {
-  nestedUrl =
-  nestedValue;
- 
-  break;
-         }
-       }
- 
-  if (
-  !nestedUrl
-       ) {
-  return undefined;
-       }
- 
-  candidate =
-  nestedUrl;
-     }
- 
-  return undefined;
-    }
   
   function numberValue(
   value:
@@ -1794,13 +1654,14 @@ import {
        ) ||
   undefined;
   
-  const directMerchantUrl =
-  extractDirectMerchantUrl(
+  const googleShoppingUrl =
+  stringValue(
+  result.product_link
+       ) ||
+  stringValue(
   result.link
        ) ||
-  extractDirectMerchantUrl(
-  result.product_link
-       );
+  undefined;
   
   const product = {
   productTitle:
@@ -1867,16 +1728,11 @@ import {
          ),
   
   /*
-        * Preserve a real merchant destination when Google
-        * Shopping already supplied one. ProductCard can use
-        * this immediately instead of asking SerpApi to
-        * rediscover the seller after the customer clicks.
-        *
-        * Google/SerpApi product pages are filtered out by
-        * extractDirectMerchantUrl().
+        * The direct merchant URL is resolved only when
+        * the customer selects Buy Bottle.
         */
   url:
-  directMerchantUrl,
+  undefined,
   
   imageUrl,
   

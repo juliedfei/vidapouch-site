@@ -655,15 +655,6 @@ export default function ProductCard({
    ) {
  return;
    }
-
- const directMerchantUrl =
- typeof representative.url ===
- "string" &&
- /^https?:\/\//i.test(
- representative.url
-      )
- ? representative.url
- : null;
  trackEvent(
  "retailer_link_clicked",
     {
@@ -692,70 +683,11 @@ export default function ProductCard({
  vidaPouchScore,
     }
    );
-
- /*
-  * Best path: the search result already contains a validated
-  * merchant destination. Open it immediately during the
-  * customer's click, which is both faster and more reliable
-  * than asking SerpApi to rediscover the seller.
-  */
- if (
- directMerchantUrl
-   ) {
- trackEvent(
- "retailer_link_opened",
-      {
- product_id:
- pouchItemId,
-
- product_name:
- product.productName,
-
- brand:
- product.brand,
-
- retailer:
- representative.retailer,
-
- resolved_url:
- directMerchantUrl,
-
- match_type:
- "search-result-direct",
-
- original_bottle_price:
- representative.bottlePrice,
-
- live_bottle_price:
- null,
-
- price_changed:
- false,
-      },
-      {
- sendInstantly:
- true,
-      }
-    );
-
- window.open(
- directMerchantUrl,
- "_blank",
- "noopener,noreferrer"
-    );
-
- return;
-   }
-
- /*
-  * Fallback path: older cached results or Google Shopping
-  * results that did not expose a direct merchant URL.
-  */
  /*
   * Do not require an immersive token here. The vendor-link
-  * resolver can use either the saved immersive token or the
-  * saved shoppingProductId. It deliberately does not run a slow
-  * fresh Google Shopping search during the customer click.
+  * resolver uses the supported immersive-product store lookup
+  * when available, then falls back to a retailer-owned search
+  * page for the exact product title.
   */
  setVendorLinkError(
  ""
@@ -791,9 +723,9 @@ export default function ProductCard({
            background: #faf8f6;
            text-align: center;
          ">
-           Opening the best available
+           Finding this product at
  ${representative.retailer}
-           bottle link…
+           …
          </div>
        `;
    }
