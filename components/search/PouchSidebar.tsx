@@ -1329,16 +1329,7 @@ export default function PouchSidebar({
 
   const checkoutDisabled =
     items.length ===
-      0 ||
-    pooledPricingLoading ||
-    pooledPricingError !==
-      null ||
-    pooledPricing ===
-      null ||
-    pooledPricing.status ===
-      "disabled" ||
-    pooledPricing.status ===
-      "undetermined";
+      0;
 
   async function handleCheckoutReview() {
     trackEvent(
@@ -2174,7 +2165,7 @@ export default function PouchSidebar({
           }
           title={
             checkoutDisabled
-              ? "Your current monthly total must be available before checkout."
+              ? "Add at least one supplement to continue."
               : undefined
           }
           className="
@@ -2201,17 +2192,15 @@ export default function PouchSidebar({
             disabled:text-[#F7F3F1]
           ">
 
-          {pooledPricingLoading
-            ? "Updating Monthly Total…"
-            : salesModeLoading
-              ? "Loading…"
+          {salesModeLoading
+            ? "Loading…"
+            : salesMode ===
+                "WAITLIST"
+              ? "Reserve My VidaPouch"
               : salesMode ===
-                  "WAITLIST"
-                ? "Reserve My VidaPouch"
-                : salesMode ===
-                    "PAUSED"
-                  ? "Orders Temporarily Paused"
-                  : "Review Pouches & Checkout"}
+                  "PAUSED"
+                ? "Orders Temporarily Paused"
+                : "Review Pouches & Checkout"}
         </button>
 
         {waitlistFormOpen && (
@@ -2378,10 +2367,7 @@ export default function PouchSidebar({
                 leading-[1.45]
               ">
 
-              {items.length ===
-              0
-                ? "Add at least one supplement to continue."
-                : "Checkout will become available after the complete pouch price is calculated."}
+              Add at least one supplement to continue.
             </p>
           </div>
         )}

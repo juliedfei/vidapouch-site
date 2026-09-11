@@ -1,990 +1,896 @@
 import "server-only";
 
 import type {
- SearchPlan,
+  SearchPlan,
 } from "@/components/search/types/searchPlan";
 
 import type {
- SearchPouchCostConfidence,
- SearchPouchCostContribution,
- SearchPouchItem,
- SearchPouchPooledPricing,
- SearchPouchPooledPricingLine,
+  SearchPouchCostConfidence,
+  SearchPouchCostContribution,
+  SearchPouchItem,
+  SearchPouchPooledPricing,
+  SearchPouchPooledPricingLine,
 } from "@/components/search/types/searchPouch";
 
 import {
- getVidaPouchPricingConfig,
+  getVidaPouchPricingConfig,
 } from "./getVidaPouchPricingConfig";
 
 type CalculatePooledPouchPricingInput = {
- /*
-  * The currently selected plan after any automatic
-  * upgrade or customer-requested tier change.
-  */
- selectedPlan:
-   SearchPlan;
+  selectedPlan:
+    SearchPlan;
 
- /*
-  * The complete current pouch.
-  *
-  * Pricing is recalculated from every selected
-  * supplement whenever the pouch or plan changes.
-  */
- pouchItems:
-   SearchPouchItem[];
+  pouchItems:
+    SearchPouchItem[];
 };
 
 const PLAN_OVERAGE_TOOLTIP =
- "Higher-cost product selections or increased daily quantities may increase your Plan Overage.";
+  "Higher-cost product selections or increased daily quantities may increase your Plan Overage.";
 
 function roundCurrency(
- value:
-   number
+  value:
+    number
 ) {
- return Math.round(
-   (
-     value +
-     Number.EPSILON
-   ) *
-     100
- ) / 100;
+  return Math.round(
+    (
+      value +
+      Number.EPSILON
+    ) *
+      100
+  ) / 100;
 }
 
 function clampNonNegative(
- value:
-   number
+  value:
+    number
 ) {
- if (
-   !Number.isFinite(
-     value
-   )
- ) {
-   return 0;
- }
+  if (
+    !Number.isFinite(
+      value
+    )
+  ) {
+    return 0;
+  }
 
- return Math.max(
-   0,
-   value
- );
+  return Math.max(
+    0,
+    value
+  );
 }
 
 function roundToIncrement({
- value,
- increment,
+  value,
+  increment,
 }: {
- value:
-   number;
+  value:
+    number;
 
- increment:
-   number;
+  increment:
+    number;
 }) {
- const safeValue =
-   clampNonNegative(
-     value
-   );
+  const safeValue =
+    clampNonNegative(
+      value
+    );
 
- const safeIncrement =
-   Number.isFinite(
-     increment
-   ) &&
-   increment >
-     0
-     ? increment
-     : 0.01;
+  const safeIncrement =
+    Number.isFinite(
+      increment
+    ) &&
+    increment >
+      0
+      ? increment
+      : 0.01;
 
- return roundCurrency(
-   Math.ceil(
-     (
-       safeValue -
-       Number.EPSILON
-     ) /
-       safeIncrement
-   ) *
-     safeIncrement
- );
+  return roundCurrency(
+    Math.ceil(
+      (
+        safeValue -
+        Number.EPSILON
+      ) /
+        safeIncrement
+    ) *
+      safeIncrement
+  );
 }
 
 function getSelectedMonthlyCost(
- item:
-   SearchPouchItem
+  item:
+    SearchPouchItem
 ) {
- if (
-   item.pricing &&
-   Number.isFinite(
-     item.pricing
-       .monthlyProductCost
-   )
- ) {
-   return roundCurrency(
-     clampNonNegative(
-       item.pricing
-         .monthlyProductCost
-     )
-   );
- }
+  if (
+    item.pricing &&
+    Number.isFinite(
+      item.pricing
+        .monthlyProductCost
+    )
+  ) {
+    return roundCurrency(
+      clampNonNegative(
+        item.pricing
+          .monthlyProductCost
+      )
+    );
+  }
 
- return roundCurrency(
-   clampNonNegative(
-     item.monthlyPrice
-   )
- );
+  return roundCurrency(
+    clampNonNegative(
+      item.monthlyPrice
+    )
+  );
 }
 
 function getBaselineMonthlyCost(
- item:
-   SearchPouchItem
+  item:
+    SearchPouchItem
 ) {
- if (
-   typeof item
-     .baselineMonthlyPrice ===
-     "number" &&
-   Number.isFinite(
-     item
-       .baselineMonthlyPrice
-   )
- ) {
-   return roundCurrency(
-     clampNonNegative(
-       item
-         .baselineMonthlyPrice
-     )
-   );
- }
+  if (
+    typeof item
+      .baselineMonthlyPrice ===
+      "number" &&
+    Number.isFinite(
+      item
+        .baselineMonthlyPrice
+    )
+  ) {
+    return roundCurrency(
+      clampNonNegative(
+        item
+          .baselineMonthlyPrice
+      )
+    );
+  }
 
- return getSelectedMonthlyCost(
-   item
- );
+  return getSelectedMonthlyCost(
+    item
+  );
 }
 
 function getMonthlyUnitCount(
- item:
-   SearchPouchItem
+  item:
+    SearchPouchItem
 ) {
- if (
-   Number.isFinite(
-     item.monthlyUnitCount
-   ) &&
-   item.monthlyUnitCount >
-     0
- ) {
-   return item
-     .monthlyUnitCount;
- }
+  if (
+    Number.isFinite(
+      item.monthlyUnitCount
+    ) &&
+    item.monthlyUnitCount >
+      0
+  ) {
+    return item
+      .monthlyUnitCount;
+  }
 
- return Math.max(
-   0,
-   item.unitsPerDay *
-     30
- );
+  return Math.max(
+    0,
+    item.unitsPerDay *
+      30
+  );
 }
 
-
-
-
 function getItemConfidence(
-    item:
-      SearchPouchItem
-   ): SearchPouchCostConfidence {
-    /*
-     * Pooled pricing needs a reliable monthly cost,
-     * not a completed legacy item-level surcharge
-     * classification.
-     *
-     * Search products already carry a monthlyPrice
-     * estimate even when the older pricing source
-     * field remains "undetermined."
-     */
-    const selectedMonthlyCost =
-      getSelectedMonthlyCost(
-        item
-      );
-   
-    if (
-      !Number.isFinite(
-        selectedMonthlyCost
-      ) ||
-      selectedMonthlyCost <=
-        0
-    ) {
-      return "undetermined";
-    }
-   
-    return "confirmed";
-   }
-   
+  item:
+    SearchPouchItem
+): SearchPouchCostConfidence {
+  const selectedMonthlyCost =
+    getSelectedMonthlyCost(
+      item
+    );
 
+  if (
+    !Number.isFinite(
+      selectedMonthlyCost
+    ) ||
+    selectedMonthlyCost <=
+      0
+  ) {
+    return "undetermined";
+  }
 
-
-
+  return "confirmed";
+}
 
 function buildContribution(
- item:
-   SearchPouchItem
+  item:
+    SearchPouchItem
 ): SearchPouchCostContribution {
- const baselineMonthlyCost =
-   getBaselineMonthlyCost(
-     item
-   );
+  const baselineMonthlyCost =
+    getBaselineMonthlyCost(
+      item
+    );
 
- const selectedMonthlyCost =
-   getSelectedMonthlyCost(
-     item
-   );
+  const selectedMonthlyCost =
+    getSelectedMonthlyCost(
+      item
+    );
 
- return {
-   pouchItemId:
-     item.id,
+  return {
+    pouchItemId:
+      item.id,
 
-   productName:
-     item.productName,
+    productName:
+      item.productName,
 
-   brand:
-     item.brand,
+    brand:
+      item.brand,
 
-   unitsPerDay:
-     Math.max(
-       0,
-       item.unitsPerDay
-     ),
+    unitsPerDay:
+      Math.max(
+        0,
+        item.unitsPerDay
+      ),
 
-   monthlyUnitCount:
-     getMonthlyUnitCount(
-       item
-     ),
+    monthlyUnitCount:
+      getMonthlyUnitCount(
+        item
+      ),
 
-   baselineMonthlyCost,
+    baselineMonthlyCost,
 
-   selectedMonthlyCost,
+    selectedMonthlyCost,
 
-   quantityCostIncrease:
-     roundCurrency(
-       clampNonNegative(
-         selectedMonthlyCost -
-           baselineMonthlyCost
-       )
-     ),
+    quantityCostIncrease:
+      roundCurrency(
+        clampNonNegative(
+          selectedMonthlyCost -
+            baselineMonthlyCost
+        )
+      ),
 
-   pricingSource:
-     item.pricing
-       ?.source ??
-     "undetermined",
+    pricingSource:
+      item.pricing
+        ?.source ??
+      "undetermined",
 
-   confidence:
-     getItemConfidence(
-       item
-     ),
+    confidence:
+      getItemConfidence(
+        item
+      ),
 
-   reason:
-     item.pricing
-       ?.reason,
- };
+    reason:
+      item.pricing
+        ?.reason,
+  };
 }
 
 function getOverallConfidence(
- contributions:
-   SearchPouchCostContribution[]
+  contributions:
+    SearchPouchCostContribution[]
 ): SearchPouchCostConfidence {
- if (
-   contributions.length ===
-   0
- ) {
-   return "confirmed";
- }
+  if (
+    contributions.length ===
+      0
+  ) {
+    return "confirmed";
+  }
 
- const unresolvedCount =
-   contributions.filter(
-     (contribution) =>
-       contribution.confidence ===
-       "undetermined"
-   ).length;
+  const unresolvedCount =
+    contributions.filter(
+      (contribution) =>
+        contribution.confidence ===
+        "undetermined"
+    ).length;
 
- if (
-   unresolvedCount ===
-   0
- ) {
-   return "confirmed";
- }
+  if (
+    unresolvedCount ===
+      0
+  ) {
+    return "confirmed";
+  }
 
- if (
-   unresolvedCount ===
-   contributions.length
- ) {
-   return "undetermined";
- }
+  if (
+    unresolvedCount ===
+      contributions.length
+  ) {
+    return "undetermined";
+  }
 
- return "partial";
+  return "partial";
 }
 
 function getUnresolvedItemCount(
- contributions:
-   SearchPouchCostContribution[]
+  contributions:
+    SearchPouchCostContribution[]
 ) {
- return contributions.filter(
-   (contribution) =>
-     contribution.confidence ===
-     "undetermined"
- ).length;
+  return contributions.filter(
+    (contribution) =>
+      contribution.confidence ===
+      "undetermined"
+  ).length;
 }
 
 function getSelectedProductCostTotal(
- contributions:
-   SearchPouchCostContribution[]
+  contributions:
+    SearchPouchCostContribution[]
 ) {
- return roundCurrency(
-   contributions.reduce(
-     (
-       total,
-       contribution
-     ) =>
-       total +
-       contribution
-         .selectedMonthlyCost,
-     0
-   )
- );
+  return roundCurrency(
+    contributions.reduce(
+      (
+        total,
+        contribution
+      ) =>
+        total +
+        contribution
+          .selectedMonthlyCost,
+      0
+    )
+  );
 }
 
-/*
-* Builds the two customer-facing price rows:
-*
-* 1. Selected plan
-* 2. One combined Plan Overage
-*
-* The tooltip explanation is stored separately and
-* should be displayed only from the information icon.
-*/
 function buildPricingLines({
- planName,
- planMonthlyPrice,
- planOverageFee,
+  planName,
+  planMonthlyPrice,
+  planOverageFee,
 }: {
- planName:
-   string;
+  planName:
+    string;
 
- planMonthlyPrice:
-   number;
+  planMonthlyPrice:
+    number;
 
- planOverageFee:
-   number;
+  planOverageFee:
+    number;
 }): SearchPouchPooledPricingLine[] {
- return [
-   {
-     label:
-       `${planName} Plan`,
+  return [
+    {
+      label:
+        `${planName} Plan`,
 
-     monthlyAmount:
-       roundCurrency(
-         planMonthlyPrice
-       ),
-   },
+      monthlyAmount:
+        roundCurrency(
+          planMonthlyPrice
+        ),
+    },
 
-   {
-     label:
-       "Plan Overage",
+    {
+      label:
+        "Plan Overage",
 
-     monthlyAmount:
-       roundCurrency(
-         planOverageFee
-       ),
-   },
- ];
+      monthlyAmount:
+        roundCurrency(
+          planOverageFee
+        ),
+    },
+  ];
 }
 
 function buildBaseResult({
- selectedPlan,
- itemCount,
- estimatedMonthlyProductCost,
- confidence,
- unresolvedItemCount,
- pricingVersionId,
- status,
- customerMessage,
+  selectedPlan,
+  itemCount,
+  estimatedMonthlyProductCost,
+  confidence,
+  unresolvedItemCount,
+  pricingVersionId,
+  status,
+  customerMessage,
 }: {
- selectedPlan:
-   SearchPlan;
+  selectedPlan:
+    SearchPlan;
 
- itemCount:
-   number;
+  itemCount:
+    number;
 
- estimatedMonthlyProductCost:
-   number;
+  estimatedMonthlyProductCost:
+    number;
 
- confidence:
-   SearchPouchCostConfidence;
+  confidence:
+    SearchPouchCostConfidence;
 
- unresolvedItemCount:
-   number;
+  unresolvedItemCount:
+    number;
 
- pricingVersionId:
-   string | null;
+  pricingVersionId:
+    string | null;
 
- status:
-   SearchPouchPooledPricing["status"];
+  status:
+    SearchPouchPooledPricing["status"];
 
- customerMessage:
-   string;
+  customerMessage:
+    string;
 }): SearchPouchPooledPricing {
- const planMonthlyPrice =
-   roundCurrency(
-     selectedPlan.monthlyPrice
-   );
+  /*
+   * SearchPlan is the canonical customer-facing
+   * plan price. Database pricing configuration can
+   * control allowances and overage rules, but a
+   * stale database row must never override the price
+   * displayed by VidaSearch.
+   */
+  const planMonthlyPrice =
+    roundCurrency(
+      selectedPlan.monthlyPrice
+    );
 
- return {
-   status,
+  return {
+    status,
 
-   planKey:
-     selectedPlan.id,
+    planKey:
+      selectedPlan.id,
 
-   planName:
-     selectedPlan.name,
+    planName:
+      selectedPlan.name,
 
-   planMonthlyPrice,
+    planMonthlyPrice,
 
-   itemCount,
+    itemCount,
 
-   estimatedMonthlyProductCost,
+    estimatedMonthlyProductCost,
 
-   monthlyPriceAdjustment:
-     0,
+    monthlyPriceAdjustment:
+      0,
 
-   planOverageFee:
-     0,
+    planOverageFee:
+      0,
 
-   planOverageTooltip:
-     PLAN_OVERAGE_TOOLTIP,
+    planOverageTooltip:
+      PLAN_OVERAGE_TOOLTIP,
 
-   totalMonthlyPrice:
-     planMonthlyPrice,
+    totalMonthlyPrice:
+      planMonthlyPrice,
 
-   confidence,
+    confidence,
 
-   unresolvedItemCount,
+    unresolvedItemCount,
 
-   lines:
-     buildPricingLines({
-       planName:
-         selectedPlan.name,
+    lines:
+      buildPricingLines({
+        planName:
+          selectedPlan.name,
 
-       planMonthlyPrice,
+        planMonthlyPrice,
 
-       planOverageFee:
-         0,
-     }),
+        planOverageFee:
+          0,
+      }),
 
-   customerMessage,
+    customerMessage,
 
-   pricingVersionId,
+    pricingVersionId,
 
-   calculatedAt:
-     new Date()
-       .toISOString(),
- };
+    calculatedAt:
+      new Date()
+        .toISOString(),
+  };
 }
 
 function buildDisabledResult({
- selectedPlan,
- itemCount,
- estimatedMonthlyProductCost,
- confidence,
- unresolvedItemCount,
- pricingVersionId,
+  selectedPlan,
+  itemCount,
+  estimatedMonthlyProductCost,
+  confidence,
+  unresolvedItemCount,
+  pricingVersionId,
 }: {
- selectedPlan:
-   SearchPlan;
+  selectedPlan:
+    SearchPlan;
 
- itemCount:
-   number;
+  itemCount:
+    number;
 
- estimatedMonthlyProductCost:
-   number;
+  estimatedMonthlyProductCost:
+    number;
 
- confidence:
-   SearchPouchCostConfidence;
+  confidence:
+    SearchPouchCostConfidence;
 
- unresolvedItemCount:
-   number;
+  unresolvedItemCount:
+    number;
 
- pricingVersionId:
-   string | null;
+  pricingVersionId:
+    string | null;
 }): SearchPouchPooledPricing {
- return buildBaseResult({
-   selectedPlan,
+  return buildBaseResult({
+    selectedPlan,
 
-   itemCount,
+    itemCount,
 
-   estimatedMonthlyProductCost,
+    estimatedMonthlyProductCost,
 
-   confidence,
+    confidence,
 
-   unresolvedItemCount,
+    unresolvedItemCount,
 
-   pricingVersionId,
+    pricingVersionId,
 
-   status:
-     "disabled",
+    status:
+      "disabled",
 
-   customerMessage:
-     "Plan Overage calculations are not yet active.",
- });
+    customerMessage:
+      "",
+  });
 }
 
 function buildUndeterminedResult({
- selectedPlan,
- itemCount,
- estimatedMonthlyProductCost,
- confidence,
- unresolvedItemCount,
- pricingVersionId,
+  selectedPlan,
+  itemCount,
+  estimatedMonthlyProductCost,
+  confidence,
+  unresolvedItemCount,
+  pricingVersionId,
 }: {
- selectedPlan:
-   SearchPlan;
+  selectedPlan:
+    SearchPlan;
 
- itemCount:
-   number;
+  itemCount:
+    number;
 
- estimatedMonthlyProductCost:
-   number;
+  estimatedMonthlyProductCost:
+    number;
 
- confidence:
-   SearchPouchCostConfidence;
+  confidence:
+    SearchPouchCostConfidence;
 
- unresolvedItemCount:
-   number;
+  unresolvedItemCount:
+    number;
 
- pricingVersionId:
-   string | null;
+  pricingVersionId:
+    string | null;
 }): SearchPouchPooledPricing {
- return buildBaseResult({
-   selectedPlan,
+  return buildBaseResult({
+    selectedPlan,
 
-   itemCount,
+    itemCount,
 
-   estimatedMonthlyProductCost,
+    estimatedMonthlyProductCost,
 
-   confidence,
+    confidence,
 
-   unresolvedItemCount,
+    unresolvedItemCount,
 
-   pricingVersionId,
+    pricingVersionId,
 
-   status:
-     "undetermined",
+    status:
+      "undetermined",
 
-   customerMessage:
-     "The current Plan Overage could not be calculated.",
- });
+    customerMessage:
+      "",
+  });
 }
 
-/*
-* Calculates one combined Plan Overage for the
-* complete current pouch.
-*
-* Higher-cost products and increased daily
-* quantities are intentionally blended into this
-* single customer-facing amount.
-*/
 export async function calculatePooledPouchPricing({
- selectedPlan,
- pouchItems,
+  selectedPlan,
+  pouchItems,
 }: CalculatePooledPouchPricingInput):
- Promise<SearchPouchPooledPricing> {
- const pricingConfig =
-   await getVidaPouchPricingConfig();
-
- const configuredPlan =
-   pricingConfig
-     .plans
-     .find(
-       (plan) =>
-         plan.planKey ===
-         selectedPlan.id &&
-         plan.active
-     );
-
- const contributions =
-   pouchItems.map(
-     buildContribution
-   );
-
- const itemCount =
-   contributions.length;
-
- const confidence =
-   getOverallConfidence(
-     contributions
-   );
-
- const unresolvedItemCount =
-   getUnresolvedItemCount(
-     contributions
-   );
-
- const unbufferedProductCost =
-   getSelectedProductCostTotal(
-     contributions
-   );
-
- /*
-  * The sourcing buffer protects against listing
-  * volatility and actual sourcing-cost differences.
-  *
-  * It remains confidential and is not returned in
-  * the customer-facing response.
-  */
- const bufferedProductCost =
-   roundCurrency(
-     unbufferedProductCost *
-       (
-         1 +
-         pricingConfig
-           .settings
-           .sourcingBufferRate
-       )
-   );
-
- const estimatedMonthlyProductCost =
-   unbufferedProductCost;
-
- if (
-   !configuredPlan
- ) {
-   return buildUndeterminedResult({
-     selectedPlan,
-
-     itemCount,
-
-     estimatedMonthlyProductCost,
-
-     confidence,
-
-     unresolvedItemCount:
-       Math.max(
-         1,
-         unresolvedItemCount
-       ),
-
-     pricingVersionId:
-       pricingConfig
-         .pricingVersionId,
-   });
- }
-
- /*
-  * The currently selected tier must support the
-  * complete pouch. A tier change triggers a fresh
-  * calculation using that tier's own allowance.
-  */
- if (
-   itemCount >
-   configuredPlan
-     .supplementLimit
- ) {
-   return buildBaseResult({
-     selectedPlan,
-
-     itemCount,
-
-     estimatedMonthlyProductCost,
-
-     confidence,
-
-     unresolvedItemCount,
-
-     pricingVersionId:
-       pricingConfig
-         .pricingVersionId,
-
-     status:
-       "undetermined",
-
-     customerMessage:
-       `The ${configuredPlan.name} Plan supports up to ${configuredPlan.supplementLimit} supplements. Select a larger plan to recalculate.`,
-   });
- }
-
- /*
-  * Real overages remain disabled until the database
-  * setting is enabled and all active plans have a
-  * validated pooled allowance.
-  */
- if (
-   !pricingConfig
-     .settings
-     .pooledPlanOveragesEnabled
- ) {
-   return buildDisabledResult({
-     selectedPlan: {
-       ...selectedPlan,
-
-       name:
-         configuredPlan.name,
-
-       monthlyPrice:
-         configuredPlan.monthlyPrice,
-
-       supplementLimit:
-         configuredPlan
-           .supplementLimit,
-     },
-
-     itemCount,
-
-     estimatedMonthlyProductCost,
-
-     confidence,
-
-     unresolvedItemCount,
-
-     pricingVersionId:
-       pricingConfig
-         .pricingVersionId,
-   });
- }
-
- const pooledCostAllowance =
-   configuredPlan
-     .pooledCostAllowance;
-
- if (
-   pooledCostAllowance ===
-   null
- ) {
-   return buildDisabledResult({
-     selectedPlan,
-
-     itemCount,
-
-     estimatedMonthlyProductCost,
-
-     confidence,
-
-     unresolvedItemCount,
-
-     pricingVersionId:
-       pricingConfig
-         .pricingVersionId,
-   });
- }
-
- /*
-  * Do not finalize a Plan Overage when a required
-  * product-cost input is still unresolved.
-  */
- if (
-   unresolvedItemCount >
-     0 &&
-   (
-     pricingConfig
-       .settings
-       .uncertainPricingBehavior ===
-       "confirm-before-checkout" ||
-     pricingConfig
-       .settings
-       .uncertainPricingBehavior ===
-       "block-selection"
-   )
- ) {
-   return buildUndeterminedResult({
-     selectedPlan,
-
-     itemCount,
-
-     estimatedMonthlyProductCost,
-
-     confidence,
-
-     unresolvedItemCount,
-
-     pricingVersionId:
-       pricingConfig
-         .pricingVersionId,
-   });
- }
-
- /*
-  * Raw pooled overage:
-  *
-  * total buffered cost of all selected products at
-  * the selected daily quantities
-  * minus
-  * the confidential allowance for the current tier.
-  */
- const rawOverage =
-   roundCurrency(
-     clampNonNegative(
-       bufferedProductCost -
-         pooledCostAllowance
-     )
-   );
-
- const configuredMonthlyPrice =
-   roundCurrency(
-     configuredPlan
-       .monthlyPrice
-   );
-
- if (
-   rawOverage <=
-   0
- ) {
-   return {
-     status:
-       "included",
-
-     planKey:
-       configuredPlan
-         .planKey,
-
-     planName:
-       configuredPlan
-         .name,
-
-     planMonthlyPrice:
-       configuredMonthlyPrice,
-
-     itemCount,
-
-     estimatedMonthlyProductCost,
-
-     monthlyPriceAdjustment:
-       0,
-
-     planOverageFee:
-       0,
-
-     planOverageTooltip:
-       PLAN_OVERAGE_TOOLTIP,
-
-     totalMonthlyPrice:
-       configuredMonthlyPrice,
-
-     confidence,
-
-     unresolvedItemCount,
-
-     lines:
-       buildPricingLines({
-         planName:
-           configuredPlan.name,
-
-         planMonthlyPrice:
-           configuredMonthlyPrice,
-
-         planOverageFee:
-           0,
-       }),
-
-     customerMessage:
-       `Your current selections are included in the ${configuredPlan.name} Plan.`,
-
-     pricingVersionId:
-       pricingConfig
-         .pricingVersionId,
-
-     calculatedAt:
-       new Date()
-         .toISOString(),
-   };
- }
-
- const marginRate =
-   Math.min(
-     0.95,
-     Math.max(
-       0,
-       pricingConfig
-         .settings
-         .overageMarginRate
-     )
-   );
-
- /*
-  * Preserve the target margin on the product cost
-  * exceeding the plan allowance.
-  */
- const unroundedPlanOverage =
-   rawOverage /
-   (
-     1 -
-     marginRate
-   );
-
- const planOverageFee =
-   roundToIncrement({
-     value:
-       unroundedPlanOverage,
-
-     increment:
-       pricingConfig
-         .settings
-         .overageRoundingIncrement,
-   });
-
- const totalMonthlyPrice =
-   roundCurrency(
-     configuredMonthlyPrice +
-       planOverageFee
-   );
-
- return {
-   status:
-     "adjustment",
-
-   planKey:
-     configuredPlan
-       .planKey,
-
-   planName:
-     configuredPlan
-       .name,
-
-   planMonthlyPrice:
-     configuredMonthlyPrice,
-
-   itemCount,
-
-   estimatedMonthlyProductCost,
-
-   /*
-    * Retained for compatibility with existing API
-    * and client validation.
-    */
-   monthlyPriceAdjustment:
-     planOverageFee,
-
-   planOverageFee,
-
-   planOverageTooltip:
-     PLAN_OVERAGE_TOOLTIP,
-
-   totalMonthlyPrice,
-
-   confidence,
-
-   unresolvedItemCount,
-
-   lines:
-     buildPricingLines({
-       planName:
-         configuredPlan.name,
-
-       planMonthlyPrice:
-         configuredMonthlyPrice,
-
-       planOverageFee,
-     }),
-
-   customerMessage:
-     `Your current selections result in a monthly Plan Overage of ${planOverageFee.toFixed(
-       2
-     )}.`,
-
-   pricingVersionId:
-     pricingConfig
-       .pricingVersionId,
-
-   calculatedAt:
-     new Date()
-       .toISOString(),
- };
+  Promise<SearchPouchPooledPricing> {
+  const pricingConfig =
+    await getVidaPouchPricingConfig();
+
+  const configuredPlan =
+    pricingConfig
+      .plans
+      .find(
+        (plan) =>
+          plan.planKey ===
+            selectedPlan.id &&
+          plan.active
+      );
+
+  const contributions =
+    pouchItems.map(
+      buildContribution
+    );
+
+  const itemCount =
+    contributions.length;
+
+  const confidence =
+    getOverallConfidence(
+      contributions
+    );
+
+  const unresolvedItemCount =
+    getUnresolvedItemCount(
+      contributions
+    );
+
+  const unbufferedProductCost =
+    getSelectedProductCostTotal(
+      contributions
+    );
+
+  const bufferedProductCost =
+    roundCurrency(
+      unbufferedProductCost *
+        (
+          1 +
+          pricingConfig
+            .settings
+            .sourcingBufferRate
+        )
+    );
+
+  const estimatedMonthlyProductCost =
+    unbufferedProductCost;
+
+  if (
+    !configuredPlan
+  ) {
+    return buildUndeterminedResult({
+      selectedPlan,
+
+      itemCount,
+
+      estimatedMonthlyProductCost,
+
+      confidence,
+
+      unresolvedItemCount:
+        Math.max(
+          1,
+          unresolvedItemCount
+        ),
+
+      pricingVersionId:
+        pricingConfig
+          .pricingVersionId,
+    });
+  }
+
+  if (
+    itemCount >
+    configuredPlan
+      .supplementLimit
+  ) {
+    return buildUndeterminedResult({
+      selectedPlan,
+
+      itemCount,
+
+      estimatedMonthlyProductCost,
+
+      confidence,
+
+      unresolvedItemCount,
+
+      pricingVersionId:
+        pricingConfig
+          .pricingVersionId,
+    });
+  }
+
+  if (
+    !pricingConfig
+      .settings
+      .pooledPlanOveragesEnabled
+  ) {
+    return buildDisabledResult({
+      selectedPlan,
+
+      itemCount,
+
+      estimatedMonthlyProductCost,
+
+      confidence,
+
+      unresolvedItemCount,
+
+      pricingVersionId:
+        pricingConfig
+          .pricingVersionId,
+    });
+  }
+
+  const pooledCostAllowance =
+    configuredPlan
+      .pooledCostAllowance;
+
+  if (
+    pooledCostAllowance ===
+      null
+  ) {
+    return buildDisabledResult({
+      selectedPlan,
+
+      itemCount,
+
+      estimatedMonthlyProductCost,
+
+      confidence,
+
+      unresolvedItemCount,
+
+      pricingVersionId:
+        pricingConfig
+          .pricingVersionId,
+    });
+  }
+
+  if (
+    unresolvedItemCount >
+      0 &&
+    (
+      pricingConfig
+        .settings
+        .uncertainPricingBehavior ===
+        "confirm-before-checkout" ||
+      pricingConfig
+        .settings
+        .uncertainPricingBehavior ===
+        "block-selection"
+    )
+  ) {
+    return buildUndeterminedResult({
+      selectedPlan,
+
+      itemCount,
+
+      estimatedMonthlyProductCost,
+
+      confidence,
+
+      unresolvedItemCount,
+
+      pricingVersionId:
+        pricingConfig
+          .pricingVersionId,
+    });
+  }
+
+  const rawOverage =
+    roundCurrency(
+      clampNonNegative(
+        bufferedProductCost -
+          pooledCostAllowance
+      )
+    );
+
+  /*
+   * Customer-facing plan price comes from the
+   * canonical SearchPlan configuration.
+   */
+  const configuredMonthlyPrice =
+    roundCurrency(
+      selectedPlan
+        .monthlyPrice
+    );
+
+  if (
+    rawOverage <=
+      0
+  ) {
+    return {
+      status:
+        "included",
+
+      planKey:
+        selectedPlan.id,
+
+      planName:
+        selectedPlan.name,
+
+      planMonthlyPrice:
+        configuredMonthlyPrice,
+
+      itemCount,
+
+      estimatedMonthlyProductCost,
+
+      monthlyPriceAdjustment:
+        0,
+
+      planOverageFee:
+        0,
+
+      planOverageTooltip:
+        PLAN_OVERAGE_TOOLTIP,
+
+      totalMonthlyPrice:
+        configuredMonthlyPrice,
+
+      confidence,
+
+      unresolvedItemCount,
+
+      lines:
+        buildPricingLines({
+          planName:
+            selectedPlan.name,
+
+          planMonthlyPrice:
+            configuredMonthlyPrice,
+
+          planOverageFee:
+            0,
+        }),
+
+      customerMessage:
+        "",
+
+      pricingVersionId:
+        pricingConfig
+          .pricingVersionId,
+
+      calculatedAt:
+        new Date()
+          .toISOString(),
+    };
+  }
+
+  const marginRate =
+    Math.min(
+      0.95,
+      Math.max(
+        0,
+        pricingConfig
+          .settings
+          .overageMarginRate
+      )
+    );
+
+  const unroundedPlanOverage =
+    rawOverage /
+    (
+      1 -
+      marginRate
+    );
+
+  const planOverageFee =
+    roundToIncrement({
+      value:
+        unroundedPlanOverage,
+
+      increment:
+        pricingConfig
+          .settings
+          .overageRoundingIncrement,
+    });
+
+  const totalMonthlyPrice =
+    roundCurrency(
+      configuredMonthlyPrice +
+        planOverageFee
+    );
+
+  return {
+    status:
+      "adjustment",
+
+    planKey:
+      selectedPlan.id,
+
+    planName:
+      selectedPlan.name,
+
+    planMonthlyPrice:
+      configuredMonthlyPrice,
+
+    itemCount,
+
+    estimatedMonthlyProductCost,
+
+    monthlyPriceAdjustment:
+      planOverageFee,
+
+    planOverageFee,
+
+    planOverageTooltip:
+      PLAN_OVERAGE_TOOLTIP,
+
+    totalMonthlyPrice,
+
+    confidence,
+
+    unresolvedItemCount,
+
+    lines:
+      buildPricingLines({
+        planName:
+          selectedPlan.name,
+
+        planMonthlyPrice:
+          configuredMonthlyPrice,
+
+        planOverageFee,
+      }),
+
+    customerMessage:
+      "",
+
+    pricingVersionId:
+      pricingConfig
+        .pricingVersionId,
+
+    calculatedAt:
+      new Date()
+        .toISOString(),
+  };
 }

@@ -1,116 +1,96 @@
 import {
   NextRequest,
   NextResponse,
- } from "next/server";
- 
-
+} from "next/server";
 
 import type {
- SearchPouchItem,
- SearchPouchPurchaseOption,
+  SearchPouchItem,
+  SearchPouchPooledPricing,
+  SearchPouchPurchaseOption,
 } from "@/components/search/types/searchPouch";
-
 
 import {
   getSubscriptionFulfillmentTiming,
- } from "@/lib/commerce/getSubscriptionFulfillmentTiming";
-
-
+} from "@/lib/commerce/getSubscriptionFulfillmentTiming";
 
 import {
   VidaPouchOrderStatus,
   VidaPouchPurchaseOption,
   VidaPouchSalesMode,
- } from "@/lib/generated/prisma/client";
- 
+} from "@/lib/generated/prisma/client";
 
-
-
-
-
- import {
+import {
   prisma,
- } from "@/lib/db";
- 
+} from "@/lib/db";
 
- 
- import {
+import {
   getSearchPlan,
- } from "@/components/search/types/searchPlan";
- 
- import {
+} from "@/components/search/types/searchPlan";
+
+import type {
+  SearchPlan,
+} from "@/components/search/types/searchPlan";
+
+import {
   calculatePooledPouchPricing,
- } from "@/lib/pricing/calculatePooledPouchPricing";
- 
- import {
+} from "@/lib/pricing/calculatePooledPouchPricing";
+
+import {
   revalidatePouchItemsForCheckout,
- } from "@/lib/pricing/revalidatePouchItemsForCheckout";
- 
+} from "@/lib/pricing/revalidatePouchItemsForCheckout";
 
-
- import {
+import {
   stripe,
- } from "@/lib/stripe";
+} from "@/lib/stripe";
 
-
- import {
+import {
   getVidaPouchSalesMode,
- } from "@/lib/commerce/getVidaPouchSalesMode";
+} from "@/lib/commerce/getVidaPouchSalesMode";
 
-
-
-
- 
- export const runtime =
+export const runtime =
   "nodejs";
- 
- export const dynamic =
+
+export const dynamic =
   "force-dynamic";
- 
- const PRICE_IDS = {
+
+const PRICE_IDS = {
   essential:
     process.env.STRIPE_PRICE_ESSENTIAL,
- 
+
   complete:
     process.env.STRIPE_PRICE_COMPLETE,
- 
+
   premier:
     process.env.STRIPE_PRICE_PREMIER,
- } as const;
- 
- type PlanName =
+} as const;
+
+type PlanName =
   keyof typeof PRICE_IDS;
- 
 
+type CheckoutRequestBody = {
+  plan?:
+    unknown;
 
-  type CheckoutRequestBody = {
-    plan?:
-      unknown;
-   
-    purchaseOption?:
-      unknown;
-   
-    pouchItems?:
-      unknown;
-   };
-   
+  purchaseOption?:
+    unknown;
 
+  pouchItems?:
+    unknown;
+};
 
-
- 
- const MAX_POUCH_ITEMS =
+const MAX_POUCH_ITEMS =
   8;
- 
- const MAX_UNITS_PER_DAY =
+
+const MAX_UNITS_PER_DAY =
   20;
- 
- function isRecord(
+
+function isRecord(
   value:
     unknown
- ): value is Record<
+): value is Record<
   string,
   unknown
- >{
+> {
   return (
     typeof value ===
       "object" &&
@@ -120,24 +100,24 @@ import {
       value
     )
   );
- }
- 
- function isNonEmptyString(
+}
+
+function isNonEmptyString(
   value:
     unknown
- ): value is string {
+): value is string {
   return (
     typeof value ===
       "string" &&
     value.trim().length >
       0
   );
- }
- 
- function isPositiveNumber(
+}
+
+function isPositiveNumber(
   value:
     unknown
- ): value is number {
+): value is number {
   return (
     typeof value ===
       "number" &&
@@ -147,41 +127,36 @@ import {
     value >
       0
   );
- }
- 
+}
 
-
- function isPlanName(
+function isPlanName(
   value:
     unknown
- ): value is PlanName {
+): value is PlanName {
   return (
     typeof value ===
       "string" &&
     value in
       PRICE_IDS
   );
- }
+}
 
- function isPurchaseOption(
+function isPurchaseOption(
   value:
     unknown
- ): value is SearchPouchPurchaseOption {
+): value is SearchPouchPurchaseOption {
   return (
     value ===
       "one-time" ||
     value ===
       "subscription"
   );
- }
+}
 
-
-
- 
- function sanitizePouchItems(
+function sanitizePouchItems(
   value:
     unknown
- ): SearchPouchItem[] | null {
+): SearchPouchItem[] | null {
   if (
     !Array.isArray(
       value
@@ -193,14 +168,14 @@ import {
   ) {
     return null;
   }
- 
+
   const seenIds =
     new Set<string>();
- 
+
   const sanitizedItems:
     SearchPouchItem[] =
     [];
- 
+
   for (
     const candidate of
     value
@@ -212,7 +187,13 @@ import {
     ) {
       return null;
     }
- 
+
+    /*
+     * Do not require an immersive product token here.
+     * Manufacturer-direct and fallback-safe products
+     * may not have one. Live verification is attempted
+     * later and may safely fall back to the base plan.
+     */
     if (
       !isNonEmptyString(
         candidate.id
@@ -225,18 +206,14 @@ import {
       ) ||
       !isNonEmptyString(
         candidate.retailer
-      ) ||
-      !isNonEmptyString(
-        candidate
-          .immersiveProductPageToken
       )
     ) {
       return null;
     }
- 
+
     const itemId =
       candidate.id.trim();
- 
+
     if (
       seenIds.has(
         itemId
@@ -244,11 +221,11 @@ import {
     ) {
       return null;
     }
- 
+
     seenIds.add(
       itemId
     );
- 
+
     if (
       !isPositiveNumber(
         candidate.unitsPerDay
@@ -258,17 +235,11 @@ import {
     ) {
       return null;
     }
- 
-    /*
-     * The customer may select the daily quantity,
-     * but the monthly count must agree with that
-     * selection. This prevents an altered browser
-     * request from supplying an unrelated quantity.
-     */
+
     const expectedMonthlyUnitCount =
       candidate.unitsPerDay *
       30;
- 
+
     if (
       !isPositiveNumber(
         candidate.monthlyUnitCount
@@ -281,27 +252,21 @@ import {
     ) {
       return null;
     }
- 
-    /*
-     * Product prices and bottle quantities supplied
-     * by the browser are not trusted for the final
-     * charge. They are replaced by the live
-     * server-side verification step below.
-     */
+
     sanitizedItems.push(
       candidate as
         unknown as
         SearchPouchItem
     );
   }
- 
+
   return sanitizedItems;
- }
- 
- function toCents(
+}
+
+function toCents(
   amount:
     number
- ) {
+) {
   return Math.round(
     (
       amount +
@@ -309,18 +274,93 @@ import {
     ) *
       100
   );
- }
- 
+}
 
+function buildBasePlanFallback({
+  selectedPlan,
+  pouchItems,
+}: {
+  selectedPlan:
+    SearchPlan;
 
- export async function POST(
+  pouchItems:
+    SearchPouchItem[];
+}): SearchPouchPooledPricing {
+  return {
+    status:
+      "included",
+
+    planKey:
+      selectedPlan.id,
+
+    planName:
+      selectedPlan.name,
+
+    planMonthlyPrice:
+      selectedPlan.monthlyPrice,
+
+    itemCount:
+      pouchItems.length,
+
+    estimatedMonthlyProductCost:
+      0,
+
+    monthlyPriceAdjustment:
+      0,
+
+    planOverageFee:
+      0,
+
+    planOverageTooltip:
+      "Higher-cost product selections or increased daily quantities may increase your Plan Overage.",
+
+    totalMonthlyPrice:
+      selectedPlan.monthlyPrice,
+
+    confidence:
+      "undetermined",
+
+    unresolvedItemCount:
+      0,
+
+    lines: [
+      {
+        label:
+          `${selectedPlan.name} Plan`,
+
+        monthlyAmount:
+          selectedPlan.monthlyPrice,
+      },
+
+      {
+        label:
+          "Plan Overage",
+
+        monthlyAmount:
+          0,
+      },
+    ],
+
+    customerMessage:
+      "",
+
+    pricingVersionId:
+      null,
+
+    calculatedAt:
+      new Date()
+        .toISOString(),
+  };
+}
+
+export async function POST(
   request:
     NextRequest
- ) {
+) {
   try {
     const salesMode =
       await getVidaPouchSalesMode();
- 
+
     if (
       salesMode !==
         VidaPouchSalesMode.STRIPE
@@ -332,13 +372,13 @@ import {
               VidaPouchSalesMode.WAITLIST
               ? "VidaPouch is currently accepting waitlist reservations instead of payments."
               : "New VidaPouch purchases are temporarily paused.",
- 
+
           salesMode,
         },
         {
           status:
             409,
- 
+
           headers: {
             "Cache-Control":
               "private, no-store, max-age=0",
@@ -346,15 +386,10 @@ import {
         }
       );
     }
- 
+
     let body:
       CheckoutRequestBody;
 
-
-
-
-
- 
     try {
       body =
         (await request.json()) as
@@ -371,8 +406,6 @@ import {
         }
       );
     }
- 
-
 
     if (
       !isPlanName(
@@ -391,12 +424,11 @@ import {
       );
     }
 
-
     if (
       !isPurchaseOption(
         body.purchaseOption
       )
-     ) {
+    ) {
       return NextResponse.json(
         {
           error:
@@ -407,21 +439,17 @@ import {
             400,
         }
       );
-     }
-     
-     const purchaseOption =
+    }
+
+    const purchaseOption =
       body.purchaseOption;
 
-
-
-
- 
     const plan =
       body.plan;
- 
+
     const priceId =
       PRICE_IDS[plan];
- 
+
     if (
       !priceId
     ) {
@@ -436,12 +464,12 @@ import {
         }
       );
     }
- 
+
     const selectedPlan =
       getSearchPlan(
         plan
       );
- 
+
     if (
       selectedPlan ===
         null
@@ -457,12 +485,12 @@ import {
         }
       );
     }
- 
+
     const submittedPouchItems =
       sanitizePouchItems(
         body.pouchItems
       );
- 
+
     if (
       submittedPouchItems ===
         null
@@ -478,7 +506,7 @@ import {
         }
       );
     }
- 
+
     if (
       submittedPouchItems.length >
       selectedPlan
@@ -495,113 +523,177 @@ import {
         }
       );
     }
- 
+
+    let verifiedPouchItems:
+      SearchPouchItem[] =
+      submittedPouchItems;
+
+    let verification:
+      unknown[] =
+      [];
+
+    let pricingFallbackUsed =
+      false;
+
+    let pricingFallbackReason =
+      "";
+
     /*
-     * Recheck every selected retailer offer using
-     * the exact Google Shopping product token.
-     *
-     * The live price and bottle quantity replace the
-     * untrusted values originally sent by the browser.
+     * Live product verification remains the preferred
+     * checkout path, but an external retailer lookup
+     * can no longer kill the funnel.
      */
-    const {
-      pouchItems:
-        verifiedPouchItems,
- 
-      verification,
-    } =
-      await revalidatePouchItemsForCheckout(
-        submittedPouchItems
+    try {
+      const revalidation =
+        await revalidatePouchItemsForCheckout(
+          submittedPouchItems
+        );
+
+      verifiedPouchItems =
+        revalidation.pouchItems;
+
+      verification =
+        revalidation.verification;
+    } catch (
+      verificationError
+    ) {
+      pricingFallbackUsed =
+        true;
+
+      pricingFallbackReason =
+        "live-product-verification-failed";
+
+      console.error(
+        "VidaPouch live checkout verification failed; using base-plan fallback:",
+        verificationError
       );
- 
-    /*
-     * Recalculate the complete pooled pouch after
-     * live product-price verification.
-     */
-    const pooledPricing =
-      await calculatePooledPouchPricing({
+    }
+
+    let pooledPricing:
+      SearchPouchPooledPricing =
+      buildBasePlanFallback({
         selectedPlan,
- 
+
         pouchItems:
           verifiedPouchItems,
       });
- 
+
     if (
-      pooledPricing.status ===
-        "disabled"
+      !pricingFallbackUsed
     ) {
-      return NextResponse.json(
-        {
-          error:
-            "Plan Overage calculations are not active yet. Please contact the VidaPouch concierge before completing checkout.",
-        },
-        {
-          status:
-            409,
+      try {
+        const calculatedPricing =
+          await calculatePooledPouchPricing({
+            selectedPlan,
+
+            pouchItems:
+              verifiedPouchItems,
+          });
+
+        const calculationIsReliable =
+          (
+            calculatedPricing.status ===
+              "included" ||
+            calculatedPricing.status ===
+              "adjustment"
+          ) &&
+          calculatedPricing.confidence ===
+            "confirmed" &&
+          calculatedPricing
+            .unresolvedItemCount ===
+            0;
+
+        if (
+          calculationIsReliable
+        ) {
+          pooledPricing =
+            calculatedPricing;
+        } else {
+          pricingFallbackUsed =
+            true;
+
+          pricingFallbackReason =
+            `pricing-${calculatedPricing.status}-${calculatedPricing.confidence}`;
+
+          console.warn(
+            "VidaPouch pooled pricing was not reliable enough for an overage; using base-plan fallback:",
+            {
+              status:
+                calculatedPricing.status,
+
+              confidence:
+                calculatedPricing.confidence,
+
+              unresolvedItemCount:
+                calculatedPricing
+                  .unresolvedItemCount,
+            }
+          );
         }
-      );
+      } catch (
+        pricingError
+      ) {
+        pricingFallbackUsed =
+          true;
+
+        pricingFallbackReason =
+          "pooled-pricing-calculation-failed";
+
+        console.error(
+          "VidaPouch pooled pricing calculation failed; using base-plan fallback:",
+          pricingError
+        );
+      }
     }
- 
+
+    /*
+     * In every fallback case, honor exactly the
+     * canonical plan price and charge no overage.
+     */
     if (
-      pooledPricing.status ===
-        "undetermined" ||
-      pooledPricing.confidence !==
-        "confirmed" ||
-      pooledPricing
-        .unresolvedItemCount >
-        0
+      pricingFallbackUsed
     ) {
-      return NextResponse.json(
-        {
-          error:
-            "The final monthly price could not be verified. Please review your selections or contact the VidaPouch concierge.",
-        },
-        {
-          status:
-            409,
-        }
-      );
+      pooledPricing =
+        buildBasePlanFallback({
+          selectedPlan,
+
+          pouchItems:
+            verifiedPouchItems,
+        });
     }
- 
+
     const planOverageFee =
       pooledPricing
         .planOverageFee ??
       pooledPricing
         .monthlyPriceAdjustment;
- 
+
     const overageAmountInCents =
       toCents(
         planOverageFee
       );
- 
 
-
-
-
-      const isSubscription =
+    const isSubscription =
       purchaseOption ===
       "subscription";
-     
-     const subscriptionTiming =
+
+    const subscriptionTiming =
       isSubscription
         ? getSubscriptionFulfillmentTiming()
         : null;
-     
-     const planAmountInCents =
+
+    const planAmountInCents =
       toCents(
         pooledPricing
           .planMonthlyPrice
       );
 
-
-
-
-     
-     const lineItems = [
+    const lineItems = [
       isSubscription
         ? {
             price:
               priceId,
-     
+
             quantity:
               1,
           }
@@ -609,52 +701,46 @@ import {
             price_data: {
               currency:
                 "usd",
-     
+
               product_data: {
                 name:
                   `${pooledPricing.planName} Plan — 30-Day Supply`,
-     
+
                 description:
                   "One-time VidaPouch order. No automatic renewal.",
               },
-     
+
               unit_amount:
                 planAmountInCents,
             },
-     
+
             quantity:
               1,
           },
-     ];
-     
-     /*
-     * For a subscription, the Plan Overage renews
-     * monthly with the plan.
-     *
-     * For a one-time order, it is charged only once.
-     */
-     if (
+    ];
+
+    if (
       overageAmountInCents >
         0
-     ) {
+    ) {
       lineItems.push({
         price_data: {
           currency:
             "usd",
-     
+
           product_data: {
             name:
               "Plan Overage",
-     
+
             description:
               isSubscription
                 ? "Monthly adjustment for higher-cost supplement selections or increased daily quantities."
                 : "One-time adjustment for higher-cost supplement selections or increased daily quantities.",
           },
-     
+
           unit_amount:
             overageAmountInCents,
-     
+
           ...(isSubscription
             ? {
                 recurring: {
@@ -664,312 +750,280 @@ import {
               }
             : {}),
         },
-     
+
         quantity:
           1,
       } as never);
-     }
-     
+    }
 
-
-
-
-
- 
     const origin =
       request.nextUrl.origin;
- 
-
-
 
     const metadata = {
       vidapouchPlan:
         plan,
- 
+
       vidapouchPlanName:
         pooledPricing.planName,
- 
+
       supplementCount:
         String(
           verifiedPouchItems.length
         ),
- 
+
       planMonthlyPrice:
         pooledPricing
           .planMonthlyPrice
           .toFixed(
             2
           ),
- 
+
       planOverageFee:
         planOverageFee.toFixed(
           2
         ),
- 
+
       totalMonthlyPrice:
         pooledPricing
           .totalMonthlyPrice
           .toFixed(
             2
           ),
- 
+
       pricingVersionId:
         pooledPricing
           .pricingVersionId ??
         "",
- 
+
       pricingCalculatedAt:
         pooledPricing
           .calculatedAt,
+
+      pricingFallbackUsed:
+        pricingFallbackUsed
+          ? "true"
+          : "false",
+
+      pricingFallbackReason:
+        pricingFallbackReason,
     };
 
-
     const databasePurchaseOption =
-    purchaseOption ===
-    "subscription"
-      ? VidaPouchPurchaseOption.SUBSCRIPTION
-      : VidaPouchPurchaseOption.ONE_TIME;
-   
-   const order =
-    await prisma
-      .vidaPouchOrder
-      .create({
-        data: {
-          purchaseOption:
-            databasePurchaseOption,
-   
-          status:
-            VidaPouchOrderStatus.PENDING,
-   
-          planKey:
-            plan,
-   
-          planName:
-            pooledPricing
-              .planName,
-   
-          supplementCount:
-            verifiedPouchItems.length,
-   
-          planPrice:
-            pooledPricing
-              .planMonthlyPrice,
-   
-          planOverageFee,
-   
-          totalPrice:
-            pooledPricing
-              .totalMonthlyPrice,
-   
+      purchaseOption ===
+      "subscription"
+        ? VidaPouchPurchaseOption.SUBSCRIPTION
+        : VidaPouchPurchaseOption.ONE_TIME;
 
+    const order =
+      await prisma
+        .vidaPouchOrder
+        .create({
+          data: {
+            purchaseOption:
+              databasePurchaseOption,
 
+            status:
+              VidaPouchOrderStatus.PENDING,
 
-              currency:
+            planKey:
+              plan,
+
+            planName:
+              pooledPricing
+                .planName,
+
+            supplementCount:
+              verifiedPouchItems.length,
+
+            planPrice:
+              pooledPricing
+                .planMonthlyPrice,
+
+            planOverageFee,
+
+            totalPrice:
+              pooledPricing
+                .totalMonthlyPrice,
+
+            currency:
               "usd",
-             
-             nextTargetDeliveryDate:
+
+            nextTargetDeliveryDate:
               subscriptionTiming
                 ?.nextTargetDeliveryDate ??
               null,
-             
-             nextShipByDate:
+
+            nextShipByDate:
               subscriptionTiming
                 ?.nextShipByDate ??
               null,
-             
-             pricingVersionId:
+
+            pricingVersionId:
               pooledPricing
                 .pricingVersionId,
 
-
-
-
-   
-          pricingCalculatedAt:
-            new Date(
-              pooledPricing
-                .calculatedAt
-            ),
-   
-          items: {
-            create:
-              verifiedPouchItems.map(
-                (item) => ({
-                  pouchItemId:
-                    item.id,
-   
-                  productName:
-                    item.productName,
-   
-                  brand:
-                    item.brand,
-   
-                  retailer:
-                    item.retailer,
-   
-                  dosage:
-                    item.dosage ||
-                    null,
-   
-                  form:
-                    item.form,
-   
-                  unitLabel:
-                    item.unitLabel,
-   
-                  unitsPerDay:
-                    item.unitsPerDay,
-   
-                  monthlyUnitCount:
-                    item.monthlyUnitCount,
-   
-                  timing:
-                    item.timing,
-   
-                  timingPreference:
-                    item
-                      .timingPreference,
-   
-                  bottlePrice:
-                    item.bottlePrice,
-   
-                  bottleUnitCount:
-                    item.bottleUnitCount,
-   
-                  liveProductUrl:
-                    null,
-   
-                  shoppingProductId:
-                    item
-                      .shoppingProductId,
-   
-                  immersiveProductPageToken:
-                    item
-                      .immersiveProductPageToken,
-                })
+            pricingCalculatedAt:
+              new Date(
+                pooledPricing
+                  .calculatedAt
               ),
+
+            items: {
+              create:
+                verifiedPouchItems.map(
+                  (item) => ({
+                    pouchItemId:
+                      item.id,
+
+                    productName:
+                      item.productName,
+
+                    brand:
+                      item.brand,
+
+                    retailer:
+                      item.retailer,
+
+                    dosage:
+                      item.dosage ||
+                      null,
+
+                    form:
+                      item.form,
+
+                    unitLabel:
+                      item.unitLabel,
+
+                    unitsPerDay:
+                      item.unitsPerDay,
+
+                    monthlyUnitCount:
+                      item.monthlyUnitCount,
+
+                    timing:
+                      item.timing,
+
+                    timingPreference:
+                      item
+                        .timingPreference,
+
+                    bottlePrice:
+                      item.bottlePrice,
+
+                    bottleUnitCount:
+                      item.bottleUnitCount,
+
+                    liveProductUrl:
+                      null,
+
+                    shoppingProductId:
+                      item
+                        .shoppingProductId,
+
+                    immersiveProductPageToken:
+                      item
+                        .immersiveProductPageToken,
+                  })
+                ),
+            },
           },
-        },
-   
-        select: {
-          id:
-            true,
-        },
-      });
-   
-   const checkoutMetadata = {
-    ...metadata,
-   
-    vidaPouchOrderId:
-      order.id,
-   
-    purchaseOption,
-   };
-   
 
+          select: {
+            id:
+              true,
+          },
+        });
 
+    const checkoutMetadata = {
+      ...metadata,
 
- 
+      vidaPouchOrderId:
+        order.id,
+
+      purchaseOption,
+    };
+
     console.log(
-      "VidaPouch verified checkout pricing:",
+      "VidaPouch checkout pricing:",
       {
         plan,
- 
+
         planMonthlyPrice:
           pooledPricing
             .planMonthlyPrice,
- 
+
         planOverageFee,
- 
+
         totalMonthlyPrice:
           pooledPricing
             .totalMonthlyPrice,
- 
+
+        pricingFallbackUsed,
+
+        pricingFallbackReason,
+
         verification,
       }
     );
- 
-
-
 
     const session =
-    await stripe
-      .checkout
-      .sessions
-      .create({
-        mode:
-          isSubscription
-            ? "subscription"
-            : "payment",
-   
-        line_items:
-          lineItems,
-   
-        success_url:
-          `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-   
-        cancel_url:
-          `${origin}/v2`,
-   
-        allow_promotion_codes:
-          true,
-   
-        billing_address_collection:
-          "required",
-   
-        shipping_address_collection: {
-          allowed_countries: [
-            "US",
-          ],
-        },
-   
-        custom_text: {
-          shipping_address: {
-            message:
-              isSubscription
-                ? "Standard shipping is included with your monthly VidaPouch subscription."
-                : "Standard shipping is included with your one-time VidaPouch order.",
+      await stripe
+        .checkout
+        .sessions
+        .create({
+          mode:
+            isSubscription
+              ? "subscription"
+              : "payment",
+
+          line_items:
+            lineItems,
+
+          success_url:
+            `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+
+          cancel_url:
+            `${origin}/v2`,
+
+          allow_promotion_codes:
+            true,
+
+          billing_address_collection:
+            "required",
+
+          shipping_address_collection: {
+            allowed_countries: [
+              "US",
+            ],
           },
-        },
-   
 
+          custom_text: {
+            shipping_address: {
+              message:
+                isSubscription
+                  ? "Standard shipping is included with your monthly VidaPouch subscription."
+                  : "Standard shipping is included with your one-time VidaPouch order.",
+            },
+          },
 
+          metadata:
+            checkoutMetadata,
 
-metadata:
- checkoutMetadata,
+          ...(isSubscription
+            ? {
+                subscription_data: {
+                  metadata:
+                    checkoutMetadata,
+                },
+              }
+            : {
+                payment_intent_data: {
+                  metadata:
+                    checkoutMetadata,
+                },
+              }),
+        });
 
-
-
-
-
-   
- ...(isSubscription
-  ? {
-      subscription_data: {
-        metadata:
-          checkoutMetadata,
-      },
-    }
-  : {
-      payment_intent_data: {
-        metadata:
-          checkoutMetadata,
-      },
-    }),
-
-
-
-
-
-
-      });
-   
-
-
-
-
-
- 
     if (
       !session.url
     ) {
@@ -978,39 +1032,38 @@ metadata:
       );
     }
 
-
     await prisma
-    .vidaPouchOrder
-    .update({
-      where: {
-        id:
-          order.id,
-      },
-   
-      data: {
-        stripeCheckoutSessionId:
-          session.id,
-      },
-    });
+      .vidaPouchOrder
+      .update({
+        where: {
+          id:
+            order.id,
+        },
 
+        data: {
+          stripeCheckoutSessionId:
+            session.id,
+        },
+      });
 
-
- 
     return NextResponse.json(
       {
         url:
           session.url,
- 
+
         pricing: {
           planMonthlyPrice:
             pooledPricing
               .planMonthlyPrice,
- 
+
           planOverageFee,
- 
+
           totalMonthlyPrice:
             pooledPricing
               .totalMonthlyPrice,
+
+          fallbackUsed:
+            pricingFallbackUsed,
         },
       },
       {
@@ -1027,7 +1080,7 @@ metadata:
       "Unable to create Stripe Checkout Session:",
       error
     );
- 
+
     return NextResponse.json(
       {
         error:
@@ -1041,5 +1094,4 @@ metadata:
       }
     );
   }
- }
- 
+}
