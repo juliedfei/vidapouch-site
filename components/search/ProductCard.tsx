@@ -683,17 +683,11 @@ export default function ProductCard({
  vidaPouchScore,
     }
    );
- const immersiveProductPageToken =
- representative
-       .immersiveProductPageToken;
- if (
- !immersiveProductPageToken
-   ) {
- setVendorLinkError(
- "The exact Google Shopping product token is missing for this listing."
-     );
- return;
-   }
+ /*
+  * Do not require an immersive token here. The vendor-link
+  * resolver can now fall back to shoppingProductId and, if
+  * needed, an exact product-title marketplace lookup.
+  */
  setVendorLinkError(
  ""
    );
@@ -785,7 +779,7 @@ export default function ProductCard({
      ) {
  throw new Error(
  data.error ||
- `The exact ${representative.retailer} offer could not be found.`
+ `A current bottle purchase option could not be found for ${product.productName}.`
        );
      }
  const liveBottlePrice =

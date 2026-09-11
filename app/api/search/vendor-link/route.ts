@@ -14,158 +14,174 @@ import {
  
  type VendorLinkRequest = {
   retailer?:
-    string;
+  string;
  
   productTitle?:
-    string;
+  string;
  
   bottlePrice?:
-    number;
+  number;
  
   shoppingProductId?:
-    string;
+  string;
  
   immersiveProductPageToken?:
-    string;
+  string;
  
   serpApiImmersiveProductUrl?:
-    string;
+  string;
  };
  
  export async function POST(
   request:
-    Request
+  Request
  ) {
   try {
-    const body =
-      (await request.json()) as
-        VendorLinkRequest;
+  const body =
+    (await request.json()) as
+  VendorLinkRequest;
  
-    const retailer =
-      body.retailer?.trim() ??
-      "";
+  const retailer =
+  body.retailer?.trim() ??
+  "";
  
-    const productTitle =
-      body.productTitle?.trim() ??
-      "";
+  const productTitle =
+  body.productTitle?.trim() ??
+  "";
  
-    const shoppingProductId =
-      body.shoppingProductId
-        ?.trim() ||
-      null;
+  const shoppingProductId =
+  body.shoppingProductId
+    ?.trim() ||
+  null;
  
-    const immersiveProductPageToken =
-      body
-        .immersiveProductPageToken
-        ?.trim() ??
-      "";
+  const immersiveProductPageToken =
+  body
+    .immersiveProductPageToken
+    ?.trim() ||
+  null;
  
-    const originalBottlePrice =
-      typeof body.bottlePrice ===
-        "number" &&
-      Number.isFinite(
-        body.bottlePrice
-      ) &&
-      body.bottlePrice >
-        0
-        ? body.bottlePrice
-        : null;
+  const serpApiImmersiveProductUrl =
+  body
+    .serpApiImmersiveProductUrl
+    ?.trim() ||
+  null;
  
-    if (!retailer) {
-      return NextResponse.json(
-        {
-          error:
-            "Retailer is required.",
-        },
-        {
-          status:
-            400,
-        }
-      );
+  const originalBottlePrice =
+  typeof body.bottlePrice ===
+  "number" &&
+  Number.isFinite(
+  body.bottlePrice
+    ) &&
+  body.bottlePrice >
+  0
+  ? body.bottlePrice
+  : null;
+ 
+  if (!retailer) {
+  return NextResponse.json(
+    {
+  error:
+  "Retailer is required.",
+    },
+    {
+  status:
+  400,
     }
+  );
+  }
  
-    if (
-      !immersiveProductPageToken
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "The exact Google Shopping product token is missing.",
-        },
-        {
-          status:
-            400,
-        }
-      );
+  if (
+  !immersiveProductPageToken &&
+  !shoppingProductId &&
+  !productTitle
+  ) {
+  return NextResponse.json(
+    {
+  error:
+  "Not enough product information is available to locate a current bottle offer.",
+    },
+    {
+  status:
+  400,
     }
+  );
+  }
  
-    const offer =
-      await resolveLiveMerchantOffer({
-        retailer,
+  const offer =
+  await resolveLiveMerchantOffer({
+  retailer,
  
-        productTitle,
+  productTitle,
  
-        bottlePrice:
-          originalBottlePrice,
+  bottlePrice:
+  originalBottlePrice,
  
-        shoppingProductId,
+  shoppingProductId,
  
-        immersiveProductPageToken,
-      });
+  immersiveProductPageToken,
  
-    return NextResponse.json(
-      offer
-    );
+  serpApiImmersiveProductUrl,
+    });
+ 
+  return NextResponse.json(
+  offer
+  );
   } catch (error) {
-    console.error(
-      "VidaSearch immersive vendor lookup failed:",
-      error
-    );
+  console.error(
+  "VidaSearch vendor lookup failed:",
+  error
+  );
  
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Exact vendor lookup failed.";
+  const message =
+  error instanceof Error
+  ? error.message
+  : "Vendor lookup failed.";
  
-    let status =
-      500;
+  let status =
+  500;
  
-    if (
-      message.includes(
-        "not configured"
-      )
-    ) {
-      status =
-        422;
+  if (
+  message.includes(
+  "not configured"
+    ) ||
+  message.includes(
+  "Not enough product information"
+    )
+  ) {
+  status =
+  422;
+  }
+ 
+  if (
+  message.includes(
+  "No current"
+    ) ||
+  message.includes(
+  "could not be found"
+    )
+  ) {
+  status =
+  404;
+  }
+ 
+  if (
+  message.includes(
+  "took too long"
+    )
+  ) {
+  status =
+  504;
+  }
+ 
+  return NextResponse.json(
+    {
+  error:
+  message,
+    },
+    {
+  status,
     }
- 
-    if (
-      message.includes(
-        "could not be found"
-      )
-    ) {
-      status =
-        404;
-    }
- 
-    if (
-      message.includes(
-        "took too long"
-      )
-    ) {
-      status =
-        504;
-    }
- 
-    return NextResponse.json(
-      {
-        error:
-          message,
-      },
-      {
-        status,
-      }
-    );
+  );
   }
  }
  
