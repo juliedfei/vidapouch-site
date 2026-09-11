@@ -20,6 +20,7 @@ import type {
 } from "./types/searchPouch";
 import {
  getNextSearchPlan,
+ SEARCH_PLANS,
 } from "./types/searchPlan";
 import type {
  SearchPlan,
@@ -328,6 +329,14 @@ export default function ProductCard({
  selectedSupplementCount,
  onAddToPouch,
 }: ProductCardProps) {
+ const [
+ planInfoOpen,
+ setPlanInfoOpen,
+ ] =
+ useState(
+ false
+   );
+
  const [
  isFindingVendorLink,
  setIsFindingVendorLink,
@@ -1424,10 +1433,20 @@ export default function ProductCard({
  </p>
  </div>
  {effectivePlan && (
- <div
+ <button
+ type="button"
+ onClick={
+ () =>
+ setPlanInfoOpen(
+ true
+ )
+ }
+ aria-haspopup="dialog"
  className="
                    mt-3
                    inline-flex
+                   items-center
+                   gap-1.5
                    rounded-[7px]
                    border
                    border-[#DCCBB8]
@@ -1437,10 +1456,36 @@ export default function ProductCard({
                    text-[10px]
                    font-semibold
                    text-[#76552E]
+                   transition
+                   hover:border-[#C8AF94]
+                   hover:bg-[#F8ECDD]
+                   focus:outline-none
+                   focus-visible:ring-2
+                   focus-visible:ring-[#8C1D40]
+                   focus-visible:ring-offset-2
                  ">
-                 Eligible for{" "}
- {effectivePlan.name}
- </div>
+
+                 VidaPouch ·{" "}
+ {effectivePlan.name} eligible
+
+ <span
+ aria-hidden="true"
+ className="
+                     flex
+                     h-[14px]
+                     w-[14px]
+                     items-center
+                     justify-center
+                     rounded-full
+                     border
+                     border-current
+                     text-[8px]
+                     leading-none
+                   ">
+
+                   i
+ </span>
+ </button>
              )}
  <div className="mt-4 space-y-3">
  {effectivePlan && (
@@ -1448,21 +1493,14 @@ export default function ProductCard({
  icon={
  <PersonIcon />
  }>
-                   Uses 1 of{" "}
- {effectivePlan.supplementLimit} supplement slots
+                   Counts as 1 supplement in this plan
  </PlanDetailRow>
                )}
  <PlanDetailRow
  icon={
- <CheckCircleIcon />
- }>
-                 Exact brand and dosage supported
- </PlanDetailRow>
- <PlanDetailRow
- icon={
  <ShieldIcon />
  }>
-                 Ships in your personalized pouch
+                 Ships in your personalized daily pouches
  </PlanDetailRow>
  </div>
  {willAutomaticallyUpgrade &&
@@ -1484,8 +1522,8 @@ export default function ProductCard({
                      leading-[1.45]
                      text-[#73542E]
                    ">
-                   Adding this supplement will
-                   update your plan to{" "}
+                   Adding this supplement moves your
+                   pouch to{" "}
  {nextPlan.name} at{" "}
  {formatCurrency(
  nextPlan.monthlyPrice
@@ -1634,6 +1672,312 @@ export default function ProductCard({
  </div>
        )}
  </div>
+
+ {planInfoOpen &&
+ effectivePlan && (
+ <div
+ className="
+         fixed
+         inset-0
+         z-[120]
+         flex
+         items-end
+         justify-center
+         bg-[rgba(16,20,22,0.48)]
+         px-0
+         backdrop-blur-[2px]
+         sm:items-center
+         sm:px-5
+         sm:py-8
+       "
+ role="presentation"
+ onMouseDown={
+ () =>
+ setPlanInfoOpen(
+ false
+ )
+ }>
+
+ <section
+ role="dialog"
+ aria-modal="true"
+ aria-labelledby={`vidapouch-plan-info-${pouchItemId}`}
+ onMouseDown={
+ (event) =>
+ event.stopPropagation()
+ }
+ className="
+           w-full
+           max-w-[520px]
+           overflow-hidden
+           rounded-t-[22px]
+           border
+           border-[#E3D8CD]
+           bg-[#FFFCF9]
+           shadow-[0_-20px_60px_rgba(24,17,12,0.25)]
+           sm:rounded-[16px]
+           sm:shadow-[0_24px_70px_rgba(24,17,12,0.24)]
+         ">
+
+ <div
+ className="
+             flex
+             items-start
+             justify-between
+             gap-4
+             border-b
+             border-[#EEE5DD]
+             px-5
+             py-5
+             sm:px-6
+           ">
+
+ <div className="min-w-0">
+ <p
+ className="
+                 text-[10px]
+                 font-semibold
+                 uppercase
+                 tracking-[0.12em]
+                 text-[#8C6B55]
+               ">
+
+               VidaPouch
+ </p>
+
+ <h3
+ id={`vidapouch-plan-info-${pouchItemId}`}
+ className="
+                 mt-1
+                 text-[22px]
+                 leading-tight
+                 text-[#281D1A]
+               "
+ style={{
+ fontFamily:
+ 'Georgia, "Times New Roman", serif',
+               }}>
+
+               Add this product to your daily pouch
+ </h3>
+ </div>
+
+ <button
+ type="button"
+ onClick={
+ () =>
+ setPlanInfoOpen(
+ false
+ )
+ }
+ aria-label="Close VidaPouch plan information"
+ className="
+               flex
+               h-[36px]
+               w-[36px]
+               shrink-0
+               items-center
+               justify-center
+               rounded-full
+               border
+               border-[#DED3C9]
+               bg-white
+               text-[20px]
+               leading-none
+               text-[#5E5650]
+               transition
+               hover:bg-[#F6F0EA]
+               focus:outline-none
+               focus-visible:ring-2
+               focus-visible:ring-[#8C1D40]
+               focus-visible:ring-offset-2
+             ">
+
+               ×
+ </button>
+ </div>
+
+ <div
+ className="
+             max-h-[72dvh]
+             overflow-y-auto
+             px-5
+             py-5
+             sm:px-6
+           ">
+
+ <p
+ className="
+               text-[12px]
+               leading-[1.65]
+               text-[#596367]
+             ">
+
+             VidaPouch organizes the exact supplements you choose into convenient daily pouches, grouped by time of day and shipped monthly.
+ </p>
+
+ <div
+ className="
+               mt-5
+               grid
+               gap-2
+             ">
+
+ {SEARCH_PLANS.map(
+ (plan) => {
+ const highlighted =
+ plan.id ===
+ effectivePlan.id;
+
+ return (
+ <div
+ key={
+ plan.id
+ }
+ className={`
+                     flex
+                     items-center
+                     justify-between
+                     gap-4
+                     rounded-[10px]
+                     border
+                     px-4
+                     py-3
+                     ${
+ highlighted
+ ? "border-[#8C1D40] bg-[#FFF7F5] shadow-[inset_0_0_0_1px_#8C1D40]"
+ : "border-[#E6DDD4] bg-white"
+ }
+                   `}>
+
+ <div className="min-w-0">
+ <div
+ className="
+                         flex
+                         items-center
+                         gap-2
+                       ">
+
+ <p
+ className="
+                           text-[12px]
+                           font-semibold
+                           text-[#302A26]
+                         ">
+
+ {plan.name}
+ </p>
+
+ {highlighted && (
+ <span
+ className="
+                             rounded-full
+                             bg-[#8C1D40]
+                             px-2
+                             py-0.5
+                             text-[8px]
+                             font-bold
+                             uppercase
+                             tracking-[0.06em]
+                             text-white
+                           ">
+
+                           This product
+ </span>
+ )}
+ </div>
+
+ <p
+ className="
+                         mt-1
+                         text-[10px]
+                         text-[#6B7477]
+                       ">
+
+                       Up to{" "}
+ {plan.supplementLimit} supplements
+ </p>
+ </div>
+
+ <p
+ className="
+                       shrink-0
+                       text-[13px]
+                       font-bold
+                       text-[#7D0E1C]
+                     ">
+
+ {formatCurrency(
+ plan.monthlyPrice
+ )}/mo
+ </p>
+ </div>
+ );
+ }
+ )}
+ </div>
+
+ <div
+ className="
+               mt-4
+               rounded-[10px]
+               border
+               border-[#E5DCD2]
+               bg-[#FBF8F3]
+               px-4
+               py-3
+             ">
+
+ <p
+ className="
+                 text-[11px]
+                 font-semibold
+                 text-[#302A26]
+               ">
+
+               This product counts as 1 supplement.
+ </p>
+
+ {willAutomaticallyUpgrade &&
+ nextPlan ? (
+ <p
+ className="
+                   mt-1.5
+                   text-[10.5px]
+                   leading-[1.5]
+                   text-[#73542E]
+                 ">
+
+                 Adding it moves your pouch to{" "}
+ <strong>
+ {nextPlan.name}
+ </strong>
+ {" "}at{" "}
+ <strong>
+ {formatCurrency(
+ nextPlan.monthlyPrice
+ )}/month
+ </strong>
+ .
+ </p>
+ ) : (
+ <p
+ className="
+                   mt-1.5
+                   text-[10.5px]
+                   leading-[1.5]
+                   text-[#6B7477]
+                 ">
+
+                 This tier includes up to{" "}
+ {effectivePlan.supplementLimit} supplements.
+ </p>
+ )}
+ </div>
+ </div>
+ </section>
+ </div>
+ )}
  </article>
  );
 }

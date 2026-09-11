@@ -21,6 +21,10 @@ import type {
   SearchPouchTimingPreference,
 } from "./types/searchPouch";
 
+import {
+  getNextSearchPlan,
+} from "./types/searchPlan";
+
 import type {
   SearchPlan,
 } from "./types/searchPlan";
@@ -1313,6 +1317,16 @@ export default function PouchSidebar({
         100
     );
 
+  const nextPlan =
+    getNextSearchPlan(
+      selectedPlan.id
+    );
+
+  const currentPlanIsFull =
+    items.length >=
+    selectedPlan
+      .supplementLimit;
+
   const checkoutDisabled =
     items.length ===
       0 ||
@@ -1598,43 +1612,7 @@ export default function PouchSidebar({
         <div
           className="
             flex
-            items-center
-            justify-between
-            gap-3
-          ">
-
-          <p
-            className="
-              text-[10px]
-              font-semibold
-              uppercase
-              tracking-[0.08em]
-              text-[#716A63]
-            ">
-
-            Automatically selected plan
-          </p>
-
-          <span
-            className="
-              rounded-full
-              bg-[#EFE3DC]
-              px-2
-              py-1
-              text-[9px]
-              font-semibold
-              text-[#7D0E1C]
-            ">
-
-            Auto
-          </span>
-        </div>
-
-        <div
-          className="
-            mt-[6px]
-            flex
-            items-center
+            items-baseline
             justify-between
             gap-3
           ">
@@ -1711,16 +1689,48 @@ export default function PouchSidebar({
           />
         </div>
 
-        <p
-          className="
-            mt-[8px]
-            text-[9.5px]
-            leading-[14px]
-            text-[#77706A]
-          ">
+        {currentPlanIsFull && (
+          <div
+            className="
+              mt-[10px]
+              rounded-[8px]
+              border
+              border-[#DDCDBB]
+              bg-[#FFF9F1]
+              px-3
+              py-2.5
+            ">
 
-          Your tier updates automatically as you add or remove supplements.
-        </p>
+            {nextPlan ? (
+              <p
+                className="
+                  text-[10px]
+                  font-semibold
+                  leading-[1.5]
+                  text-[#73542E]
+                ">
+
+                Next supplement →{" "}
+                {nextPlan.name} at{" "}
+                {formatPrice(
+                  nextPlan
+                    .monthlyPrice
+                )}/month
+              </p>
+            ) : (
+              <p
+                className="
+                  text-[10px]
+                  font-semibold
+                  leading-[1.5]
+                  text-[#73542E]
+                ">
+
+                Additional supplements require a custom routine.
+              </p>
+            )}
+          </div>
+        )}
       </section>
 
       <section
