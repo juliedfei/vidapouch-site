@@ -2591,7 +2591,7 @@ export default function PouchSidebar({
             role="status"
             className="mt-[12px] rounded-[9px] border border-green-200 bg-green-50 px-3 py-3 text-[10px] leading-[15px] text-green-800">
 
-            Your VidaPouch routine has been saved. We will contact you before any payment is collected.
+            Your VidaPouch routine has been saved. We'll prepare your first free month of VidaPouch.
           </div>
         )}
 
