@@ -33,9 +33,13 @@ export default function SearchNavbar() {
            alt=
              "VidaSearch logo"
            className=
-             "h-[42px] w-auto sm:h-[52px] lg:h-[60px]"
+             
+             "h-[42px] w-auto sm:h-[64px] lg:h-[72px]"
+             
          />
        </Link>
+
+       {/*"h-[42px] w-auto sm:h-[52px] lg:h-[60px]"*/}
 
        <nav
          aria-label=
