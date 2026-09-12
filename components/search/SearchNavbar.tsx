@@ -34,7 +34,7 @@ export default function SearchNavbar() {
              "VidaSearch logo"
            className=
              
-             "h-[42px] w-auto sm:h-[64px] lg:h-[72px]"
+             "h-[48px] w-auto sm:h-[58px] lg:h-[64px]"
              
          />
        </Link>
